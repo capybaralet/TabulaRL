@@ -9,8 +9,12 @@ import pandas as pd
 
 from shutil import copyfile
 
+from query_functions import AlwaysQuery
+
+
 def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
-                    recFreq=100, fileFreq=1000, targetPath='tmp.csv'):
+                    recFreq=100, fileFreq=1000, targetPath='tmp.csv',
+                    query_function=AlwaysQuery):
     '''
     A simple script to run a finite tabular MDP experiment
 
@@ -27,6 +31,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
     Returns:
         NULL - data is output to targetPath as csv file
     '''
+    query_function = query_function(env, agent)
     data = []
     qVals, qMax = env.compute_qVals()
     np.random.seed(seed)
@@ -56,7 +61,8 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             reward, newState, pContinue = env.advance(action)
             epReward += reward
 
-            agent.update_obs(oldState, action, reward, newState, pContinue, h)
+            query = query_function(oldState, action, ep, h)
+            agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
         cumReward += epReward
         cumRegret += epRegret

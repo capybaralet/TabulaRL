@@ -57,6 +57,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         self.mu0 = mu0
         self.tau0 = tau0
         self.tau = tau
+        self.observed_reward = 0
 
         self.qVals = {}
         self.qMax = {}
@@ -71,7 +72,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 self.P_prior[state, action] = (
                     self.alpha0 * np.ones(self.nState, dtype=np.float32))
 
-    def update_obs(self, oldState, action, reward, newState, pContinue, h):
+    def update_obs(self, oldState, action, reward, newState, pContinue, h, query=True):
         '''
         Update the posterior belief based on one transition.
 
@@ -86,10 +87,12 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         Returns:
             NULL - updates in place
         '''
-        mu0, tau0 = self.R_prior[oldState, action]
-        tau1 = tau0 + self.tau
-        mu1 = (mu0 * tau0 + reward * self.tau) / tau1
-        self.R_prior[oldState, action] = (mu1, tau1)
+        if query:
+            mu0, tau0 = self.R_prior[oldState, action]
+            tau1 = tau0 + self.tau
+            mu1 = (mu0 * tau0 + reward * self.tau) / tau1
+            self.R_prior[oldState, action] = (mu1, tau1)
+            self.observed_reward += reward
 
         if pContinue == 1:
             self.P_prior[oldState, action][newState] += 1
