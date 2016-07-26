@@ -76,13 +76,24 @@ def make_deterministic(epLen, nState, nAction, transition, rewards):
     env.P = P_true
     env.reset()
 
-    return env
+    prior = {}
 
+    """
+    #almost deterministic prior
+    for s in xrange(nState):
+        for a in xrange(nAction):
+            tps = np.zeros(nState)
+            tps[transition(s,a)] = 10000
+            prior[s, a] = tps 
+    env.P_prior = prior
+    """
+    return env
 
 nEps=1000
 epLen = 10 
 gap = .1
-alg = finite_tabular_agents.EpsilonGreedy #PSRL
+#alg = finite_tabular_agents.EpsilonGreedy #PSRL
+alg = finite_tabular_agents.PSRL
 scaling = 1
 seed = 1
 
@@ -90,6 +101,7 @@ targetPath = ('test.csv')
 
 # Make the environment
 env = make_deterministic(100, grid_width**2, 5, next_state, reward_probabilities)
+
 
 # Make the feature extractor
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
