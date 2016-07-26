@@ -33,7 +33,8 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
 
     def __init__(self, nState, nAction, epLen,
-                 alpha0=1., mu0=0., tau0=1., tau=1., **kwargs):
+                 alpha0=1., mu0=0., tau0=1., tau=1., 
+                 P_true=None, R_true=None, **kwargs):
         '''
         Tabular episodic learner for time-homoegenous MDP.
         Must be used together with true state feature extractor.
@@ -58,6 +59,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         self.tau0 = tau0
         self.tau = tau
         self.observed_reward = 0
+        self.__dict__.update(locals())#observed_reward = 0
 
         self.qVals = {}
         self.qMax = {}
@@ -142,8 +144,13 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         for s in xrange(self.nState):
             for a in xrange(self.nAction):
                 mu, tau = self.R_prior[s, a]
-                R_samp[s, a] = mu + np.random.normal() * 1./np.sqrt(tau)
+                if self.R_true:
+                    R_samp[s,a] = self.R_true[s,a][0]
+                else:
+                    R_samp[s, a] = mu + np.random.normal() * 1./np.sqrt(tau)
                 P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
+        if self.P_true is not None:
+            P_samp = self.P_true
 
         return R_samp, P_samp
 

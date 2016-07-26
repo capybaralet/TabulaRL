@@ -4,10 +4,14 @@ Script to run tabular experiments in batch mode.
 author: iosband@stanford.edu
 '''
 
+import numpy
 import numpy as np
 import pandas as pd
 import argparse
 import sys
+
+seed = 1
+numpy_rng  = numpy.random.RandomState(seed)
 
 import environment
 import finite_tabular_agents
@@ -16,8 +20,18 @@ from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 from environment import TabularMDP
 
+# PSRL / ENV params
+nEps=1000
+epLen = 10
+gap = .1
+#alg = finite_tabular_agents.EpsilonGreedy #PSRL
+alg = finite_tabular_agents.PSRL
+scaling = 1
+
+
+targetPath = ('test.csv')
 # hyper-parameters:
-grid_width = 3
+grid_width = 6
 prob_random_action = 0.1
 prob_random_reset = 0.001
 query_cost = .01
@@ -30,8 +44,8 @@ learning_rate = .1
 states = range(grid_width**2)
 
 # reward probabilities
-reward_probabilities = np.random.binomial(1, 1 - prob_zero_reward, len(states)) * np.random.uniform(0, 1, len(states))
-
+reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
+print reward_probabilities
 
 
 ##################################
@@ -60,6 +74,10 @@ def next_state(state, action):
 		return state
 
 def make_deterministic(epLen, nState, nAction, transition, rewards):
+    """
+    make the environment deterministic 
+        (and potentially makes the agent know that)
+    """
     R_true = {}
     P_true = {}
 
@@ -86,21 +104,13 @@ def make_deterministic(epLen, nState, nAction, transition, rewards):
             tps[transition(s,a)] = 10000
             prior[s, a] = tps 
     env.P_prior = prior
+    print prior
     """
     return env
 
-nEps=1000
-epLen = 10 
-gap = .1
-#alg = finite_tabular_agents.EpsilonGreedy #PSRL
-alg = finite_tabular_agents.PSRL
-scaling = 1
-seed = 1
-
-targetPath = ('test.csv')
 
 # Make the environment
-env = make_deterministic(100, grid_width**2, 5, next_state, reward_probabilities)
+env = make_deterministic(epLen, grid_width**2, 5, next_state, reward_probabilities)
 
 
 # Make the feature extractor
@@ -108,7 +118,8 @@ f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 # Make the agent
 agent = alg(env.nState, env.nAction, env.epLen,
-                          scaling=scaling)
+                          scaling=scaling, 
+                          P_true=env.P, R_true=env.R)
 
 # Run the experiment
 print targetPath
