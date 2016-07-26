@@ -58,32 +58,25 @@ def next_state(state, action):
 		return state - 1
 	else:
 		return state
-def make_gridworld(epLen):
-    nState = 
+
+def make_deterministic(epLen, nState, nAction, transition, rewards):
     R_true = {}
     P_true = {}
 
-    for a in xrange(nAction):
-        # Rewards are independent of action
-        R_true[0, a] = (0.5, 1)
-        R_true[1, a] = (1, 0)
-        R_true[2, a] = (0, 0)
+    for s in xrange(nState):
+        for a in xrange(nAction):
+            R_true[s, a] = (rewards[s], 0)
 
-        # Transitions are like a bandit
-        P_true[0, a] = np.array([0, pSuccess, 1 - pSuccess])
-        P_true[1, a] = np.array([0, 1, 0])
-        P_true[2, a] = np.array([0, 0, 1])
+            P_true[s, a] = np.zeros(nState)
+            #deterministic transitions
+            P_true[s, a][transition(s, a)] = 1
 
-    # The first action is a better action though
-    P_true[0, 0] = np.array([0, pSuccess + gap, 1 - (pSuccess + gap)])
+    env = TabularMDP(nState, nAction, epLen)
+    env.R = R_true
+    env.P = P_true
+    env.reset()
 
-    hardBanditMDP = TabularMDP(nState, nAction, epLen)
-    hardBanditMDP.R = R_true
-    hardBanditMDP.P = P_true
-    hardBanditMDP.reset()
-
-    return hardBanditMDP
-
+    return env
 
 
 nEps=1000
@@ -96,8 +89,7 @@ seed = 1
 targetPath = ('test.csv')
 
 # Make the environment
-env = environment.make_hardBanditMDP(epLen=epLen, gap=gap,
-                                     nAction=2, pSuccess=0.5)
+env = make_deterministic(100, grid_width**2, 5, next_state, reward_probabilities)
 
 # Make the feature extractor
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
