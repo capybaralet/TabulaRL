@@ -31,12 +31,12 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
     Returns:
         NULL - data is output to targetPath as csv file
     '''
-    query_function = query_function(env, agent)
     data = []
     qVals, qMax = env.compute_qVals()
     np.random.seed(seed)
 
     cumRegret = 0
+    cumQueryCost = 0
     cumReward = 0
     empRegret = 0
 
@@ -48,6 +48,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
         agent.update_policy(ep)
 
         epReward = 0
+        epQueryCost = 0 
         epRegret = 0
         pContinue = 1
 
@@ -56,15 +57,17 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             h, oldState = f_ext.get_feat(env)
 
             action = agent.pick_action(oldState, h)
+            query, queryCost = query_function(oldState, action, ep, h)
             epRegret += qVals[oldState, h].max() - qVals[oldState, h][action]
+            epQueryCost += queryCost
 
             reward, newState, pContinue = env.advance(action)
-            epReward += reward
+            epReward += reward 
 
-            query = query_function(oldState, action, ep, h)
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
         cumReward += epReward
+        cumQueryCost += epQueryCost
         cumRegret += epRegret
         empRegret += (epMaxVal - epReward)
 
@@ -79,7 +82,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
         # Logging to dataframe
         if ep % recFreq == 0:
             data.append([ep, epReward, cumReward, cumRegret, empRegret])
-            print 'episode:', ep, 'epReward:', epReward, 'cumRegret:', cumRegret
+            print 'episode:', ep, 'epReward:', epReward, 'epQueryCost:', epQueryCost, 'perf:', cumReward - cumQueryCost, 'cumRegret:', cumRegret
 
         if ep % max(fileFreq, recFreq) == 0:
             dt = pd.DataFrame(data,

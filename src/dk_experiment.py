@@ -119,10 +119,11 @@ f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 # Make the agent
 agent = alg(env.nState, env.nAction, env.epLen,
                           scaling=scaling, 
-                          P_true=env.P, R_true=env.R)
+                          P_true=env.P, R_true=False)
 
 # Run the experiment
 print targetPath
+query_function = query_functions.AlwaysQuery(env, agent, 2)
 run_finite_tabular_experiment(agent, env, f_ext, nEps, seed,
-                    recFreq=1000, fileFreq=10000, targetPath=targetPath)
+                    recFreq=1000, fileFreq=10000, targetPath=targetPath, query_function=query_function)
 
