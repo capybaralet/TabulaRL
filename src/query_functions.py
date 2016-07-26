@@ -43,6 +43,31 @@ class QueryFirstN(QueryFunction):
         self.count += 1
         query = self.count < self.n
         return query, query*self.queryCost
-#-------------------------------------------------------------------------------
 
 
+class RewardProportional(QueryFunction):
+    def __init__(self, env, agent, queryCost, constant):
+        self.__dict__.update(locals())
+
+    def __call__(self, state, action, episode, timestep):
+        total_expected = sum(self.agent.R_prior[s, a][0] for s in xrange(self.env.nState) for a in xrange(self.env.nAction))
+
+        if abs(total_expected ) > 0:
+            proportion = self.agent.R_prior[state, action][0] / total_expected
+        else:
+            proportion = .5
+
+        query = np.random.binomial(1, self.constant * proportion)
+        return query, query*self.queryCost
+
+class EntropyThreshold(QueryFunction):
+    def __init__(self, env, agent, queryCost, constant):
+        self.__dict__.update(locals())
+
+    def __call__(self, state, action, episode, timestep):
+        tau = self.agent.R_prior[state, action][1]
+        entropy = .5*np.log(2/tau*np.pi * np.e)
+
+
+        query = entropy < self.constant
+        return query, query*self.queryCost
