@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 import argparse
 import sys
+import query_functions
 
-seed = 1
+seed = 1#np.random.randint(10000) #1
 numpy_rng  = numpy.random.RandomState(seed)
 
 import environment
@@ -22,7 +23,7 @@ from environment import TabularMDP
 
 # PSRL / ENV params
 nEps=1000
-epLen = 10
+epLen = 50
 gap = .1
 #alg = finite_tabular_agents.EpsilonGreedy #PSRL
 alg = finite_tabular_agents.PSRL
@@ -123,7 +124,7 @@ agent = alg(env.nState, env.nAction, env.epLen,
 
 # Run the experiment
 print targetPath
-query_function = query_functions.AlwaysQuery(env, agent, 2)
+query_function = query_functions.QueryFirstNVisits(env, agent, 2, 4)
 run_finite_tabular_experiment(agent, env, f_ext, nEps, seed,
                     recFreq=1000, fileFreq=10000, targetPath=targetPath, query_function=query_function)
 
