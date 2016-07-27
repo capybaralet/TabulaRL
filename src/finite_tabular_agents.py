@@ -191,6 +191,11 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
         qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
 
+        T = {}
+        for s in range(self.nState):
+            for a in range(self.nAction):
+                T[s,a] = np.argmax(P[s,a])
+        
         for i in range(self.epLen):
             j = self.epLen - i - 1
             qMax[j] = np.zeros(self.nState, dtype=np.float32)
@@ -199,7 +204,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
 
                 for a in range(self.nAction):
-                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
+                    qVals[s, j][a] = R[s, a] + qMax[j +1][T[s,a]] #np.dot(P[s, a], qMax[j + 1])
 
                 qMax[j][s] = np.max(qVals[s, j])
 
