@@ -4,9 +4,11 @@ import numpy as np
 #-------------------------------------------------------------------------------
 
 class QueryFunction(object):
-    def __init__(self, environment, agent, queryCost):
+    def __init__(self, queryCost):
         self.__dict__.update(locals())
 
+    def setEnvAgent(self, env, agent):
+        self.__dict__.update(locals())
 
 class AlwaysQuery(QueryFunction):
     def __call__(self, state, action, episode, timestep):
@@ -16,7 +18,7 @@ class AlwaysQuery(QueryFunction):
 # query with time-dependent probability
 
 class DecayQueryProbability(QueryFunction):
-    def __init__(self, environment, agent, queryCost, decay):
+    def __init__(self, queryCost, decay):
         self.__dict__.update(locals())
 
     def __call__(self, state, action, episode, timestep):
@@ -25,7 +27,7 @@ class DecayQueryProbability(QueryFunction):
 
 
 class QueryFirstNVisits(QueryFunction):
-    def __init__(self, environment, agent, queryCost, n):
+    def __init__(self, queryCost, n):
         self.__dict__.update(locals())
         self.visit_count = defaultdict(lambda :0)
 
@@ -35,7 +37,7 @@ class QueryFirstNVisits(QueryFunction):
         return query, query*self.queryCost
 
 class QueryFirstN(QueryFunction):
-    def __init__(self, environment, agent, queryCost, n):
+    def __init__(self, queryCost, n):
         self.__dict__.update(locals())
         self.count = 0
 
@@ -46,7 +48,7 @@ class QueryFirstN(QueryFunction):
 
 
 class RewardProportional(QueryFunction):
-    def __init__(self, env, agent, queryCost, constant):
+    def __init__(self, queryCost, constant):
         self.__dict__.update(locals())
 
     def __call__(self, state, action, episode, timestep):
@@ -61,7 +63,7 @@ class RewardProportional(QueryFunction):
         return query, query*self.queryCost
 
 class EntropyThreshold(QueryFunction):
-    def __init__(self, env, agent, queryCost, constant):
+    def __init__(self, queryCost, constant):
         self.__dict__.update(locals())
 
     def __call__(self, state, action, episode, timestep):

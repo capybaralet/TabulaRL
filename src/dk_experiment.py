@@ -44,9 +44,11 @@ agent = alg(env.nState, env.nAction, env.epLen,
                           scaling=scaling, 
                           P_true=env.P, R_true=False)
 
-#query_function = query_functions.QueryFirstNVisits(env, agent, query_cost, 4)
-#query_function = query_functions.RewardProportional(env, agent, query_cost, .04)
-query_function = query_functions.EntropyThreshold(env, agent, query_cost, .5)
+#query_function = query_functions.QueryFirstNVisits(query_cost, 4)
+#query_function = query_functions.RewardProportional(agent, query_cost, .04)
+query_function = query_functions.EntropyThreshold(agent, query_cost, .5)
+
+query_function.setEnvAgent(env, agent)
 
 # Run the experiment
 run_finite_tabular_experiment(agent, env, f_ext, nEps, seed,

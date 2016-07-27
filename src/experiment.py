@@ -80,9 +80,11 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             recFreq = 10000
 
         # Logging to dataframe
+        perf = cumReward - cumQueryCost
+
         if ep % recFreq == 0:
             data.append([ep, epReward, cumReward, cumRegret, empRegret])
-            print 'episode:', ep, 'epReward:', epReward, 'epQueryCost:', epQueryCost, 'perf:', cumReward - cumQueryCost, 'cumRegret:', cumRegret
+            print 'episode:', ep, 'epReward:', epReward, 'epQueryCost:', epQueryCost, 'perf:', perf, 'cumRegret:', cumRegret
 
         if ep % max(fileFreq, recFreq) == 0:
             dt = pd.DataFrame(data,
@@ -91,10 +93,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             print 'Writing to file ' + targetPath
             dt.to_csv('tmp.csv', index=False, float_format='%.2f')
             copyfile('tmp.csv', targetPath)
-            print '****************************'
 
-    print '**************************************************'
-    print 'Experiment complete'
-    print '**************************************************'
+    return cumReward, cumQueryCost, perf, cumRegret
 
 
