@@ -71,5 +71,5 @@ class EntropyThreshold(QueryFunction):
         entropy = .5*np.log(2/tau*np.pi * np.e)
 
 
-        query = entropy < self.constant
+        query = entropy > self.constant
         return query, query*self.queryCost
