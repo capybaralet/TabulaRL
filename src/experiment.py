@@ -72,12 +72,16 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
         empRegret += (epMaxVal - epReward)
 
         # Variable granularity
-        if ep < 1e4:
+        if ep < 1e2:
+            recFreq = 10
+        elif ep < 1e3:
             recFreq = 100
-        elif ep < 1e5:
+        elif ep < 1e4:
             recFreq = 1000
-        else:
+        elif ep < 1e5:
             recFreq = 10000
+        else:
+            recFreq = 100000
 
         # Logging to dataframe
         perf = cumReward - cumQueryCost

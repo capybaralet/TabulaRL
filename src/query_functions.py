@@ -33,7 +33,7 @@ class QueryFirstNVisits(QueryFunction):
 
     def __call__(self, state, action, episode, timestep):
         self.visit_count[state, action] += 1
-        query = self.visit_count[state, action] < self.n
+        query = self.visit_count[state, action] <= self.n
         return query, query*self.queryCost
 
 class QueryFirstN(QueryFunction):
@@ -43,7 +43,7 @@ class QueryFirstN(QueryFunction):
 
     def __call__(self, state, action, episode, timestep):
         self.count += 1
-        query = self.count < self.n
+        query = self.count <= self.n
         return query, query*self.queryCost
 
 

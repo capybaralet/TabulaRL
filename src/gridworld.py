@@ -31,7 +31,7 @@ def make_gridworld(grid_width, epLen, rewards):
 
     for s in xrange(nState):
         for a in xrange(nAction):
-            R_true[s, a] = (rewards[s], 0)
+            R_true[s, a] = (rewards[s], 1)
 
             P_true[s, a] = np.zeros(nState)
             #deterministic transitions
