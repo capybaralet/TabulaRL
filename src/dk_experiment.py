@@ -19,6 +19,7 @@ import finite_tabular_agents
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 from environment import TabularMDP
+import query_functions
 
 # PSRL / ENV params
 nEps=1000
