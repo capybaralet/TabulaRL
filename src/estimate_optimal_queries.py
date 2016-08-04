@@ -37,7 +37,7 @@ can we use Rmax as a heuristic for what N should be??
 def sample_R(agent):
     return agent.sample_mdp()[0]
 
-sampled_R = sample_R(agent)
+#sampled_R = sample_R(agent)
 
 def sampled_rewards(agent, queries, sampled_R):
     """ queries[s,a] = # of queries to perform on (s,a) """
@@ -58,6 +58,65 @@ def estimate_performance(agent, sampled_rewards, query_cost, sampled_R):
         mu1 = (mu0 * tau0 + reward * self.tau * num_samples) / tau1
         updated_R[s,a] = mu1, tau1
     return max(agent.compute_qVals(updated_R, P_hat)[0]) - query_cost * sum(queries.values())
+
+
+import numpy as np
+import argparse
+import gridworld
+import query_functions
+import finite_tabular_agents
+
+seed = np.random.randint(10000) #1
+numpy_rng = np.random.RandomState(seed)
+
+from feature_extractor import FeatureTrueState
+from experiment import run_finite_tabular_experiment
+
+# AGENT
+alg = finite_tabular_agents.PSRL
+grid_width=8
+epLen = 15
+scaling=.1
+prob_zero_reward=.9
+seed=2
+
+nAction = 5
+states = range(grid_width**2)
+
+reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
+
+env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
+
+def runexp(env, agent, query_function, hasP=True):
+    query_function.setEnvAgent(env, agent)
+    f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
+
+    P_true =env.P
+    if not hasP: 
+        P_true=False
+
+    # Run the experiment
+    return run_finite_tabular_experiment(agent, env, f_ext, 1, seed,
+                        recFreq=1000, fileFreq=10000, targetPath='', query_function=query_function)   
+
+nperfs = []
+for n in range(4): 
+    perfs = []
+    for i in range(10):
+        agent = alg(env.nState, env.nAction, env.epLen,
+                                  scaling=scaling, 
+                                  P_true=env.P, R_true=False)
+
+        query_function = query_functions.QueryFirstNVisits(1, n)
+        env_sample = gridworld.make_mdp(env.nState, nAction, env.epLen, *agent.sample_mdp())
+
+        results = runexp(env_sample, agent, query_function)
+        perfs.append(results[2])
+    nperfs.append( np.mean(perfs))
+
+print nperfs
+        
+        
 
 
 

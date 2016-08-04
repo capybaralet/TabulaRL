@@ -148,7 +148,10 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                     R_samp[s,a] = self.R_true[s,a][0]
                 else:
                     R_samp[s, a] = mu + np.random.normal() * 1./np.sqrt(tau)
-                P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
+
+                if self.P_true is not None:
+                    P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
+
         if self.P_true is not None:
             P_samp = self.P_true
 
