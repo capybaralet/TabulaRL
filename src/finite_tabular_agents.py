@@ -317,6 +317,15 @@ class PSRL(FiniteHorizonTabularAgent):
         # Sample the MDP
         R_samp, P_samp = self.sample_mdp()
 
+        def clamp_r(sa, r): 
+            if self.query_function.query_no_increment(*sa):
+                print "sample"
+                return r
+            else:
+                return self.R_prior[sa][0]
+
+        R_samp = { sa : clamp_r(sa, r) for sa, r in R_samp.iteritems() }
+
         # Solve the MDP via value iteration
         qVals, qMax = self.compute_qVals(R_samp, P_samp)
 

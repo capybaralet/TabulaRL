@@ -32,9 +32,12 @@ class QueryFirstNVisits(QueryFunction):
         self.visit_count = defaultdict(lambda :0)
 
     def __call__(self, state, action, episode, timestep):
+        query = self.visit_count[state, action] < self.n
         self.visit_count[state, action] += 1
-        query = self.visit_count[state, action] <= self.n
         return query, query*self.queryCost
+
+    def query_no_increment(self, state, action):
+        return self.visit_count[state, action] < self.n
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):

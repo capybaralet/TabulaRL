@@ -47,6 +47,7 @@ def sampled_rewards(agent, queries, sampled_R):
 
 # TODO: we could also try sampling the rewards independently for each value of n 
 #        (this would make the comparison btw different ns more stochastic)
+
 def estimate_performance(agent, sampled_rewards, query_cost, sampled_R):
     """ we pass the first n sampled_rewards from the function above"""
     R_hat, P_hat = agent.map_mdp()
@@ -100,15 +101,16 @@ def runexp(env, agent, query_function, hasP=True):
                         recFreq=1000, fileFreq=10000, targetPath='', query_function=query_function)   
 
 nperfs = []
-for n in range(4): 
+for n in range(0, 1): 
     perfs = []
     for i in range(10):
         agent = alg(env.nState, env.nAction, env.epLen,
                                   scaling=scaling, 
                                   P_true=env.P, R_true=False)
 
-        query_function = query_functions.QueryFirstNVisits(1, n)
+        query_function = query_functions.QueryFirstNVisits(.0, n)
         env_sample = gridworld.make_mdp(env.nState, nAction, env.epLen, *agent.sample_mdp())
+        agent.query_function = query_function
 
         results = runexp(env_sample, agent, query_function)
         perfs.append(results[2])
