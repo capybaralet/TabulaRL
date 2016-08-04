@@ -6,11 +6,14 @@
 \usepackage{amsfonts}
 \usepackage{mathtools}
 
+
 \title{Choosing Which Queries to Make}
 \author{David Krueger, John Salvatier}
 \date{August 2016} 
 \begin{document}
 \maketitle
+
+
 
 
 We're proposing a few methods for how to choose the number of queries per state-action in model-based active RL.
@@ -28,8 +31,22 @@ Since we care about our cost during learning, we'd like a way to choose $n$ befo
 % Simulated Query Rollouts
 % TODO
 \section{A Proposal for Tuning $n$}
-We propose tuning $n$ via Simulated Query Rollouts (SQR).
+We propose tuning $n$ via Simulated Query Rollouts (SQR). 
 
+The basic idea is to pick $n$, sample $r$ several times to compute how well PSRL does with that $n$. 
+  
+\begin{enumerate}
+    \item For $i < O$
+    \item Sample $\{\tilde{r}\} \sim \tilde{\mathcal{R}}$.
+    \item For each query number $n < N $.
+    \item Simulate PSRL using $\{\tilde{r}\}$ as the ground truth.
+    \item compute actual performance from the discounted returns minus discounted query costs. $ P_{n,i} = \sum_{t=0} \gamma^i (r_t - \mathbb{I}[q_{t,s,a} < n]c)  $.
+    \item Then use $n = \mathop{\mathrm{argmax}}\limits_n \mathbb{E}({P_n}) $
+\end{enumerate}
+
+The running time to compute $n$ here is roughly $N * O * \mathop{PSRL}(S, A, T) $
+
+As $O$ gets large, the expectation of the performance should be accurate and $n$ will be optimal. Of course the computation is relatively inefficient. 
 
 % Approximate Simulated Query Rollouts
 \section{A Cheaper Approximation}
