@@ -1,0 +1,71 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+
+\title{Choosing Which Queries to Make}
+\author{David Krueger, John Salvatier}
+\date{August 2016} 
+\begin{document}
+\maketitle
+
+
+We're proposing a few methods for how to choose the number of queries per state-action in model-based active RL.
+We consider the tabular MDP case, with state and actions sets $\mathcal{S}, \mathcal{A}$, and transition and reward functions $\mathcal{T}, \mathcal{R}$.
+
+We suppose each query has a fixed cost of $c$, and let $\mathcal{Q} := \mathbb{N}^{| \mathcal{S} \times \mathcal{A} |}$ represent the set of all possible sets of queries.
+Then let $q_t \in \mathcal{Q}$ be the set of queries which have been performed at time $t$.
+We can make our decision to query (or not) by specifying some \emph{desired query set}, $q^{max}_t \in \mathcal{Q}$, representing to set of all queries we'd like to make, and querying whenever we have not yet made all of those queries, i.e. if $q_t < q^{max}_t$.
+
+Our baseline heuristic considers a fixed desired query set, $q^{max}_t = (n,...,n)$, with $n$ as a hyperparameter.
+It seems clear that the optimal $n \rightarrow \infty$ as $c \rightarrow 0$, or $\gamma \rightarrow 1$, and $n \rightarrow 0$ as $c \rightarrow \infty$ or $\gamma \rightarrow 0$.
+But it's not clear what specific value of $n$ to choose.
+Since we care about our cost during learning, we'd like a way to choose $n$ before learning (or adjusting it during learning).
+
+% Simulated Query Rollouts
+% TODO
+\section{A Proposal for Tuning $n$}
+We propose tuning $n$ via Simulated Query Rollouts (SQR).
+
+
+% Approximate Simulated Query Rollouts
+\section{A Cheaper Approximation}
+We now present a procedure for Approximate Simulated Query Rollout (ASQR).
+To remove the need to run PSRL at step 3 in the loop of SQR, we can instead:
+
+\begin{enumerate}
+\item Simulate all of the queries in the desired query set via sampling the necessary $\{\tilde{r}\} \sim \tilde{\mathcal{R}}$.
+\item Update $P_{agent} (\mathcal{R} | \{\tilde{r}\})$ using Bayes theorem.
+\item Do planning and compute expected performance using the expected rewards under this updated posterior (and the cost of all the simulated queries).
+\end{enumerate}
+
+This only involves one iteration of planning, unlike PSRL, which performs planning numerous times in the loop.
+This approach may under-estimate performance because the actual PSRL agent might not end up making all of the desired queries (and hence pay less query cost).
+Or it may over-estimate performance, since the PSRL agent does not have the benefit of observing the queries up-front, and must make decisions with less information during learning.
+These differences would be especially large when many states or important states are not very reachable (and so would be queried more slowly or less often by the PSRL agent).
+
+\section{Further Extensions}
+We can run the above algorithms at any time during learning, in order to dynamically adjust our desired query set based on new information we've acquired.
+At a high level, this is analogous to the way Thompson Sampling resamples throughout learning.
+
+Since querying each state equally often is likely highly suboptimal, we'd like to consider a broader class of desired query sets, but the number of such sets grows exponentially in the total number of queries.
+We believe techniques for linear bandits might be used to specify the priority of each possible query at a given moment, thus specifying a strict total order over desired query sets (with the smallest element being the queries already performed).
+Then we could use the above techniques to instead tune which index in this order to select as $q^{max}_t$ at any given $t$.
+
+The connection with linear bandits comes from viewing each state, action pair, $(s,a)$, as one dimension of arm-space.
+Note that given transition operator $\mathcal{T}$, each policy, $\pi$ induces a distribution over $(s,a)$, and hence a point on the $L_1$ sphere in arm-space.
+Unlike a standard linear bandit, however, our queries are restricted to standard basis vectors, while only the arms corresponding to valid policies can ultimately be exploited.
+Furthermore, an agent must visit a state, action in order to query it (although notably, this is \emph{not} the case for ASQR.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliographystyle{plainnat}
+%\bibliographystyle{plain}
+\bibliography{references}
+\end{document}
