@@ -36,6 +36,11 @@ class QueryFirstNVisits(QueryFunction):
         query = self.visit_count[state, action] <= self.n
         return query, query*self.queryCost
 
+    # We can rewrite all query functions to use this subroutine when called
+    def will_query(self, state, action):
+        return self.visit_count[state, action] <= self.n
+
+# first n times
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())

@@ -32,6 +32,9 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
     '''
 
+    
+    # FIXME: self.tau is WEIRD!  need to understand this Gaussian Bayesian updating thing better (or go back to Beta-Bernoulli...)
+    # FIXME: P_true, R_true need to be accounted for (everywhere!)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
                  P_true=None, R_true=None, **kwargs):
@@ -154,6 +157,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
         return R_samp, P_samp
 
+    # this appears to be the "expected MDP" as I was calling it
     def map_mdp(self):
         '''
         Returns the maximum a posteriori MDP from the posterior.
@@ -313,6 +317,16 @@ class PSRL(FiniteHorizonTabularAgent):
         '''
         # Sample the MDP
         R_samp, P_samp = self.sample_mdp()
+
+        # If we're done querying a given (s,a) pair, use the expected reward, instead of sampling the reward.
+        # TODO: otherwise, we should add (something related to) the query cost
+        def clamp_r(sa, r): 
+            if self.query_function.will_query(*sa):
+                print "sample"
+                return r
+            else:
+                return self.R_prior[sa][0]
+        R_samp = { sa : clamp_r(sa, r) for sa, r in R_samp.iteritems() }
 
         # Solve the MDP via value iteration
         qVals, qMax = self.compute_qVals(R_samp, P_samp)

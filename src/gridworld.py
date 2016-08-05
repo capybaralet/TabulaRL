@@ -1,6 +1,9 @@
 import numpy as np
 from environment import TabularMDP
 
+# differences with q-learning environoment:
+#   deterministic
+#   Gaussian reward function
 def make_gridworld(grid_width, epLen, rewards):
     """
     make the environment deterministic 
