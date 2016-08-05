@@ -34,7 +34,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
-                 P_true=None, R_true=None, **kwargs):
+                 P_true=None, R_true=None, query_function=None, stop_learning=True, **kwargs):
         '''
         Tabular episodic learner for time-homoegenous MDP.
         Must be used together with true state feature extractor.
@@ -207,7 +207,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
 
                 for a in range(self.nAction):
-                    qVals[s, j][a] = R[s, a] + qMax[j +1][T[s,a]] #np.dot(P[s, a], qMax[j + 1])
+                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])   #qMax[j +1][T[s,a]] 
 
                 qMax[j][s] = np.max(qVals[s, j])
 
@@ -308,6 +308,22 @@ class PSRL(FiniteHorizonTabularAgent):
     Posterior Sampling for Reinforcement Learning
     '''
 
+    def sample_mdp_to_plan(self):
+        # Sample the MDP
+        R_samp, P_samp = self.sample_mdp()
+
+        def thompson_or_not(sa, r): 
+            if self.query_function.query_no_increment(*sa):
+                return r
+            else:
+                return self.R_prior[sa][0]
+
+        if self.stop_learning:
+            R_samp = { sa : thompson_or_not(sa, r) for sa, r in R_samp.iteritems() }
+
+        return R_samp, P_samp
+
+
     def update_policy(self, h=False):
         '''
         Sample a single MDP from the posterior and solve for optimal Q values.
@@ -315,16 +331,7 @@ class PSRL(FiniteHorizonTabularAgent):
         Works in place with no arguments.
         '''
         # Sample the MDP
-        R_samp, P_samp = self.sample_mdp()
-
-        def clamp_r(sa, r): 
-            if self.query_function.query_no_increment(*sa):
-                print "sample"
-                return r
-            else:
-                return self.R_prior[sa][0]
-
-        R_samp = { sa : clamp_r(sa, r) for sa, r in R_samp.iteritems() }
+        R_samp, P_samp = self.sample_mdp_to_plan()
 
         # Solve the MDP via value iteration
         qVals, qMax = self.compute_qVals(R_samp, P_samp)

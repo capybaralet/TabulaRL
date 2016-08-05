@@ -1,6 +1,9 @@
 import numpy as np
 from environment import TabularMDP
 
+def R_normal_dist_to_expectation(R):
+    return { k : v[0] for k, v in R.iteritems() }
+
 def make_gridworld(grid_width, epLen, rewards):
     """
     make the environment deterministic 
