@@ -74,12 +74,16 @@ from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 
 # AGENT
-alg = finite_tabular_agents.PSRL
+def makeAgent(n):
+    query_function = query_functions.QueryFirstNVisits(query_cost, n)
+    return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+                              scaling=scaling, 
+                              P_true=env.P, R_true=False, query_function=query_function)
 grid_width=8
 epLen = 15
 scaling=.1
 prob_zero_reward=.9
-seed=2
+query_cost=.5
 
 nAction = 5
 states = range(grid_width**2)
@@ -89,7 +93,6 @@ reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) 
 env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
 
 def runexp(env, agent, query_function, hasP=True):
-    query_function.setEnvAgent(env, agent)
     f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
     P_true =env.P
@@ -100,30 +103,23 @@ def runexp(env, agent, query_function, hasP=True):
     return run_finite_tabular_experiment(agent, env, f_ext, 1, seed,
                         recFreq=1000, fileFreq=10000, targetPath='', query_function=query_function)   
 
-nperfs = []
-for n in range(0, 1): 
-    perfs = []
-    for i in range(10):
-        agent = alg(env.nState, env.nAction, env.epLen,
-                                  scaling=scaling, 
-                                  P_true=env.P, R_true=False)
+def sample_real_mdp(agent): 
+    return gridworld.make_mdp(agent.nState, agent.nAction, agent.epLen, *agent.sample_mdp())
 
-        query_function = query_functions.QueryFirstNVisits(.0, n)
-        env_sample = gridworld.make_mdp(env.nState, nAction, env.epLen, *agent.sample_mdp())
-        agent.query_function = query_function
-
-        results = runexp(env_sample, agent, query_function)
-        perfs.append(results[2])
-    nperfs.append( np.mean(perfs))
-
-print nperfs
-        
-        
+def rollout_performance(makeAgent, n): 
+    agent = makeAgent(n)
+    return runexp(sample_real_mdp(agent), agent, agent.query_function)
 
 
+def performance_rollouts (makeAgent, ns, iters):
+    return np.array([[rollout_performance(makeAgent, n) for i in range(iters)] for n in ns])
+
+def average_performance(makeAgent, ns, iters):
+    return np.mean(performance_rollouts(makeAgent, ns, iters), axis=1)
 
 
-
+p = average_performance(makeAgent, range(0,4), 10)
+print p
 
 
 
