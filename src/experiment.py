@@ -34,8 +34,6 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
     qVals, qMax = env.compute_qVals()
     np.random.seed(seed)
 
-    agent.query_function.setEnvAgent(env, agent)
-
     cumRegret = 0
     cumQueryCost = 0
     cumReward = 0

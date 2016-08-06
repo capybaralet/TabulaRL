@@ -61,6 +61,8 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         self.observed_reward = 0
         self.__dict__.update(locals())#observed_reward = 0
 
+        self.query_function.setAgent(self)
+
         self.qVals = {}
         self.qMax = {}
 

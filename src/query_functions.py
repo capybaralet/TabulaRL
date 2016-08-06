@@ -7,7 +7,7 @@ class QueryFunction(object):
     def __init__(self, queryCost):
         self.__dict__.update(locals())
 
-    def setEnvAgent(self, env, agent):
+    def setAgent(self, agent):
         self.__dict__.update(locals())
 
 class AlwaysQuery(QueryFunction):
@@ -55,7 +55,7 @@ class RewardProportional(QueryFunction):
         self.__dict__.update(locals())
 
     def __call__(self, state, action, episode, timestep):
-        total_expected = sum(self.agent.R_prior[s, a][0] for s in xrange(self.env.nState) for a in xrange(self.env.nAction))
+        total_expected = sum(self.agent.R_prior[s, a][0] for s in xrange(self.agent.nState) for a in xrange(self.agent.nAction))
 
         if abs(total_expected ) > 0:
             proportion = self.agent.R_prior[state, action][0] / total_expected
