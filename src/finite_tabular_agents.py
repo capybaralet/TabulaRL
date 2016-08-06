@@ -304,15 +304,37 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 #-----------------------------------------------------------------------------
 # PSRL
 #-----------------------------------------------------------------------------
-
 class PSRL(FiniteHorizonTabularAgent):
     '''
     Posterior Sampling for Reinforcement Learning
     '''
 
-    def sample_mdp_to_plan(self):
+    def update_policy(self, h=False):
+        '''
+        Sample a single MDP from the posterior and solve for optimal Q values.
+        Works in place with no arguments.
+        '''
         # Sample the MDP
         R_samp, P_samp = self.sample_mdp()
+
+        # Solve the MDP via value iteration
+        qVals, qMax = self.compute_qVals(R_samp, P_samp)
+
+        # Update the Agent's Q-values
+        self.qVals = qVals
+        self.qMax = qMax
+
+
+class PSRLLimitedQuery(PSRL):
+    '''
+    Posterior Sampling for Reinforcement Learning
+    '''
+
+    def sample_mdp(self):
+        '''
+        Sample MDP but clamp rewards if we're no longer learning them.
+        '''
+        R_samp, P_samp = FiniteHorizonTabularAgent.sample_mdp(self)
 
         def thompson_or_not(sa, r): 
             if self.query_function.query_no_increment(*sa):
@@ -324,23 +346,6 @@ class PSRL(FiniteHorizonTabularAgent):
             R_samp = { sa : thompson_or_not(sa, r) for sa, r in R_samp.iteritems() }
 
         return R_samp, P_samp
-
-
-    def update_policy(self, h=False):
-        '''
-        Sample a single MDP from the posterior and solve for optimal Q values.
-
-        Works in place with no arguments.
-        '''
-        # Sample the MDP
-        R_samp, P_samp = self.sample_mdp_to_plan()
-
-        # Solve the MDP via value iteration
-        qVals, qMax = self.compute_qVals(R_samp, P_samp)
-
-        # Update the Agent's Q-values
-        self.qVals = qVals
-        self.qMax = qMax
 
 #-----------------------------------------------------------------------------
 # PSRL

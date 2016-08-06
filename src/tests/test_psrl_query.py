@@ -31,7 +31,7 @@ def test_riverSwim_qMax():
     qMaxActual = compute_qMax(T, n)
 
     query_function = query_functions.QueryFirstNVisits(0, np.inf)
-    agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               P_true=env.P, R_true=False, query_function=query_function)
 
     R = gridworld.R_normal_dist_to_expectation(env.R)
@@ -53,7 +53,7 @@ def test_riverSwim_known_r():
     qMaxActual = compute_qMax(T, n)
 
     query_function = query_functions.QueryFirstNVisits(0, np.inf)
-    agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               P_true=env.P, R_true=env.R, query_function=query_function)
 
     agent.update_policy()
@@ -76,7 +76,7 @@ def test_riverSwim_much_iteration():
     qMaxActual = compute_qMax(T, n)
 
     query_function = query_functions.QueryFirstNVisits(0, 1000)
-    agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               P_true=env.P, R_true=None, query_function=query_function)
 
     f_ext = feature_extractor.FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
@@ -104,7 +104,7 @@ def test_riverSwim_much_iteration():
     qMaxActual = compute_qMax(T, n)
 
     query_function = query_functions.QueryFirstNVisits(0, nquery)
-    agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               P_true=env.P, R_true=None, query_function=query_function)
     
 
