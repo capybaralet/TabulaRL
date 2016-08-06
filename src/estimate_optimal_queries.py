@@ -67,18 +67,13 @@ import gridworld
 import query_functions
 import finite_tabular_agents
 
-seed = np.random.randint(10000) #1
+seed = 1 
 numpy_rng = np.random.RandomState(seed)
 
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 
 # AGENT
-def makeAgent(n):
-    query_function = query_functions.QueryFirstNVisits(query_cost, n)
-    return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
-                              scaling=scaling, 
-                              P_true=env.P, R_true=False, query_function=query_function)
 grid_width=8
 epLen = 15
 scaling=.1
@@ -91,8 +86,13 @@ states = range(grid_width**2)
 reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
 
 env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
+def makeAgent(n):
+    query_function = query_functions.QueryFirstNVisits(query_cost, n)
+    return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+                              scaling=scaling, 
+                              P_true=env.P, R_true=False, query_function=query_function)
 
-def runexp(env, agent, query_function, hasP=True):
+def runexp(env, agent, hasP=True):
     f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
     P_true =env.P
@@ -100,15 +100,17 @@ def runexp(env, agent, query_function, hasP=True):
         P_true=False
 
     # Run the experiment
+    global seed
+    seed += 1
     return run_finite_tabular_experiment(agent, env, f_ext, 1, seed,
-                        recFreq=1000, fileFreq=10000, targetPath='', query_function=query_function)   
+                        recFreq=1000, fileFreq=10000, targetPath='')   
 
 def sample_real_mdp(agent): 
     return gridworld.make_mdp(agent.nState, agent.nAction, agent.epLen, *agent.sample_mdp())
 
 def rollout_performance(makeAgent, n): 
     agent = makeAgent(n)
-    return runexp(sample_real_mdp(agent), agent, agent.query_function)
+    return runexp(sample_real_mdp(agent), agent)
 
 
 def performance_rollouts (makeAgent, ns, iters):
