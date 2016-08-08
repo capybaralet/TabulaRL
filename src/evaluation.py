@@ -15,6 +15,11 @@ def plot_regret(load_str=load_str):
     plot(eps, perfs)
 
 
+def compute_performance(cum_reward, perf, query_cost_multiplier):
+    query_cost = cum_reward - perf
+    return cum_reward - query_cost * query_cost_multiplier
+
+
 def plot_performance(load_str, query_cost=None):
     filename = load_str.split('/')[-1]
     orig_query_cost = float(filename.split('__')[0].split("=")[1])
