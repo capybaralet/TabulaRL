@@ -33,7 +33,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
 
     
-    # FIXME: self.tau is WEIRD!  need to understand this Gaussian Bayesian updating thing better (or go back to Beta-Bernoulli...)
     # FIXME: P_true, R_true need to be accounted for (everywhere!)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
@@ -325,7 +324,7 @@ class PSRL(FiniteHorizonTabularAgent):
         # TODO: otherwise, we should add (something related to) the query cost
         def clamp_r(sa, r): 
             if self.query_function.will_query(*sa):
-                print "sample"
+                #print "sample"
                 return r
             else:
                 return self.R_prior[sa][0]

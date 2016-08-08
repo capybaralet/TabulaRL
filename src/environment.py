@@ -228,7 +228,7 @@ def make_deterministicChain(nState, epLen):
 
     return chainMDP
 
-def make_stochasticChain(chainLen):
+def make_stochasticChain(chainLen, max_reward=1):
     '''
     Creates a difficult stochastic chain MDP with two actions.
 
@@ -253,7 +253,7 @@ def make_stochasticChain(chainLen):
 
     # Rewards
     R_true[0, 0] = (0, 1)
-    R_true[nState - 1, 1] = (1, 1)
+    R_true[nState - 1, 1] = (max_reward, 1)
 
     # Transitions
     for s in xrange(nState):

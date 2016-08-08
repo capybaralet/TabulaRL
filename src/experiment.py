@@ -13,7 +13,9 @@ from query_functions import AlwaysQuery
 
 
 def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
-                    recFreq=100, fileFreq=1000, targetPath='tmp.csv'):
+                    recFreq=100, fileFreq=1000, targetPath='tmp.csv',
+                    query_function=AlwaysQuery,
+                    printing=True):
     '''
     A simple script to run a finite tabular MDP experiment
 
@@ -32,7 +34,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
     '''
     data = []
     qVals, qMax = env.compute_qVals()
-    np.random.seed(seed)
+    #np.random.seed(seed)
 
     cumRegret = 0
     cumQueryCost = 0
@@ -82,17 +84,19 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
         else:
             recFreq = 100000
 
+        # TODO: clean-up logging (print / save the same stuff!)
         # Logging to dataframe
         perf = cumReward - cumQueryCost
 
         if ep % recFreq == 0:
-            data.append([ep, epReward, cumReward, cumRegret, empRegret])
-            print 'episode:', ep, 'epReward:', epReward, 'epQueryCost:', epQueryCost, 'perf:', perf, 'cumRegret:', cumRegret
+            data.append([ep, epReward, cumReward, cumRegret, empRegret, perf])
+            if printing:
+                print 'episode:', ep, 'epReward:', epReward, 'epQueryCost:', epQueryCost, 'perf:', perf, 'cumRegret:', cumRegret
 
         if ep % max(fileFreq, recFreq) == 0:
             dt = pd.DataFrame(data,
                               columns=['episode', 'epReward', 'cumReward',
-                                       'cumRegret', 'empRegret'])
+                                       'cumRegret', 'empRegret', 'perf'])
             print 'Writing to file ' + targetPath
             dt.to_csv('tmp.csv', index=False, float_format='%.2f')
             copyfile('tmp.csv', targetPath)

@@ -6,6 +6,8 @@
 \usepackage{amsfonts}
 \usepackage{mathtools}
 
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 
 \title{Choosing Which Queries to Make}
 \author{David Krueger, John Salvatier}
@@ -18,51 +20,78 @@
 
 We're proposing a few methods for how to choose the number of queries per state-action in model-based active RL.
 We consider the tabular MDP case, with state and actions sets $\mathcal{S}, \mathcal{A}$, and transition and reward functions $\mathcal{T}, \mathcal{R}$.
+We use $r$ to denote instantaneous rewards.
 
 We suppose each query has a fixed cost of $c$, and let $\mathcal{Q} := \mathbb{N}^{| \mathcal{S} \times \mathcal{A} |}$ represent the set of all possible sets of queries.
 Then let $q_t \in \mathcal{Q}$ be the set of queries which have been performed at time $t$.
 We can make our decision to query (or not) by specifying some \emph{desired query set}, $q^{max}_t \in \mathcal{Q}$, representing to set of all queries we'd like to make, and querying whenever we have not yet made all of those queries, i.e. if $q_t < q^{max}_t$.
 
+We measure performance as returns minus total query cost, i.e. $c$ times the number of queries performed.
 Our baseline heuristic considers a fixed desired query set, $q^{max}_t = (n,...,n)$, with $n$ as a hyperparameter.
 It seems clear that the optimal $n \rightarrow \infty$ as $c \rightarrow 0$, or $\gamma \rightarrow 1$, and $n \rightarrow 0$ as $c \rightarrow \infty$ or $\gamma \rightarrow 0$.
 But it's not clear what specific value of $n$ to choose.
 Since we care about our cost during learning, we'd like a way to choose $n$ before learning (or adjusting it during learning).
 
+We use the $\mathop{PSRL}$ algorithm with a slight modification: we fix the agent's prior over rewards for a given state and action to be its expectation when no more queries of that state-action pair will be performed.
+% NTS: when we have an idea of how many queries remain, we can use that to both:
+%	account for the cost of the queries somehow
+%	smooth the distribution towards a delta (i.e. artificially decrease variance)
+We use $\mathop{PSRL}_n$ to denote this modification of $\mathop{PSRL}$ using with $q^{max}_t = (n,...,n)$.
+
 % Simulated Query Rollouts
-% TODO
 \section{A Proposal for Tuning $n$}
 We propose tuning $n$ via Simulated Query Rollouts (SQR). 
 
-The basic idea is to pick $n$, sample $r$ several times to compute how well PSRL does with that $n$. 
-  
-\begin{enumerate}
-    \item For $i < O$
-    \item Sample $\{\tilde{r}\} \sim \tilde{\mathcal{R}}$.
-    \item For each query number $n < N $.
-    \item Simulate PSRL using $\{\tilde{r}\}$ as the ground truth.
-    \item compute actual performance from the discounted returns minus discounted query costs. $ P_{n,i} = \sum_{t=0} \gamma^i (r_t - \mathbb{I}[q_{t,s,a} < n]c)  $.
-    \item Then use $n = \mathop{\mathrm{argmax}}\limits_n \mathbb{E}({P_n}) $
-\end{enumerate}
+The basic idea is to sample $k$ different reward functions (or, more generally, environments) $\mathcal{\tilde{R}}_1, ..., \mathcal{\tilde{R}}_k$ from the agent's prior on $\mathcal{R}$, and evaluate the agent's performance on each of these simulated worlds for different query strategies, e.g. different values of $n$.
+We then use the best performing query strategy to act in the real environment.
+This strategy may be sensitive to differences between the prior and the real environment.
 
-The running time to compute $n$ here is roughly $N * O * \mathop{PSRL}(S, A, T) $
 
-As $O$ gets large, the expectation of the performance should be accurate and $n$ will be optimal. Of course the computation is relatively inefficient. 
+
+\begin{algorithm}
+\caption{Simulated Query Rollouts}
+\label{SQR}
+\begin{algorithmic}[1]
+\For{$i \in \{1,...,k\}$}
+	\State Sample $\tilde{\mathcal{R}_i} \sim P(\mathcal{R})$
+	\State Sample $\{\tilde{r}\}_i \sim \tilde{\mathcal{R}_i}$
+	\For {$n \in \{0, ..., N\}$}
+		\State Run $\mathop{PSRL}_n$, using pre-sampled rewards $\{\tilde{r}\}_i$.
+		\State Record the resulting performance: $\mathit{perf}_i(\mathop{PSRL}_n)$
+		% \item compute actual performance from the discounted returns minus discounted query costs. $ P_{n,i} = \sum_{t=0} \gamma^i (r_t - \mathbb{I}[q_{t,s,a} < n]c)  $.
+	\EndFor
+\EndFor
+\Return $n = \mathop{\mathrm{argmax}} \frac{1}{k} \sum_{i=1}^k \mathit{perf}_i(\mathop{PSRL}_n)$ 
+%\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Note that 
+$$
+\lim_{k \rightarrow \infty} \frac{1}{k} \sum_{i=1}^k \mathit{perf}_i(\mathop{PSRL}_n) = \mathbb{E} \: \mathit{\mathop{PSRL}perf}(\mathop{PSRL}_n).
+$$
+Also, note that we propose using the same instantaneous sampled rewards $\{\tilde{r}\}_i$ for each value of $n$ in each environment $\tilde{\mathcal{R}_i}$, in order to reduce stochasticity.
+
+The running time to compute $n$ here is roughly $N * k * \mathop{PSRL}(S, A, T) $
+
+%As $k$ gets large, the expectation of the performance should be accurate and $n$ will be optimal. Of course the computation is relatively inefficient. 
+% ^ is this true?  Doesn't it depend on how well our prior matches the ground truth??
 
 % Approximate Simulated Query Rollouts
 \section{A Cheaper Approximation}
 We now present a procedure for Approximate Simulated Query Rollout (ASQR).
-To remove the need to run PSRL at step 3 in the loop of SQR, we can instead:
+To remove the need to run $\mathop{PSRL}$ in line 5 of SQR (Algorithm~\ref{SQR}), we can instead:
 
 \begin{enumerate}
-\item Simulate all of the queries in the desired query set via sampling the necessary $\{\tilde{r}\} \sim \tilde{\mathcal{R}}$.
-\item Update $P_{agent} (\mathcal{R} | \{\tilde{r}\})$ using Bayes theorem.
-\item Do planning and compute expected performance using the expected rewards under this updated posterior (and the cost of all the simulated queries).
+%\item Simulate all of the queries in the desired query set via sampling the necessary $\{\tilde{r}\} \sim \tilde{\mathcal{R}}$.
+\item Update the agent's posterior over reward functions using all the queries in its desired query set.% $P_{agent} (\mathcal{R} | \{\tilde{r}\}_i)$ .
+\item Do planning and compute expected performance under this updated posterior (subtracting the cost of all the simulated queries).
 \end{enumerate}
 
-This only involves one iteration of planning, unlike PSRL, which performs planning numerous times in the loop.
-This approach may under-estimate performance because the actual PSRL agent might not end up making all of the desired queries (and hence pay less query cost).
-Or it may over-estimate performance, since the PSRL agent does not have the benefit of observing the queries up-front, and must make decisions with less information during learning.
-These differences would be especially large when many states or important states are not very reachable (and so would be queried more slowly or less often by the PSRL agent).
+This only involves one iteration of planning, unlike $\mathop{PSRL}$, which performs planning numerous times, e.g. once per episode.
+This approach may under-estimate performance because the actual $\mathop{PSRL}$ agent might not end up making all of the desired queries (and hence pay less query cost).
+Or it may over-estimate performance, since the $\mathop{PSRL}$ agent does not have the benefit of observing the queries up-front, and must make decisions with less information during learning.
+These differences would be especially large when many states or important states are not very reachable (and so would be queried more slowly or less often by the $\mathop{PSRL}$ agent).
 
 \section{Further Extensions}
 We can run the above algorithms at any time during learning, in order to dynamically adjust our desired query set based on new information we've acquired.

@@ -5,7 +5,7 @@ To start with, we assume that T is known (probably it's simple to extend to unkn
 
 We do the following (k times):
     Sample a reward function, R ~ P(R)
-        Optional: estimate optimal returns via planning with R
+        Estimate optimal returns via planning with R
     Sample N queries from R for every (s,a) pair
         For every n in {1, ..., N}:
             Compute a new posterior P(R | first n sampled queries)

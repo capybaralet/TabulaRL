@@ -9,6 +9,7 @@ class QueryFunction(object):
 
     def setAgent(self, agent):
         self.__dict__.update(locals())
+        self.agent.query_function = self
 
 class AlwaysQuery(QueryFunction):
     def __call__(self, state, action, episode, timestep):
@@ -16,7 +17,6 @@ class AlwaysQuery(QueryFunction):
 
 
 # query with time-dependent probability
-
 class DecayQueryProbability(QueryFunction):
     def __init__(self, queryCost, decay):
         self.__dict__.update(locals())
