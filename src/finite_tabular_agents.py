@@ -37,7 +37,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     # FIXME: P_true, R_true need to be accounted for (everywhere!)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
-                 P_true=None, R_true=None, **kwargs):
+                 P_true=None, R_true=None, query_function=None, stop_learning=True, **kwargs):
         '''
         Tabular episodic learner for time-homoegenous MDP.
         Must be used together with true state feature extractor.
@@ -63,6 +63,8 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         self.tau = tau
         self.observed_reward = 0
         self.__dict__.update(locals())#observed_reward = 0
+
+        self.query_function.setAgent(self)
 
         self.qVals = {}
         self.qMax = {}
@@ -151,7 +153,10 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                     R_samp[s,a] = self.R_true[s,a][0]
                 else:
                     R_samp[s, a] = mu + np.random.normal() * 1./np.sqrt(tau)
-                P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
+
+                if self.P_true is not None:
+                    P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
+
         if self.P_true is not None:
             P_samp = self.P_true
 
@@ -208,7 +213,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
 
                 for a in range(self.nAction):
-                    qVals[s, j][a] = R[s, a] + qMax[j +1][T[s,a]] #np.dot(P[s, a], qMax[j + 1])
+                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])   #qMax[j +1][T[s,a]] 
 
                 qMax[j][s] = np.max(qVals[s, j])
 
@@ -303,7 +308,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 #-----------------------------------------------------------------------------
 # PSRL
 #-----------------------------------------------------------------------------
-
 class PSRL(FiniteHorizonTabularAgent):
     '''
     Posterior Sampling for Reinforcement Learning
@@ -312,7 +316,6 @@ class PSRL(FiniteHorizonTabularAgent):
     def update_policy(self, h=False):
         '''
         Sample a single MDP from the posterior and solve for optimal Q values.
-
         Works in place with no arguments.
         '''
         # Sample the MDP
@@ -334,6 +337,29 @@ class PSRL(FiniteHorizonTabularAgent):
         # Update the Agent's Q-values
         self.qVals = qVals
         self.qMax = qMax
+
+
+class PSRLLimitedQuery(PSRL):
+    '''
+    Posterior Sampling for Reinforcement Learning
+    '''
+
+    def sample_mdp(self):
+        '''
+        Sample MDP but clamp rewards if we're no longer learning them.
+        '''
+        R_samp, P_samp = FiniteHorizonTabularAgent.sample_mdp(self)
+
+        def thompson_or_not(sa, r): 
+            if self.query_function.query_no_increment(*sa):
+                return r
+            else:
+                return self.R_prior[sa][0]
+
+        if self.stop_learning:
+            R_samp = { sa : thompson_or_not(sa, r) for sa, r in R_samp.iteritems() }
+
+        return R_samp, P_samp
 
 #-----------------------------------------------------------------------------
 # PSRL

@@ -1,0 +1,36 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\begin{document}
+\begin{algorithm}
+\caption{Simulated Query Rollouts}
+
+\begin{algorithmic}[1]
+% TODO: below
+\State $\textit{stringlen} \gets \text{length of }\textit{string}$
+\State $i \gets \textit{patlen}$
+\BState \emph{top}:
+\For {$i > \textit{stringlen}$}
+\Return false
+
+\State $j \gets \textit{patlen}$
+\EndFor
+\BState \emph{loop}:
+\If {$\textit{string}(i) = \textit{path}(j)$}
+\State $j \gets j-1$.
+\State $i \gets i-1$.
+\State \textbf{goto} \emph{loop}.
+\State \textbf{close};
+\EndIf
+
+\textbf{return} $n$
+
+\end{algorithmic}
+\end{algorithm}
+\end{document} 

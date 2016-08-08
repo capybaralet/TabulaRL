@@ -4,6 +4,10 @@ from environment import TabularMDP
 # differences with q-learning environoment:
 #   deterministic
 #   Gaussian reward function
+
+def R_normal_dist_to_expectation(R):
+    return { k : v[0] for k, v in R.iteritems() }
+
 def make_gridworld(grid_width, epLen, rewards):
     """
     make the environment deterministic 
@@ -34,15 +38,17 @@ def make_gridworld(grid_width, epLen, rewards):
 
     for s in xrange(nState):
         for a in xrange(nAction):
-            R_true[s, a] = (rewards[s], 1)
+            R_true[s, a] = rewards[s]
 
             P_true[s, a] = np.zeros(nState)
             #deterministic transitions
             P_true[s, a][transition(s, a)] = 1
 
-    env = TabularMDP(nState, nAction, epLen)
-    env.R = R_true
-    env.P = P_true
-    env.reset()
+    return make_mdp(nState, nAction, epLen, R_true, P_true)
 
+def make_mdp(nState, nAction, epLen, R, P):
+    env = TabularMDP(nState, nAction, epLen)
+    env.R = { k: (v, 1) for k,v in R.iteritems() }
+    env.P = P
+    env.reset()
     return env

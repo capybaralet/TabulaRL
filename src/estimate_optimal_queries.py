@@ -37,7 +37,7 @@ can we use Rmax as a heuristic for what N should be??
 def sample_R(agent):
     return agent.sample_mdp()[0]
 
-sampled_R = sample_R(agent)
+#sampled_R = sample_R(agent)
 
 def sampled_rewards(agent, queries, sampled_R):
     """ queries[s,a] = # of queries to perform on (s,a) """
@@ -47,6 +47,7 @@ def sampled_rewards(agent, queries, sampled_R):
 
 # TODO: we could also try sampling the rewards independently for each value of n 
 #        (this would make the comparison btw different ns more stochastic)
+
 def estimate_performance(agent, sampled_rewards, query_cost, sampled_R):
     """ we pass the first n sampled_rewards from the function above"""
     R_hat, P_hat = agent.map_mdp()
@@ -60,9 +61,67 @@ def estimate_performance(agent, sampled_rewards, query_cost, sampled_R):
     return max(agent.compute_qVals(updated_R, P_hat)[0]) - query_cost * sum(queries.values())
 
 
+import numpy as np
+import argparse
+import gridworld
+import query_functions
+import finite_tabular_agents
+
+seed = 1 
+numpy_rng = np.random.RandomState(seed)
+
+from feature_extractor import FeatureTrueState
+from experiment import run_finite_tabular_experiment
+
+# AGENT
+grid_width=8
+epLen = 15
+scaling=.1
+prob_zero_reward=.9
+query_cost=.5
+
+nAction = 5
+states = range(grid_width**2)
+
+reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
+
+env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
+def makeAgent(n):
+    query_function = query_functions.QueryFirstNVisits(query_cost, n)
+    return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+                              scaling=scaling, 
+                              P_true=env.P, R_true=False, query_function=query_function)
+
+def runexp(env, agent, hasP=True):
+    f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
+
+    P_true =env.P
+    if not hasP: 
+        P_true=False
+
+    # Run the experiment
+    global seed
+    seed += 1
+    return run_finite_tabular_experiment(agent, env, f_ext, 1, seed,
+                        recFreq=1000, fileFreq=10000, targetPath='')   
+
+def sample_real_mdp(agent): 
+    return gridworld.make_mdp(agent.nState, agent.nAction, agent.epLen, *agent.sample_mdp())
+
+def rollout_performance(makeAgent, n): 
+    agent = makeAgent(n)
+    return runexp(sample_real_mdp(agent), agent)
 
 
+def performance_rollouts (makeAgent, ns, iters):
+    return np.array([[rollout_performance(makeAgent, n) for i in range(iters)] for n in ns])
 
+def average_performance(makeAgent, ns, iters):
+    return np.mean(performance_rollouts(makeAgent, ns, iters), axis=1)
+
+
+p = average_performance(makeAgent, range(0,4), 10)
+print p
 
 
 

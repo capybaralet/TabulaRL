@@ -13,8 +13,7 @@ from query_functions import AlwaysQuery
 
 
 def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
-                    recFreq=100, fileFreq=1000, targetPath='tmp.csv',
-                    query_function=AlwaysQuery):
+                    recFreq=100, fileFreq=1000, targetPath='tmp.csv'):
     '''
     A simple script to run a finite tabular MDP experiment
 
@@ -57,7 +56,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             h, oldState = f_ext.get_feat(env)
 
             action = agent.pick_action(oldState, h)
-            query, queryCost = query_function(oldState, action, ep, h)
+            query, queryCost = agent.query_function(oldState, action, ep, h)
             epRegret += qVals[oldState, h].max() - qVals[oldState, h][action]
             epQueryCost += queryCost
 

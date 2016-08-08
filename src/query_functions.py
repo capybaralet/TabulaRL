@@ -7,7 +7,7 @@ class QueryFunction(object):
     def __init__(self, queryCost):
         self.__dict__.update(locals())
 
-    def setEnvAgent(self, env, agent):
+    def setAgent(self, agent):
         self.__dict__.update(locals())
 
 class AlwaysQuery(QueryFunction):
@@ -32,15 +32,14 @@ class QueryFirstNVisits(QueryFunction):
         self.visit_count = defaultdict(lambda :0)
 
     def __call__(self, state, action, episode, timestep):
+        query = self.visit_count[state, action] < self.n
         self.visit_count[state, action] += 1
-        query = self.visit_count[state, action] <= self.n
         return query, query*self.queryCost
 
     # We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
         return self.visit_count[state, action] <= self.n
 
-# first n times
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())
@@ -57,7 +56,7 @@ class RewardProportional(QueryFunction):
         self.__dict__.update(locals())
 
     def __call__(self, state, action, episode, timestep):
-        total_expected = sum(self.agent.R_prior[s, a][0] for s in xrange(self.env.nState) for a in xrange(self.env.nAction))
+        total_expected = sum(self.agent.R_prior[s, a][0] for s in xrange(self.agent.nState) for a in xrange(self.agent.nAction))
 
         if abs(total_expected ) > 0:
             proportion = self.agent.R_prior[state, action][0] / total_expected
