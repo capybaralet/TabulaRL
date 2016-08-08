@@ -322,16 +322,6 @@ class PSRL(FiniteHorizonTabularAgent):
         # Sample the MDP
         R_samp, P_samp = self.sample_mdp()
 
-        # If we're done querying a given (s,a) pair, use the expected reward, instead of sampling the reward.
-        # TODO: otherwise, we should add (something related to) the query cost
-        def clamp_r(sa, r): 
-            if self.query_function.will_query(*sa):
-                #print "sample"
-                return r
-            else:
-                return self.R_prior[sa][0]
-        R_samp = { sa : clamp_r(sa, r) for sa, r in R_samp.iteritems() }
-
         # Solve the MDP via value iteration
         qVals, qMax = self.compute_qVals(R_samp, P_samp)
 
