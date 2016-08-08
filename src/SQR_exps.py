@@ -59,7 +59,7 @@ elif 1: # chain
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 # AGENT
-alg = finite_tabular_agents.PSRL
+alg = finite_tabular_agents.PSRLLimitedQuery
 initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
 
 # experiment hparams:

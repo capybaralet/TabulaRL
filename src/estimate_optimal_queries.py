@@ -88,7 +88,7 @@ reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) 
 env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
 def makeAgent(n):
     query_function = query_functions.QueryFirstNVisits(query_cost, n)
-    return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
+    return finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               scaling=scaling, 
                               P_true=env.P, R_true=None, query_function=query_function)
 
