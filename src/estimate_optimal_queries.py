@@ -90,14 +90,10 @@ def makeAgent(n):
     query_function = query_functions.QueryFirstNVisits(query_cost, n)
     return finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen,
                               scaling=scaling, 
-                              P_true=env.P, R_true=False, query_function=query_function)
+                              P_true=env.P, R_true=None, query_function=query_function)
 
 def runexp(env, agent, hasP=True):
     f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
-
-    P_true =env.P
-    if not hasP: 
-        P_true=False
 
     # Run the experiment
     global seed

@@ -32,7 +32,7 @@ def test_riverSwim_qMax():
 
     query_function = query_functions.QueryFirstNVisits(0, np.inf)
     agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              P_true=env.P, R_true=False, query_function=query_function)
+                              P_true=env.P, R_true=None, query_function=query_function)
 
     R = gridworld.R_normal_dist_to_expectation(env.R)
     qV, qMax = agent.compute_qVals(R , env.P)

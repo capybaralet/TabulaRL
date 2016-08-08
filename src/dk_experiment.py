@@ -44,7 +44,7 @@ f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 # Make the agent
 agent = alg(env.nState, env.nAction, env.epLen,
                           scaling=scaling, 
-                          P_true=env.P, R_true=False)
+                          P_true=env.P, R_true=None)
 
 #query_function = query_functions.QueryFirstNVisits(query_cost, 4)
 #query_function = query_functions.RewardProportional(agent, query_cost, .04)

@@ -19,6 +19,8 @@ author: iosband@stanford.edu
 import numpy as np
 from agent import *
 
+from query_functions import AlwaysQuery
+
 class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
     Simple tabular Bayesian learner from Tabula Rasa.
@@ -36,7 +38,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     # FIXME: P_true, R_true need to be accounted for (everywhere!)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
-                 P_true=None, R_true=None, query_function=None, stop_learning=True, **kwargs):
+                 P_true=None, R_true=None, query_function=AlwaysQuery(0.), stop_learning=True, **kwargs):
         '''
         Tabular episodic learner for time-homoegenous MDP.
         Must be used together with true state feature extractor.
@@ -350,7 +352,7 @@ class PSRLLimitedQuery(PSRL):
         R_samp, P_samp = FiniteHorizonTabularAgent.sample_mdp(self)
 
         def thompson_or_not(sa, r): 
-            if self.query_function.query_no_increment(*sa):
+            if self.query_function.will_query(*sa):
                 return r
             else:
                 return self.R_prior[sa][0]

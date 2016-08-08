@@ -110,7 +110,7 @@ if 1:
                     agent = alg(env.nState, env.nAction, env.epLen,
                                               P_true=None, R_true=None,
                                               query_function=query_function)
-                    query_function.setEnvAgent(env_sample, agent)
+                    query_function.setAgent(agent)
 
                     # Run the experiment
                     # returns:  cumReward, cumQueryCost, perf, cumRegret 
