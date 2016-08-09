@@ -63,12 +63,12 @@ alg = finite_tabular_agents.PSRLLimitedQuery
 initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
 
 # experiment hparams:
-num_episodes = 20000
+num_episodes = 10000
 num_R_samples = 100
-query_cost = 100. # TODO: grid search
+query_cost = 0#100. # TODO: grid search
 Ns = [0,1,3,10,30,100]
 #Ns = range(100)
-#Ns = [num_episodes * env.nState * env.nAction] # always query
+Ns = [num_episodes * env.nState * env.nAction] # always query
 
 
 # Here, we compare our way of tuning n (running multiple trials in a sampled environment)
@@ -138,7 +138,7 @@ if 1:
         print SQR_mean_perfs
 
     if 1: # plot regret
-        from plot_regret import plot_regret
+        from evaluation import plot_regret
         [plot_regret(save_str) for save_str in all_save_strs]
 
     SQR_n_best = max(SQR_mean_perfs, key=SQR_mean_perfs.get)

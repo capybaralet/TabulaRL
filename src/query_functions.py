@@ -15,6 +15,9 @@ class AlwaysQuery(QueryFunction):
     def __call__(self, state, action, episode, timestep):
         return True, self.queryCost
 
+    def will_query(self, state, action):
+        return True
+
 
 # query with time-dependent probability
 class DecayQueryProbability(QueryFunction):
