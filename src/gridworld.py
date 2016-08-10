@@ -8,7 +8,7 @@ from environment import TabularMDP
 def R_normal_dist_to_expectation(R):
     return { k : v[0] for k, v in R.iteritems() }
 
-def make_gridworld(grid_width, epLen, rewards):
+def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
     """
     make the environment deterministic 
         (and potentially makes the agent know that)
@@ -44,11 +44,11 @@ def make_gridworld(grid_width, epLen, rewards):
             #deterministic transitions
             P_true[s, a][transition(s, a)] = 1
 
-    return make_mdp(nState, nAction, epLen, R_true, P_true)
+    return make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise)
 
-def make_mdp(nState, nAction, epLen, R, P):
+def make_mdp(nState, nAction, epLen, R, P, reward_noise=1):
     env = TabularMDP(nState, nAction, epLen)
-    env.R = { k: (v, 1) for k,v in R.iteritems() }
+    env.R = { k: (v, reward_noise) for k,v in R.iteritems() }
     env.P = P
     env.reset()
     return env

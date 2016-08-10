@@ -23,128 +23,152 @@ def compute_qMax(T, length):
                                         
     return v[::-1,:]
 
+def make_squaregrid(T, grid_width): 
+    rewards = np.zeros((grid_width, grid_width))
+    rewards[1,1] = 1
+    rewards = rewards.ravel()
+    return "squaregrid", gridworld.make_gridworld(grid_width,T, rewards, reward_noise=0), compute_qMax_grid(T, grid_width)
 
-def test_riverSwim_qMax(): 
-    T =20
-    n =6
-    env = environment.make_riverSwim(T, n)
-    qMaxActual = compute_qMax(T, n)
+def compute_qMax_grid(T, grid_width): 
+    v = np.zeros((T+1, grid_width* grid_width))
 
-    query_function = query_functions.QueryFirstNVisits(0, np.inf)
-    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              P_true=env.P, R_true=None, query_function=query_function)
+    def row_and_column(state, grid_width):
+            return state / grid_width, state % grid_width
 
-    R = gridworld.R_normal_dist_to_expectation(env.R)
-    qV, qMax = agent.compute_qVals(R , env.P)
+    for t in range(1, T+1):
+        for s in range(grid_width*grid_width):
+            row, column = row_and_column(s, grid_width)
 
-    for v,vActual in zip(qMax.values(), qMaxActual) :
-        print v
-        print vActual
+            v[t, s] = max(0, 
+                    t - np.abs(1-row) - np.abs(1-column))
 
-    np.testing.assert_almost_equal(
-            np.array(qMax.values()), 
-            qMaxActual,
-            decimal=6)
+    return v[::-1,:]
+        
+
+def river(T, n):
+    return "river", environment.make_riverSwim(T, n), compute_qMax(T, n)
+
+environments = [
+        river(T=20, n=6),
+        make_squaregrid(T=20, grid_width=6)
+        ]
+
+small_environments = [
+        river(T=5, n=3),
+        make_squaregrid(T=3, grid_width=2)
+        ]
+
+def test_qMax(): 
+    for envname, env, qMaxActual in environments: 
+
+        query_function = query_functions.QueryFirstNVisits(0, np.inf)
+        agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+                                  P_true=env.P, R_true=False, query_function=query_function, tau=100**2)
+
+        R = gridworld.R_normal_dist_to_expectation(env.R)
+        qV, qMax = agent.compute_qVals(R , env.P)
+
+        for v,vActual in zip(qMax.values(), qMaxActual) :
+            print v
+            print vActual
+
+        print envname
+        np.testing.assert_almost_equal(
+                np.array(qMax.values()), 
+                qMaxActual,
+                decimal=6)
 
 def test_riverSwim_known_r(): 
-    T =20
-    n =6
-    env = environment.make_riverSwim(T, n)
-    qMaxActual = compute_qMax(T, n)
+    for envname, env, qMaxActual in environments: 
 
-    query_function = query_functions.QueryFirstNVisits(0, np.inf)
-    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              P_true=env.P, R_true=env.R, query_function=query_function)
+        query_function = query_functions.QueryFirstNVisits(0, np.inf)
+        agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+                                  P_true=env.P, R_true=env.R, query_function=query_function)
 
-    agent.update_policy()
-    qMax = agent.qMax
+        agent.update_policy()
+        qMax = agent.qMax
 
-    for v,vActual in zip(qMax.values(), qMaxActual) :
-        print v
-        print vActual
+        for v,vActual in zip(qMax.values(), qMaxActual) :
+            print v
+            print vActual
 
-    np.testing.assert_almost_equal(
-            np.array(qMax.values()), 
-            qMaxActual,
-            decimal=6)
+        np.testing.assert_almost_equal(
+                np.array(qMax.values()), 
+                qMaxActual,
+                decimal=6)
 
 
-def test_riverSwim_much_iteration(): 
-    T =5
-    n =3
-    env = environment.make_riverSwim(T, n)
-    qMaxActual = compute_qMax(T, n)
+def test_much_iteration(): 
+    nquery = 10
+    reward_tau=10000**2
+    for envname, env, qMaxActual in small_environments: 
 
-    query_function = query_functions.QueryFirstNVisits(0, 1000)
-    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              P_true=env.P, R_true=None, query_function=query_function)
+        query_function = query_functions.QueryFirstNVisits(0, nquery)
+        agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+                                 P_true=env.P, R_true=None, query_function=query_function, tau=reward_tau)
 
-    f_ext = feature_extractor.FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
+        f_ext = feature_extractor.FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
-    experiment.run_finite_tabular_experiment(agent, env, f_ext, 10000, seed, targetPath='file.csv')   
+        experiment.run_finite_tabular_experiment(agent, env, f_ext, 10000, seed, targetPath='file.csv')   
 
-    qMax = agent.qMax
+        qMax = agent.qMax
 
-    for v,vActual in zip(qMax.values(), qMaxActual) :
-        print v
-        print vActual
+        for v,vActual in zip(qMax.values(), qMaxActual) :
+            print v
+            print vActual
 
-    print agent.query_function.visit_count
+        print envname, agent.query_function.visit_count
 
-    np.testing.assert_almost_equal(
-            np.array(qMax.values()), 
-            qMaxActual,
-            decimal=2)
+        np.testing.assert_almost_equal(
+                np.array(qMax.values()), 
+                qMaxActual,
+                decimal=2)
 
-def test_riverSwim_much_iteration(): 
-    nquery = 1000
-    T =5
-    n =3
-    env = environment.make_riverSwim(T, n)
-    qMaxActual = compute_qMax(T, n)
+def test_policy_change(): 
+    nquery = 10
+    reward_tau=10000**2
+    for envname, env, qMaxActual in small_environments[2:]: 
 
-    query_function = query_functions.QueryFirstNVisits(0, nquery)
-    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              P_true=env.P, R_true=None, query_function=query_function)
-    
+        query_function = query_functions.QueryFirstNVisits(0, nquery)
+        agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+                                  P_true=env.P, R_true=None, query_function=query_function, tau=reward_tau)
+        
 
-    f_ext = feature_extractor.FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
+        f_ext = feature_extractor.FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
-    experiment.run_finite_tabular_experiment(agent, env, f_ext, 10000, seed, targetPath='file.csv')   
+        experiment.run_finite_tabular_experiment(agent, env, f_ext, 10000, seed, targetPath='file.csv')   
 
-    qMax = np.array(agent.qMax.values())
+        qMax = np.array(agent.qMax.values())
 
-    for v,vActual in zip(qMax, qMaxActual) :
-        print v
-        print vActual
+        for v,vActual in zip(qMax, qMaxActual) :
+            print v
+            print vActual
 
-    print "visit count: ", agent.query_function.visit_count
+        print envname + " visit count: ", agent.query_function.visit_count
 
-    np.testing.assert_almost_equal(
-            qMax,
-            qMaxActual,
-            decimal=2)
+        np.testing.assert_almost_equal(
+                qMax,
+                qMaxActual,
+                decimal=3)
 
 
-    #qValues should change since not all visits have maxed out 
-    qV = np.array(agent.qVals.values())
-    agent.update_policy()
-    qV2 = np.array(agent.qVals.values())
+        #qValues should change since not all visits have maxed out 
+        qV = np.array(agent.qVals.values())
+        agent.update_policy()
+        qV2 = np.array(agent.qVals.values())
 
-    np.any(np.abs(qV - qV2)>1e-8)
+        np.any(np.abs(qV - qV2)>1e-8)
 
-    for k in agent.query_function.visit_count.keys():
-        agent.query_function.visit_count[k] += nquery
+        for k in agent.query_function.visit_count.keys():
+            agent.query_function.visit_count[k] += nquery
 
-    #now qvalues shouldn't change
-    agent.update_policy()
-    qV = np.array(agent.qVals.values())
-    agent.update_policy()
-    qV2 = np.array(agent.qVals.values())
+        #now qvalues shouldn't change
+        agent.update_policy()
+        qV = np.array(agent.qVals.values())
+        agent.update_policy()
+        qV2 = np.array(agent.qVals.values())
 
-    np.testing.assert_almost_equal(
-            qV,
-            qV2,
-            decimal=8)
-
-
+        np.testing.assert_almost_equal(
+                qV,
+                qV2,
+                decimal=8)
