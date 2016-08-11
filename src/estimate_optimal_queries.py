@@ -1,31 +1,3 @@
-
-def sample_R(agent):
-    return agent.sample_mdp()[0]
-
-#sampled_R = sample_R(agent)
-
-def sampled_rewards(agent, queries, sampled_R):
-    """ queries[s,a] = # of queries to perform on (s,a) """
-    # draw samples from R_hat
-    samples = {(s,a) : np.random.gaussian(sampled_R[s,a][0], sampled_R[s,a][1], queries[s,a])}
-    return samples
-
-# TODO: we could also try sampling the rewards independently for each value of n 
-#        (this would make the comparison btw different ns more stochastic)
-
-def estimate_performance(agent, sampled_rewards, query_cost, sampled_R):
-    """ we pass the first n sampled_rewards from the function above"""
-    R_hat, P_hat = agent.map_mdp()
-    updated_R = {}
-    for [s,a] in sampled_rewards:
-        mu0, tau0 = R_hat[s,a]
-        num_samples = len(sampled_rewards[s,a])
-        tau1 = tau0 + self.tau * num_samples
-        mu1 = (mu0 * tau0 + reward * self.tau * num_samples) / tau1
-        updated_R[s,a] = mu1, tau1
-    return max(agent.compute_qVals(updated_R, P_hat)[0]) - query_cost * sum(queries.values())
-
-
 import numpy as np
 import argparse
 import gridworld
@@ -38,7 +10,9 @@ numpy_rng = np.random.RandomState(seed)
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 
-# AGENT
+
+# FIXME: sample R / r_tilde FIRST!
+
 grid_width=4
 epLen = 2 * grid_width - 1
 num_episodes = 100

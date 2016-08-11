@@ -68,7 +68,7 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
 
             reward, newState, pContinue = env.advance(action)
             if query and sampled_rewards is not None:
-                reward = sampled_rewards[oldState, action][agent.query_function.visit_count[oldState, action]]
+                reward = sampled_rewards[oldState, action][agent.query_function.visit_count[oldState, action] - 1]
             epReward += reward 
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 

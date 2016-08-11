@@ -41,7 +41,7 @@ class QueryFirstNVisits(QueryFunction):
 
     # We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
-        return self.visit_count[state, action] <= self.n
+        return self.visit_count[state, action] < self.n
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
@@ -50,7 +50,7 @@ class QueryFirstN(QueryFunction):
 
     def __call__(self, state, action, episode, timestep):
         self.count += 1
-        query = self.count <= self.n
+        query = self.count < self.n
         return query, query*self.queryCost
 
 
