@@ -66,10 +66,12 @@ This strategy may be sensitive to differences between the prior and the real env
 \end{algorithmic}
 \end{algorithm}
 
-Note that 
-$$
-\lim_{k \rightarrow \infty} \frac{1}{k} \sum_{i=1}^k \mathit{perf}_i(\mathop{PSRL}_n) = \mathbb{E} \: \mathit{\mathop{PSRL}perf}(\mathop{PSRL}_n).
-$$
+Note that:
+
+$
+\lim_{k \rightarrow \infty} \frac{1}{k} \sum_{i=1}^k \mathit{perf}_i(\mathop{PSRL}_n) = \mathbb{E} \: \mathit{perf}(\mathop{PSRL}_n).
+$
+
 Also, note that we propose using the same instantaneous sampled rewards $\{\tilde{r}\}_i$ for each value of $n$ in each environment $\tilde{\mathcal{R}_i}$, in order to reduce stochasticity.
 
 The running time to compute $n$ here is roughly $N * k * \mathop{PSRL}(S, A, T) $
@@ -93,9 +95,15 @@ This approach may under-estimate performance because the actual $\mathop{PSRL}$ 
 Or it may over-estimate performance, since the $\mathop{PSRL}$ agent does not have the benefit of observing the queries up-front, and must make decisions with less information during learning.
 These differences would be especially large when many states or important states are not very reachable (and so would be queried more slowly or less often by the $\mathop{PSRL}$ agent).
 
+% ASQR in the loop
 \section{Further Extensions}
 We can run the above algorithms at any time during learning, in order to dynamically adjust our desired query set based on new information we've acquired.
 At a high level, this is analogous to the way Thompson Sampling resamples throughout learning.
+
+As a simple heuristic, we propose running ASQR with $k=1$ every $N$-th time an environment is sampled in Thompson Sampling.
+In the worst case, this algorithm doubles the amount of times that planning must be performed.
+It would probably be better to invest more computation up-front in choosing good desired query sets during the early stages of learning.
+
 
 Since querying each state equally often is likely highly suboptimal, we'd like to consider a broader class of desired query sets, but the number of such sets grows exponentially in the total number of queries.
 We believe techniques for linear bandits might be used to specify the priority of each possible query at a given moment, thus specifying a strict total order over desired query sets (with the smallest element being the queries already performed).
@@ -106,6 +114,21 @@ Note that given transition operator $\mathcal{T}$, each policy, $\pi$ induces a 
 Unlike a standard linear bandit, however, our queries are restricted to standard basis vectors, while only the arms corresponding to valid policies can ultimately be exploited.
 Furthermore, an agent must visit a state, action in order to query it (although notably, this is \emph{not} the case for ASQR.
 
+
+
+
+\section{Importance Sampling for Off-Policy Querying}
+Our query decisions might depend on several things, besides the state and action:
+\begin{enumerate}
+\item The agent's beliefs
+\item The visit/query counts (or more generally, the whole history)
+\end{enumerate}
+
+We can think of (1) as providing a compressed version of (2).  
+To frame the query function as part of the policy, we need to augment the state space with some extra information of this form.
+
+Using this framing allows us to learn about a query functions based on the experience of an agent with a different query function (if the functions are stochastic).
+This is analagous to the "branching agent" idea that Owain mentioned.
 
 
 
