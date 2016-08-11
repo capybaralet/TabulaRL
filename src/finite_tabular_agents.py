@@ -35,7 +35,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
 
     
-    # FIXME: P_true, R_true need to be accounted for (everywhere!)
+    # FIXME: P_true, R_true need to be accounted for (everywhere!) - (NTS: I don't know if there are any specific places)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
                  P_true=None, R_true=None, query_function=AlwaysQuery(0.), stop_learning=True, **kwargs):
@@ -184,6 +184,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
         return R_hat, P_hat
 
+    
     def compute_qVals(self, R, P):
         '''
         Compute the Q values for a given R, P estimates
@@ -200,11 +201,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         qMax = {}
 
         qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-
-        T = {}
-        for s in range(self.nState):
-            for a in range(self.nAction):
-                T[s,a] = np.argmax(P[s,a])
         
         for i in range(self.epLen):
             j = self.epLen - i - 1
@@ -214,11 +210,51 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
 
                 for a in range(self.nAction):
-                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])   #qMax[j +1][T[s,a]] 
+                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
 
                 qMax[j][s] = np.max(qVals[s, j])
 
         return qVals, qMax
+
+
+    def compute_qVals_true(self, R, P, R_true, P_true):
+        '''
+        Evaluate an agent's expected returns when it plans according to R and P
+        in an environment defined by R_true, P_true
+
+        Returns:
+            The true expected returns of the agent, 
+             what it thinks its expected returns are.
+        '''
+        qVals = {}
+        qMax = {} # aka "V"
+        qVals_true = {}
+        qMax_true = {}
+
+        qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
+        qMax_true[self.epLen] = np.zeros(self.nState, dtype=np.float32)
+        
+        for i in range(self.epLen):
+            j = self.epLen - i - 1
+            qMax[j] = np.zeros(self.nState, dtype=np.float32)
+            qMax_true[j] = np.zeros(self.nState, dtype=np.float32)
+             
+            for s in range(self.nState):
+                qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
+                qVals_true[s, j] = np.zeros(self.nAction, dtype=np.float32)
+
+                for a in range(self.nAction):
+                    qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
+                    qVals_true[s, j][a] = R_true[s, a] + np.dot(P_true[s, a], qMax_true[j + 1])
+        
+                # agent acts according to what it believes
+                a = np.argmax(qVals[s, j])
+                # we compute both its estimate of the value of this state/tstep, and the true value
+                qMax[j][s] = qVals[s, j][a]
+                qMax_true[j][s] = qVals_true[s, j][a]
+        
+        return qMax_true[0][0], qMax[0][0]
+
 
     def compute_qVals_opt(self, R, P, R_bonus, P_bonus):
         '''
@@ -309,6 +345,10 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 #-----------------------------------------------------------------------------
 # PSRL
 #-----------------------------------------------------------------------------
+
+# TODO: implement deterministic "sampling" (for SQR)
+#   N.B. - the samples only come into play in the update_obs part (the agent always plans according to its sampled R, which is just a number!)
+
 class PSRL(FiniteHorizonTabularAgent):
     '''
     Posterior Sampling for Reinforcement Learning

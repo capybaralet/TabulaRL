@@ -11,10 +11,14 @@ from shutil import copyfile
 
 from query_functions import AlwaysQuery
 
+# TODO: make this a default
+from feature_extractor import FeatureTrueState
 
+
+# TODO: currently assumes that agent.query_function.visit_count exists (i.e. that we're using FirstNVisits to query)
 def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
                     recFreq=100, fileFreq=1000, targetPath='tmp.csv',
-                    query_function=AlwaysQuery,
+                    sampled_rewards=None,
                     printing=True):
     '''
     A simple script to run a finite tabular MDP experiment
@@ -63,8 +67,9 @@ def run_finite_tabular_experiment(agent, env, f_ext, nEps, seed=1,
             epQueryCost += queryCost
 
             reward, newState, pContinue = env.advance(action)
+            if query and sampled_rewards is not None:
+                reward = sampled_rewards[oldState, action][agent.query_function.visit_count[oldState, action]]
             epReward += reward 
-
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
         cumReward += epReward
