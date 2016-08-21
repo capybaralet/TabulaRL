@@ -1,31 +1,31 @@
 
 import numpy
 np = numpy
+import scipy
 import copy
 
-from experiment import run_finite_tabular_experiment
-from feature_extractor import FeatureTrueState
-from query_functions import QueryFirstNVisits
+#from experiment import run_finite_tabular_experiment
+from TabulaRL.dk_run_finite_tabular_experiment import run_finite_tabular_experiment
+from TabulaRL.feature_extractor import FeatureTrueState
+from TabulaRL.query_functions import QueryFirstNVisits
 
 
-# TODO: should be 1 (setting it lower for debugging)
 variance_of_simulated_queries = 1.
 
+# TODO: maintaining a posterior over the variance (or maybe just using Bernoullis?) should help a lot!
+# TODO: optionally normalize rewards (or performance??) across different sampled_R
 
-# TODO: sample a different number of rewards for different (s,a) pairs
+
 #def sample_rewards(agent, queries, sampled_R):
 #   """ queries[s,a] = # of queries to perform on (s,a) """
 #   return {(s,a) : np.random.normal(sampled_R[s,a], 1, queries[s,a]) for (s,a) in agent.P_prior.keys()}
 
-# TODO: maintaining a posterior over the variance (or maybe just using Bernoullis?) should help a lot!
-
-# TODO: optionally normalize rewards (or performance??) across different sampled_R
-# TODO: docstrings
-
-def estimate_performance_ASQR(agent, sampled_R, sampled_rewards, query_cost):
+def estimate_performance_ASQR(agent, sampled_R, sampled_rewards, num_episodes_remaining, query_cost):
     """
     sampled_R: a dictionary of mean rewards for each (s,a) pair, sampled from the agent's posterior.
     sampled_rewards: a dictionary of (several) sampled rewards for each (s,a) pair, sampled from sampled_R
+
+    returns - estimate of agent's performance
     """
     _, P_hat = agent.map_mdp()
     R_hat = agent.R_prior
@@ -36,20 +36,24 @@ def estimate_performance_ASQR(agent, sampled_R, sampled_rewards, query_cost):
         tau1 = tau0 + agent.tau * num_samples
         mu1 = (mu0 * tau0 + sum(sampled_rewards[s,a]) * agent.tau) / tau1
         updated_R[s,a] = mu1
-    return agent.compute_qVals_true(updated_R, P_hat, sampled_R, P_hat)[0] - query_cost * sum([len(qq) for qq in sampled_rewards.values()])
+    return num_episodes_remaining * agent.compute_qVals_true(updated_R, P_hat, sampled_R, P_hat)[0] -\
+            query_cost * sum([len(qq) for qq in sampled_rewards.values()])
     #return compute_qVals_true(agent, updated_R, P_hat, sampled_R, P_hat)[0] - query_cost * sum([len(qq) for qq in sampled_rewards.values()])
 
-def run_ASQR(agent, n_max, query_cost=1., num_R_samples=1, normalize_rewards=False):
+# why did I need two functions for ASQR (but not SQR)?
+def run_ASQR(agent, n_max, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     Use ASQR to select an n between 0 and n_max (inclusive).
+
+    returns - estimated n_best
     """
     performances = []
     for k in range(num_R_samples):
-        # agent needs to actually sample R! (as opposed to taking expectation)
+        # agent needs to actually sample R (as opposed to taking expectation)
         sampled_R = agent.sample_mdp()[0]
         sampled_rewards = {(s,a) : np.random.normal(sampled_R[s,a], variance_of_simulated_queries, n_max) for (s,a) in agent.P_prior.keys()}
         first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
-        performances.append([estimate_performance_ASQR(agent, sampled_R, first_n_sampled_rewards[n], query_cost) for n in range(n_max+1)])
+        performances.append([estimate_performance_ASQR(agent, sampled_R, first_n_sampled_rewards[n], num_episodes_remaining, query_cost) for n in range(n_max+1)])
     #import ipdb; ipdb.set_trace()
     avg_performances = np.array(performances).sum(0)
     return avg_performances.argmax()
@@ -60,9 +64,11 @@ def copy_agent_with_different_n(agent, n, query_cost):
     agent_copy.query_function = QueryFirstNVisits(query_cost, n)
     return agent_copy
 
-def run_SQR(agent, n_max, env, epLen, query_cost=1., num_R_samples=1, normalize_rewards=False):
+def run_SQR(agent, n_max, env, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     Use SQR to select an n between 0 and n_max (inclusive).
+
+    returns - estimated n_best
     """
     performances = []
     for k in range(num_R_samples):
@@ -76,79 +82,83 @@ def run_SQR(agent, n_max, env, epLen, query_cost=1., num_R_samples=1, normalize_
         env_copy.P = sampled_P
         f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
         performances.append([run_finite_tabular_experiment(copy_agent_with_different_n(agent, n, query_cost), 
-                                                           env_copy, f_ext, epLen, sampled_rewards=first_n_sampled_rewards[n])[2]
+                                                           env_copy, f_ext, num_episodes_remaining, sampled_rewards=first_n_sampled_rewards[n])[2]
                                                         for n in range(n_max+1)])
     avg_performances = np.array(performances).sum(0)
     return avg_performances.argmax()
 
 
 
-# TESTING THAT IT RUNS!
-# COPIED from estimate_optimal_queries
-#------------------------------------
-import numpy as np
-import argparse
-import gridworld
-import query_functions
-import finite_tabular_agents
-seed = np.random.randint(10000)
-#seed = 5
-numpy_rng = np.random.RandomState(seed)
-from feature_extractor import FeatureTrueState
-from experiment import run_finite_tabular_experiment
+if 1:
+    # TESTING THAT IT RUNS!
+    # COPIED from estimate_optimal_queries
+    #------------------------------------
+    import gridworld
+    import query_functions
+    import finite_tabular_agents
+    seed = np.random.randint(10000)
+    #seed = 5
+    numpy_rng = np.random.RandomState(seed)
 
-grid_width=4
-epLen = 2 * grid_width - 1
-num_episodes = 100
-scaling=.1
-prob_zero_reward=.9
-#query_cost=.5
+    grid_width=4
+    epLen = 2 * grid_width - 1
+    num_episodes = 1000
+    num_episodes_remaining = num_episodes 
+    scaling=.1
+    prob_zero_reward=.9
+    #query_cost=.5
 
-nAction = 5
-states = range(grid_width**2)
+    nAction = 5
+    states = range(grid_width**2)
+    reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
+    env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
 
-reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
+    def makeAgent(n, query_cost):
+        query_function = query_functions.QueryFirstNVisits(query_cost, n)
+        return finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+                                  scaling=scaling, 
+                                  P_true=env.P, R_true=None, query_function=query_function)
 
-env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
-def makeAgent(n, query_cost):
-    query_function = query_functions.QueryFirstNVisits(query_cost, n)
-    return finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
-                              scaling=scaling, 
-                              P_true=env.P, R_true=None, query_function=query_function)
-
-# END: COPIED from estimate_optimal_queries
-#------------------------------------
-
-# make sure there are non-zero rewards!
-print sum([rr[0] for rr in env.R.values()])
+    # END: COPIED from estimate_optimal_queries
+    #------------------------------------
 
 
-# You might need more samples and more exps (and maybe more episodes) to get significant results
-num_R_samples = 20
-num_exps = 20
-n_max = 4
 
-# FIXME: always choosing 0??
+    # make sure there are non-zero rewards!
+    assert sum([rr[0] for rr in env.R.values()]) > 0
+    print sum([rr[0] for rr in env.R.values()])
+    print "SQR, ASQR"
 
-# for query_cost = 0, it should usually chose n = n_max
-query_cost = 0
-agent = makeAgent(1, query_cost)
-print sorted([run_SQR(agent, n_max, env, epLen, query_cost, num_R_samples) for k in range(num_exps)])
-print sorted([run_ASQR(agent, n_max, query_cost, num_R_samples) for k in range(num_exps)])
+    # You might need more samples and more exps (and maybe more episodes) to get significant results
+    # We'd like to know if we get any benefit from using more than 1 experiment (vs. just using more R samples)
+    num_R_samples = 10
+    num_exps = 1
+    n_max = 4
 
-# for small query_cost, it should usually chose 0 < n < n_max
-query_cost = .01
-agent = makeAgent(1, query_cost)
-print sorted([run_SQR(agent, n_max, env, epLen, query_cost, num_R_samples) for k in range(num_exps)])
-print sorted([run_ASQR(agent, n_max, query_cost, num_R_samples) for k in range(num_exps)])
+    # for query_cost = 0, it should usually chose n = n_max
+    query_cost = 0
+    agent = makeAgent(1, query_cost)
+    sqr_result = [run_SQR(agent, n_max, env, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(sqr_result), scipy.stats.mode(sqr_result)[0][0]
+    asqr_result = [run_ASQR(agent, n_max, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(asqr_result), scipy.stats.mode(asqr_result)[0][0]
 
-# for large query_cost, it should usually chose n = 0
-query_cost = 1.
-agent = makeAgent(1, query_cost)
-print sorted([run_SQR(agent, n_max, env, epLen, query_cost, num_R_samples) for k in range(num_exps)])
-print sorted([run_ASQR(agent, n_max, query_cost, num_R_samples) for k in range(num_exps)])
+    # for small query_cost, it should usually chose 0 < n < n_max
+    query_cost = 5.
+    agent = makeAgent(1, query_cost)
+    sqr_result = [run_SQR(agent, n_max, env, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(sqr_result), scipy.stats.mode(sqr_result)[0][0]
+    asqr_result = [run_ASQR(agent, n_max, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(asqr_result), scipy.stats.mode(asqr_result)[0][0]
 
-
+    # for large query_cost, it should usually chose n = 0
+    query_cost = 50.
+    agent = makeAgent(1, query_cost)
+    sqr_result = [run_SQR(agent, n_max, env, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(sqr_result), scipy.stats.mode(sqr_result)[0][0]
+    asqr_result = [run_ASQR(agent, n_max, num_episodes_remaining, query_cost, num_R_samples) for k in range(num_exps)]
+    print sorted(asqr_result), scipy.stats.mode(asqr_result)[0][0]
+    
 
 
 
