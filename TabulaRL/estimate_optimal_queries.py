@@ -4,33 +4,64 @@ import gridworld
 import query_functions
 import finite_tabular_agents
 
-seed = 1 
+seed = 2 
 numpy_rng = np.random.RandomState(seed)
 
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 
-
-# FIXME: sample R / r_tilde FIRST!
-
-grid_width=4
-epLen = 2 * grid_width - 1
-num_episodes = 100
+# AGENT
+grid_width=2
+epLen = 2 * grid_width - 1 + 8
+num_episodes = 53
 scaling=.1
 prob_zero_reward=.9
-query_cost=.5
+query_cost=1
+reward_tau = 100**2
 
 nAction = 5
 states = range(grid_width**2)
 
 reward_probabilities = numpy_rng.binomial(1, 1 - prob_zero_reward, len(states)) * numpy_rng.uniform(0, 1, len(states))
 
-env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
+reward_probabilities = gridworld.reward_for_action(reward_probabilities, action=0)
+
+
+env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities, 0)
+
+
+def modifyPrior(prior): 
+    def nonStayKnown(sa, p ): 
+        #non 'stay' actions have infinite precision
+        _, action = sa
+        mu, tau = p
+
+        if action != 0: 
+            return (mu, 1e10)
+        else: 
+            return (mu, tau)
+
+
+    return { k : nonStayKnown(k, v) for k,v in prior.iteritems() } 
+
 def makeAgent(n):
-    query_function = query_functions.QueryFirstNVisits(query_cost, n)
-    return finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
+    def nquery(s, a):
+        return (a == 0) * n
+
+    query_function = query_functions.QueryFixedFunction(query_cost, nquery)
+
+    agent = finite_tabular_agents.PSRLLimitedQuery(env.nState, env.nAction, env.epLen,
                               scaling=scaling, 
-                              P_true=env.P, R_true=None, query_function=query_function)
+                              P_true=env.P, R_true=None, query_function=query_function, 
+                              tau=reward_tau)
+
+    agent.R_prior = modifyPrior(agent.R_prior)
+    return agent
+
+
+
+
+
 
 def runexp(env, agent, hasP=True):
     f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
@@ -39,29 +70,64 @@ def runexp(env, agent, hasP=True):
     global seed
     seed += 1
     # returns: cumReward, cumQueryCost, perf, cumRegret
-    return run_finite_tabular_experiment(agent, env, f_ext, num_episodes, seed,
+    r = run_finite_tabular_experiment(agent, env, f_ext, num_episodes, seed,
                         recFreq=1000, fileFreq=10000, targetPath='')   
 
+    return r 
+
 def sample_real_mdp(agent): 
-    return gridworld.make_mdp(agent.nState, agent.nAction, agent.epLen, *agent.sample_mdp())
+    R, P = agent.sample_mdp()
+    
+    return gridworld.make_mdp(agent.nState, agent.nAction, agent.epLen, R, P, 0)
 
-def rollout_performance(makeAgent, n): 
-    agent = makeAgent(n)
-    return runexp(sample_real_mdp(agent), agent)
+import plot
+from gridworld_plot import plot 
+action_directions = [
+        plot.CENTER, 
+        plot.UP, 
+        plot.RIGHT, 
+        plot.DOWN, 
+        plot.LEFT]
+
+def plotQ(env, mdp, agent, timestep=0):
+    fig, ax = plot.grid_plot(env)
+    tq = agent.qVals
+    q = { s : tq[s,0] for s in range(env.nState) }
+
+    plot.plotQ(ax, env, q, plot.plot_labeled_arrows(action_directions))
+    plot.plotR(ax, env, mdp.R)
+    plot.plotRBelief(ax, env, agent.R_prior)
+    fig.show()
 
 
-def performance_rollouts (makeAgent, ns, iters):
-    return np.array([[rollout_performance(makeAgent, n) for i in range(iters)] for n in ns])
+def rollout_performance(agent, mdp): 
+    return runexp(mdp, agent)
 
-def average_performance(makeAgent, ns, iters):
-    return np.mean(performance_rollouts(makeAgent, ns, iters), axis=1)
+import copy
+def performance_rollouts (worlds, agents, labels):
+    return [(label, w) + rollout_performance(copy.deepcopy(agent), world) + (agent,) 
+            for (w, world) in enumerate(worlds) 
+            for agent, label in zip(agents, labels)]
+
+ns = [0,1,2,4,8]
+
+def worlds_from_prior(agent, iters):
+    return [sample_real_mdp(agent) for i in range(iters)]
+
+worlds = worlds_from_prior(makeAgent(np.inf), 1)
+worlds = [
+    gridworld.make_gridworld(2, epLen, gridworld.reward_for_action([0,1,0,0], action=0), reward_noise=0),
+    gridworld.make_gridworld(2, epLen, gridworld.reward_for_action([0,0,1,0], action=0), reward_noise=0),
+    ]*40
+
+agents = map(makeAgent, ns)
+
+obs = performance_rollouts(worlds, agents, ns)
 
 
-p = average_performance(makeAgent, range(0,4), 10)
-print p
-
-
-
+import pandas 
+data = pandas.DataFrame(obs, columns='n,R,cumReward,cumQueryCost,perf,cumRegret,_'.split(','))
+data.to_csv('sqr3.csv')
 
 
 #---------------------------------------------------

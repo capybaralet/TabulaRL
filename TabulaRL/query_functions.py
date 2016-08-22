@@ -35,13 +35,28 @@ class QueryFirstNVisits(QueryFunction):
         self.visit_count = defaultdict(lambda :0)
 
     def __call__(self, state, action, episode, timestep):
-        query = self.visit_count[state, action] < self.n
+        query = self.will_query(state, action)
         self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
     # We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
         return self.visit_count[state, action] < self.n
+
+
+class QueryFixedFunction(QueryFunction):
+    def __init__(self, queryCost, func):
+        self.__dict__.update(locals())
+        self.visit_count = defaultdict(lambda :0)
+
+    def __call__(self, state, action, episode, timestep):
+        query = self.will_query(state, action)
+        self.visit_count[state, action] += 1
+        return query, query*self.queryCost
+
+    #We can rewrite all query functions to use this subroutine when called
+    def will_query(self, state, action):
+        return self.visit_count[state, action] < self.func(state, action)
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
