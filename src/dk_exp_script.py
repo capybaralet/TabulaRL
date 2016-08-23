@@ -11,6 +11,9 @@ from environment import make_stochasticChain
 
 from ASQR_and_SQR import *
 
+import time
+t1 = time.time()
+
 #TODO: 
 """
   Decide: 
@@ -73,6 +76,8 @@ settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args
 save_str = os.path.join(save_dir, settings_str)
 print "\n save_str=", save_str, '\n'
 
+assert query_cost > 0
+
 # ENVIRONMENT
 if environment == 'grid1':
     grid_width = 8
@@ -108,28 +113,50 @@ elif agent == 'PSRL':
     alg = finite_tabular_agents.PSRL
 initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
 
-#
+
+def sample_gaussian(loc, scale, shape):
+    if scale == 0:
+        return loc * np.ones(shape)
+    else:
+        return np.random.normal(loc, scale, shape)
+
+# RUN
 num_episodes_remaining = num_episodes
-# estimate the best n in each sampled environment (and for each c)
-if algorithm == 'SQR':
-    best_ns = []
-    for sample_n in range(num_R_samples):
-        best_ns.append(run_SQR(initial_agent, n_max, env, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards))
-    np.save(save_str + '_best_ns', best_ns)
-# OR: compute cost and returns for each value of n
-elif algorithm == 'ASQR':
+
+# runs ~num_episodes/2 times faster than the others!!
+if algorithm == 'ASQR':
     _, returns, max_returns, min_returns = run_ASQR(initial_agent, n_max, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
     np.save(save_str + '_returns', returns)
     np.save(save_str + '_returns_max_and_min', [max_returns] + [min_returns])
+
+elif algorithm == 'SQR':
+    num_queries, returns, max_returns, min_returns = run_SQR(initial_agent, n_max, env, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
+    np.save(save_str + '_num_queries', num_queries)
+    np.save(save_str + '_returns', returns)
+    np.save(save_str + '_returns_max_and_min', [max_returns] + [min_returns])
+
 elif algorithm == 'fixed_n':
-    for n in range(n_max + 1):
-        query_function = query_functions.QueryFirstNVisits(query_cost, n)
-        agent = alg(env.nState, env.nAction, env.epLen,
-                                  P_true=None, R_true=None,
-                                  query_function=query_function)
-        query_function.setAgent(agent)
-        # Run the experiment
-        result = run_finite_tabular_experiment(agent, env, f_ext, num_episodes, seed,
-                            recFreq=1000, fileFreq=1000, targetPath=save_str + '_fixed_n=' + str(n), query_function=query_function,
-                            printing=0)
+    returns = []
+    visit_counts = []
+    num_queries = []
+    while time.time() - t1 < 60*60: # run for 1 hour
+    #for kk in range(1):
+        sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
+        first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
+        for n in range(n_max + 1):
+            agent = copy.deepcopy(initial_agent)
+            query_function = query_functions.QueryFirstNVisits(query_cost, n)
+            query_function.setAgent(agent)
+            # Run an experiment
+            result = run_finite_tabular_experiment(agent, env, f_ext, num_episodes,
+                                recFreq=1000, fileFreq=1000, targetPath=save_str + '_fixed_n=' + str(n),
+                                sampled_rewards=first_n_sampled_rewards[n],
+                                printing=0, saving=0)
+            returns.append(result[0])
+            num_queries.append(result[1] / query_cost)
+            #visit_counts.append(agent.query_function.visit_count)
+    # TODO: are these saved in the same format as above??
+    np.save(save_str + '_num_queries', num_queries)
+    np.save(save_str + '_returns', returns)
+
 
