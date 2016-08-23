@@ -1,0 +1,6 @@
+
+It's getting hard to keep track of all the attributes and we're not respecting the objects' interfaces.
+    Maybe we should have a top-level "experiment" object that takes an agent, environment (and settings / hparams) and runs them
+    The query functions can be attributes of the agent or the top-level environment.
+
+

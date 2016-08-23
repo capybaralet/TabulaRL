@@ -4,7 +4,8 @@ import gridworld
 import query_functions
 import finite_tabular_agents
 from feature_extractor import FeatureTrueState
-from experiment import run_finite_tabular_experiment
+#from experiment import run_finite_tabular_experiment
+from TabulaRL.dk_run_finite_tabular_experiment import run_finite_tabular_experiment
 from environment import make_stochasticChain
 #np.random.seed(1)
 
@@ -44,7 +45,7 @@ EXPERIMENTS:
 # TODO: save results in a single file / database
 import os
 filename = os.path.basename(__file__)
-save_dir = 'results__' + filename
+save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
 if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 

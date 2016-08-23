@@ -1,0 +1,2 @@
+# args: n, real_env/SQR(/ASQR), grid/chain, env_size, reward_aggregation: relative or absolute? num_jobs
+smart-dispatch -q qtest@mp2 launch python SQR_exps.py [1 2] 80 [tanh sigmoid] 0.1
