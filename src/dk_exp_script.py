@@ -125,24 +125,24 @@ def sample_gaussian(loc, scale, shape):
 # RUN
 num_episodes_remaining = num_episodes
 
-# runs ~num_episodes/2 times faster than the others!!
-if algorithm == 'ASQR':
+
+if algorithm == 'ASQR': # runs ~num_episodes/2 times faster than the others!!
     _, returns, max_returns, min_returns = run_ASQR(initial_agent, n_max, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
     np.save(save_str + 'returns', returns)
     np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
-
 elif algorithm == 'SQR':
     num_queries, returns, max_returns, min_returns = run_SQR(initial_agent, n_max, env, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
     np.save(save_str + 'num_queries', num_queries)
     np.save(save_str + 'returns', returns)
     np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
-
 elif algorithm == 'fixed_n':
-    returns = []
-    visit_counts = []
-    num_queries = []
-    while time.time() - t1 < 60*60: # run for 1 hour
-    #for kk in range(1):
+    returnss = []
+    #visit_countss = []
+    num_queriess = []
+    #while time.time() - t1 < 60*60: # run for 1 hour
+    for kk in range(num_R_samples):
+        returns = []
+        num_queries = []
         sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
         first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
         for n in range(n_max + 1):
@@ -157,7 +157,8 @@ elif algorithm == 'fixed_n':
             returns.append(result[0])
             num_queries.append(result[1] / query_cost)
             #visit_counts.append(agent.query_function.visit_count)
-    # TODO: are these saved in the same format as above??
+        returnss.append(returns)
+        num_queriess.append(num_queries)
     np.save(save_str + 'num_queries', num_queries)
     np.save(save_str + 'returns', returns)
 
