@@ -1,0 +1,1 @@
+smart-dispatch -q qwork@mp2 launch /home/capybara/TabulaRL/src/cluster_dk_exp_script [PSRL PSRLLimitedQuery] [ASQR SQR fixed_n] [chain5 grid0] [1:100]
