@@ -45,19 +45,6 @@ EXPERIMENTS:
 """
 
 # SETUP
-# TODO: save results in a single file / database
-import os
-filename = os.path.basename(__file__)
-save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-
-import datetime
-timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
-save_dir += '/' + timestamp 
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-
 import argparse
 parser = argparse.ArgumentParser()
 # we only need different costs if we're using SQR/ASQR
@@ -72,11 +59,26 @@ parser.add_argument('--algorithm', type=str, default='ASQR')
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
-settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
-save_str = os.path.join(save_dir, settings_str)
-print "\n save_str=", save_str, '\n'
 
 assert query_cost > 0
+
+settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
+
+# TODO: save results in a single file / database
+import os
+filename = os.path.basename(__file__)
+save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
+if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+
+import datetime
+timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+save_dir += '/' + timestamp + '___' + settings_str
+if not os.path.exists(save_dir):
+    os.mkdir(save_dir)
+save_str = save_dir + '/'
+print "\n save_str=", save_str, '\n'
+
 
 # ENVIRONMENT
 if environment == 'grid1':
@@ -126,14 +128,14 @@ num_episodes_remaining = num_episodes
 # runs ~num_episodes/2 times faster than the others!!
 if algorithm == 'ASQR':
     _, returns, max_returns, min_returns = run_ASQR(initial_agent, n_max, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
-    np.save(save_str + '_returns', returns)
-    np.save(save_str + '_returns_max_and_min', [max_returns] + [min_returns])
+    np.save(save_str + 'returns', returns)
+    np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
 
 elif algorithm == 'SQR':
     num_queries, returns, max_returns, min_returns = run_SQR(initial_agent, n_max, env, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
-    np.save(save_str + '_num_queries', num_queries)
-    np.save(save_str + '_returns', returns)
-    np.save(save_str + '_returns_max_and_min', [max_returns] + [min_returns])
+    np.save(save_str + 'num_queries', num_queries)
+    np.save(save_str + 'returns', returns)
+    np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
 
 elif algorithm == 'fixed_n':
     returns = []
@@ -156,7 +158,7 @@ elif algorithm == 'fixed_n':
             num_queries.append(result[1] / query_cost)
             #visit_counts.append(agent.query_function.visit_count)
     # TODO: are these saved in the same format as above??
-    np.save(save_str + '_num_queries', num_queries)
-    np.save(save_str + '_returns', returns)
+    np.save(save_str + 'num_queries', num_queries)
+    np.save(save_str + 'returns', returns)
 
 
