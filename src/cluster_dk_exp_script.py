@@ -1,12 +1,12 @@
 import numpy as np
 import argparse
-import gridworld
-import query_functions
-import finite_tabular_agents
-from feature_extractor import FeatureTrueState
+import TabulaRL.gridworld as gridworld
+import TabulaRL.query_functions as query_functions
+import TabulaRL.finite_tabular_agents as finite_tabular_agents
+from TabulaRL.feature_extractor import FeatureTrueState
 #from experiment import run_finite_tabular_experiment
 from TabulaRL.dk_run_finite_tabular_experiment import run_finite_tabular_experiment
-from environment import make_stochasticChain
+from TabulaRL.environment import make_stochasticChain
 #np.random.seed(1)
 
 from ASQR_and_SQR import *
@@ -68,14 +68,12 @@ settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args
 import os
 filename = os.path.basename(__file__)
 save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
 
 import datetime
 timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
 save_dir += '/' + timestamp + '___' + settings_str
 if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
+    os.makedirs(save_dir)
 save_str = save_dir + '/'
 print "\n save_str=", save_str, '\n'
 
@@ -128,6 +126,8 @@ def sample_gaussian(loc, scale, shape):
 
 # RUN
 num_episodes_remaining = num_episodes
+
+print "running"
 
 if algorithm == 'ASQR': # runs ~num_episodes/2 times faster than the others!!
     num_R_samples *= (num_episodes / 2)
