@@ -12,7 +12,7 @@
 \maketitle
 
 
-We derive conditions under which it is optimal to not query for an N-armed Bernoulli bandit with uniform priors, in terms of the query cost, $c$, and the discount factor, $\gamma$, assuming we are only allowed a single query.
+We derive conditions under which it is optimal to not query for an N-armed Bernoulli bandit with Beta(1,1) priors, in terms of the query cost, $c$, and the discount factor, $\gamma$, assuming we are only allowed a single query.
 Next, we'd like to extend this to non-uniform priors, and cases where multiple queries are allowed.
 
 If we do not query, we achieve expected returns of $\frac{1}{2}\frac{1}{1-\gamma}$.
@@ -37,6 +37,38 @@ This means that there must exist some arm, wlog $a_1$, such that a single observ
 
 
 When more than one query is allowed, there are more strategies that involve querying, and hence querying might be a good move, even if the cost is larger.
+
+
+\section{Finite Horizon}
+
+We can probably modify the Gittens index computations to consider the query cost.
+
+\subsection{Characteristics of optimal bandit strategy}
+We prove that the optimal policy queries at every time-step up to some (unknown) point, and then never queries again.
+Using this knowledge, we can consider the bandit to contain a single extra arm the "stop querying" arm, which has rewards equal to the max of the expected rewards of the other arms.
+
+Proof: 
+First we prove that it is optimal to stop querying at some point.
+The most we can hope to gain by querying at time-step $t$ is $R_{max} \frac{\gamma^t}{1 - \gamma}$, and this quantity goes to 0 as $t \rightarrow \inf$, thus for any query cost, there is some $t$ such that we should not query.
+%
+Now we show that once we stop querying, we would never chose to query again.  
+We can consider the value function of the optimal policy in the belief-MDP where rewards are augmented with the query costs, which decomposes as
+$V_t^*(s,a) = \tilde{V}_t^*(s,a) - c$. % FIXME: but only when we query...  
+We must index the value functions here, because the query cost is \emph{not} discounted.
+
+% TODO:
+The proof is by induction.
+Let $\{a_i\}$ be the set of standard actions and $\{b_i\}$ be the same actions, when querying.
+Then we prove that any action sequence containing the subsequence $a_i, b_j$ cannot be superior to all other 
+
+
+
+% Possible counter-example: want to exploit this round (because of decay), but would explore next round...
+
+
+
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

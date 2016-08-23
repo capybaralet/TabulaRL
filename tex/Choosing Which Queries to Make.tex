@@ -18,6 +18,7 @@
 
 
 
+
 We're proposing a few methods for how to choose the number of queries per state-action in model-based active RL.
 We consider the tabular MDP case, with state and actions sets $\mathcal{S}, \mathcal{A}$, and transition and reward functions $\mathcal{T}, \mathcal{R}$.
 We use $r$ to denote instantaneous rewards.
@@ -37,6 +38,13 @@ We use the $\mathop{PSRL}$ algorithm with a slight modification: we fix the agen
 %	account for the cost of the queries somehow
 %	smooth the distribution towards a delta (i.e. artificially decrease variance)
 We use $\mathop{PSRL}_n$ to denote this modification of $\mathop{PSRL}$ using with $q^{max}_t = (n,...,n)$.
+
+
+
+
+
+%\section{The general form of our algorithm}
+
 
 % Simulated Query Rollouts
 \section{A Proposal for Tuning $n$}
@@ -114,6 +122,8 @@ Note that given transition operator $\mathcal{T}$, each policy, $\pi$ induces a 
 Unlike a standard linear bandit, however, our queries are restricted to standard basis vectors, while only the arms corresponding to valid policies can ultimately be exploited.
 Furthermore, an agent must visit a state, action in order to query it (although notably, this is \emph{not} the case for ASQR.
 
+\subsection{Function Approximation}
+When we use function approximation, we can maybe replace linear bandit methods with something like the Active Reward Learning method (i.e. a model of the rewards, GP or DNN)
 
 
 
@@ -129,6 +139,9 @@ To frame the query function as part of the policy, we need to augment the state 
 
 Using this framing allows us to learn about a query functions based on the experience of an agent with a different query function (if the functions are stochastic).
 This is analagous to the "branching agent" idea that Owain mentioned.
+
+
+
 
 
 
