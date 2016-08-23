@@ -11,6 +11,8 @@ from environment import make_stochasticChain
 
 from ASQR_and_SQR import *
 
+# TODO: rewrite SQR and PSRL to "use each other's tricks"
+
 #TODO: 
 """
   Decide: 
@@ -58,14 +60,14 @@ if not os.path.exists(save_dir):
 import argparse
 parser = argparse.ArgumentParser()
 # we only need different costs if we're using SQR/ASQR
-parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--n_max', type=int, default=0)
-parser.add_argument('--normalize_rewards', type=int, default=0)
-parser.add_argument('--num_episodes', type=int, default=100000)
-parser.add_argument('--num_R_samples', type=int, default=1)
-parser.add_argument('--environment', type=str, default='chain5')
-parser.add_argument('--agent', type=str, default='PSRLLimitedQuery')
-parser.add_argument('--algorithm', type=str, default='ASQR')
+parser.add_argument('query_cost', type=float, default=1.)
+parser.add_argument('n_max', type=int, default=0)
+parser.add_argument('normalize_rewards', type=int, default=0)
+parser.add_argument('num_episodes', type=int, default=100000)
+parser.add_argument('num_R_samples', type=int, default=1)
+parser.add_argument('environment', type=str, default='chain5')
+parser.add_argument('agent', type=str, default='PSRLLimitedQuery')
+parser.add_argument('algorithm', type=str, default='ASQR')
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace

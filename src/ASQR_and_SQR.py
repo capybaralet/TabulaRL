@@ -41,7 +41,6 @@ def estimate_returns_ASQR(agent, sampled_R, sampled_rewards, num_episodes_remain
     # TODO: shouldn't use P_hat when the environment is unknown (?)
     return agent.compute_qVals_true(updated_R, P_hat, sampled_R, P_hat)
 
-# TODO: I should also return the max returns (I can normalize outside, if I want...)
 def run_ASQR(agent, n_max, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     Use ASQR to select an n between 0 and n_max (inclusive).
@@ -75,6 +74,7 @@ def copy_agent_with_different_n(agent, n, query_cost):
     agent_copy.query_function = QueryFirstNVisits(query_cost, n)
     return agent_copy
 
+# TODO: return returns, visit counts, max/min_returns (we can compute performance for any c, after the fact)
 def run_SQR(agent, n_max, env, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     Use SQR to select an n between 0 and n_max (inclusive).
