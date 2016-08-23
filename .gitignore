@@ -1,5 +1,5 @@
 */*.csv
 */*.pyc
-*.log
-*.aux
-*.synctex.gz
+tex/*.log
+tex/*.aux
+tex/*.synctex.gz
