@@ -5,7 +5,6 @@ from query_functions import QueryFirstNVisits
 
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
-import pandas 
 
 from sqr import *
 
