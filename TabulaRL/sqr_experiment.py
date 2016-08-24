@@ -9,6 +9,7 @@ from experiment import run_finite_tabular_experiment
 import pandas 
 
 from sqr import *
+from agent_sim import performance_rollouts
 
 seed = 2 
 numpy_rng = np.random.RandomState(seed)
@@ -25,7 +26,11 @@ env.num_episodes = num_episodes
 
 def randomWorld():
     rewards = np.zeros(env.nState)
-    rewards[np.random.randint(env.nState)] = 1
+
+    col = np.random.randint(grid_width)
+    state = (grid_width - col - 1)*grid_width + col
+    rewards[state] = 1
+
     rewards = gridworld.reward_for_action(rewards, action=0)
 
     world = gridworld.make_gridworld(grid_width, epLen, rewards, reward_sd)
@@ -42,7 +47,7 @@ qfunctions = [ QueryFixedFunction(query_cost, lambda s,a: (a==0)*n) for n in ns 
 
 
 
-prior = genPrior(env, { (s,0) : (0, 1) for s in range(env.nState) }, (0, 10e10))
+prior = fillPrior(env, { (s,0) : (0, 1) for s in range(env.nState) }, (0, 10e10))
 
 agents = [ 
         MakeSQRAgent(reward_tau, env, prior, qfunctions, iters=20),
@@ -51,7 +56,6 @@ agents = [
         ]
 labels = ['sqr', 'limit query n=1','limit query n=0' ]
 worlds = [ randomWorld() for i in range(50) ]
-
 
 
 data = performance_rollouts(worlds, agents, labels)
