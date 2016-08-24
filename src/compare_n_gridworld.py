@@ -20,7 +20,7 @@ scaling=.1
 prob_zero_reward=.9
 query_cost=1.
 
-k = 1000
+k = 100
 iters = k
 
 ns = range(9)
@@ -75,7 +75,7 @@ flattened_rollouts = np.concatenate(rollouts, axis=0)
 rollout_performances = [rollout[2] for rollout in flattened_rollouts]
 rollout_returns = [rollout[0] for rollout in flattened_rollouts]
 
-def bootstrap(dataset, estimator, num_samples=100000):
+def bootstrap(dataset, estimator, num_samples=10000):
     #print dataset
     bootstrap_inds = np.random.randint(0, len(dataset), len(dataset) * num_samples)
     bootstrap_exs = [dataset[ind] for ind in bootstrap_inds]
