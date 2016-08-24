@@ -16,6 +16,12 @@ variance_of_simulated_queries = 1.
 # TODO: case where P (i.e. T) is unknown
 
 
+"""
+This ended up not being a very good way of writing this code; it's pretty inefficient, and annoying to pass things back and forth.
+I plan to just port everything into dk_exp_script
+"""
+
+
 #def sample_rewards(agent, queries, sampled_R):
 #   """ queries[s,a] = # of queries to perform on (s,a) """
 #   return {(s,a) : np.random.normal(sampled_R[s,a], 1, queries[s,a]) for (s,a) in agent.P_prior.keys()}
@@ -42,12 +48,13 @@ def estimate_returns_ASQR(agent, sampled_R, sampled_rewards, num_episodes_remain
     # TODO: shouldn't use P_hat when the environment is unknown (?)
     return agent.compute_qVals_true(updated_R, P_hat, sampled_R, P_hat)
 
-def run_ASQR(agent, n_max, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
+def run_ASQR(agent, ns, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     Use ASQR to select an n between 0 and n_max (inclusive).
 
     returns - estimated n_best
     """
+    n_max = max(ns)
     max_returns = []
     min_returns = []
     returns = []
@@ -60,10 +67,10 @@ def run_ASQR(agent, n_max, num_episodes_remaining, query_cost=1., num_R_samples=
         max_returns.append(agent.compute_qVals(sampled_R, P_hat)[1][0][0])
         min_returns.append(- agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, P_hat)[1][0][0])
         these_returns = [estimate_returns_ASQR(agent, sampled_R, first_n_sampled_rewards[n], num_episodes_remaining)
-                                    for n in range(n_max+1)]
+                                    for n in ns]
         returns.append([num_episodes_remaining * rr[0] for rr in these_returns])
-        performances.append([returns[-1][n] - query_cost * sum([len(qq) for qq in first_n_sampled_rewards[n].values()])
-                                    for n in range(n_max+1)])
+        performances.append([returns[-1][ind] - query_cost * sum([len(qq) for qq in first_n_sampled_rewards[n].values()])
+                                    for ind, n in enumerate(ns)])
     avg_performances = np.array(performances).sum(0)
     return avg_performances.argmax(), returns, max_returns, min_returns
 
@@ -95,10 +102,11 @@ def count_queries_and_estimate_returns_SQR(agent, env, sampled_R, sampled_reward
     return results[0], results[1]
 
 # TODO: return visit counts instead of num_queries
-def run_SQR(agent, n_max, env, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
+def run_SQR(agent, ns, env, num_episodes_remaining, query_cost=1., num_R_samples=1, normalize_rewards=False):
     """
     run SQR (for an undefined query cost)
     """
+    n_max = max(ns)
     max_returns = []
     min_returns = []
     returns = []
@@ -110,13 +118,13 @@ def run_SQR(agent, n_max, env, num_episodes_remaining, query_cost=1., num_R_samp
         first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
         max_returns.append(agent.compute_qVals(sampled_R, P_hat)[1][0][0])
         min_returns.append(- agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, P_hat)[1][0][0])
-        agent_copies =[copy_agent_with_different_n(agent, n, query_cost=1) for n in range(n_max+1)]
+        agent_copies =[copy_agent_with_different_n(agent, n, query_cost=1) for n in ns]
         these_results = [count_queries_and_estimate_returns_SQR(
-                                               agent_copies[n],
+                                               agent_copies[ind],
                                                env, 
                                                sampled_R, first_n_sampled_rewards[n], num_episodes_remaining)
-                                    for n in range(n_max+1)]
-        returns.append([num_episodes_remaining * rr[0] for rr in these_results])
+                                    for ind, n in enumerate(ns)]
+        returns.append([rr[0] for rr in these_results])
         num_queries.append([rr[1] for rr in these_results])
     return num_queries, returns, max_returns, min_returns
 
