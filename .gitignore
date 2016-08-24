@@ -3,3 +3,8 @@
 tex/*.log
 tex/*.aux
 tex/*.synctex.gz
+
+/env
+*.csv
+*.swp
+*.pyc
