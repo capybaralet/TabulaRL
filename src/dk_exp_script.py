@@ -72,12 +72,12 @@ class QueryFixedFunction(query_functions.QueryFunction):
 # SETUP
 import argparse
 parser = argparse.ArgumentParser()
-# we only need different costs if we're using SQR/ASQR
+# we only need different costs if we're using ASQR
 parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--log_n_max', type=int, default=3)
+parser.add_argument('--log_n_max', type=int, default=10)
 parser.add_argument('--normalize_rewards', type=int, default=0)
-parser.add_argument('--log_num_episodes', type=int, default=10)
-parser.add_argument('--num_R_samples', type=int, default=7)
+parser.add_argument('--log_num_episodes', type=int, default=15)
+parser.add_argument('--num_R_samples', type=int, default=20)
 parser.add_argument('--environment', type=str, default='chain5')
 parser.add_argument('--agent', type=str, default='PSRLLimitedQuery')
 parser.add_argument('--algorithm', type=str, default='fixed_n')
@@ -163,6 +163,7 @@ if algorithm == 'ASQR':
     np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
 else:
     for kk in range(num_R_samples):
+        print "beginning experiment #", kk
         env = copy.deepcopy(initial_env)
 
         if algorithm == 'SQR': # run in a sampled environment, instead
