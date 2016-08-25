@@ -45,17 +45,10 @@ def plot_performance(load_str, query_cost=None):
 #----------------------------------------------------
 # Below: for dk_exp_script (Aug 24)
 
-"""
-TODO: make a plotting function that does all of the below (so after I run experiments, I just pass in the results and get what I want...)
+# TODO: plotting for SQR/ASQR
+#   e.g. integral of P_SQR(n) * performance(n)   (...for a given c, h)
+# TODO: normalized performance
 
-TODO: figure out what plots to make...
-    we can also average over one axis...
-
-    And there are other things we want to look at, too...
-        e.g. how well does ASQR / SQR perform?
-            e.g. integral of P_SQR(n) * performance(n)   (...for a given c, h)
-
-"""
 
 # TODO: better naming, etc.
 def multiplot(list_of_curves, transpose=True):
