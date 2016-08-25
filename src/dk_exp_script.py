@@ -157,7 +157,7 @@ returns_max_min = np.empty((num_R_samples, 2))
 
 
 # TODO (for ASQR): john's grid mods, more??
-if algorithm == 'ASQR':
+if 0:#algorithm == 'ASQR':
     _, returns, max_returns, min_returns = run_ASQR(initial_agent, ns, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
     np.save(save_str + 'returns', returns)
     np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
@@ -166,7 +166,7 @@ else:
         print "beginning experiment #", kk
         env = copy.deepcopy(initial_env)
 
-        if algorithm == 'SQR': # run in a sampled environment, instead
+        if algorithm in ['SQR', 'ASQR']: # use a sampled environment, instead
             sampled_R, sampled_P = initial_agent.sample_mdp()
             env.R = {kk:(sampled_R[kk], variance_of_simulated_queries) for kk in sampled_R}
             env.P = sampled_P
@@ -175,6 +175,7 @@ else:
             returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
 
         sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
+        # is this still needed??
         first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
         for ind, n in enumerate(ns):
             agent = copy.deepcopy(initial_agent)
@@ -184,37 +185,49 @@ else:
                 query_function = query_functions.QueryFirstNVisits(query_cost, n)
             query_function.setAgent(agent)
 
-            # Run an experiment  
-            nEps = num_episodes_remaining
-            # --------------- modified from dk_run_finite_tabular_experiment ------------------
-            qVals, qMax = env.compute_qVals()
-            cumReward = 0
-            cumQueryCost = 0 
-            for ep in xrange(1, nEps + 2):
-                env.reset()
-                epMaxVal = qMax[env.timestep][env.state]
-                agent.update_policy(ep)
+            if algorithm=="ASQR": # update posterior, compute expected returns
+                updated_R = {}
+                for [s,a] in first_n_sampled_rewards[n]: # TODO: clean-up (make a separate function?)
+                    mu0, tau0 = agent.R_prior[s,a]
+                    num_samples = len(first_n_sampled_rewards[n][s,a])
+                    tau1 = tau0 + agent.tau * num_samples
+                    mu1 = (mu0 * tau0 + sum(first_n_sampled_rewards[n][s,a]) * agent.tau) / tau1
+                    updated_R[s,a] = mu1
+                updated_P = sampled_P # TODO: use ASQR to learn about P somehow??
+                expected_returns = agent.compute_qVals_true(updated_R, updated_P, sampled_R, sampled_P)[0]
+                returns[kk, :, ind] = expected_returns * 2**np.arange(log_num_episodes+1)
+                num_queries[kk, :, ind] = n * sum([agent.query_function.will_query(s,a) for [s,a] in first_n_sampled_rewards[n]])
+            else: # Run an experiment  
+                nEps = num_episodes_remaining
+                # --------------- modified from dk_run_finite_tabular_experiment ------------------
+                qVals, qMax = env.compute_qVals()
+                cumReward = 0
+                cumQueryCost = 0 
+                for ep in xrange(1, nEps + 2):
+                    env.reset()
+                    epMaxVal = qMax[env.timestep][env.state]
+                    agent.update_policy(ep)
 
-                pContinue = 1
-                while pContinue > 0:
-                    # Step through the episode
-                    h, oldState = f_ext.get_feat(env)
+                    pContinue = 1
+                    while pContinue > 0:
+                        # Step through the episode
+                        h, oldState = f_ext.get_feat(env)
 
-                    action = agent.pick_action(oldState, h)
-                    query, queryCost = agent.query_function(oldState, action, ep, h)
-                    cumQueryCost += queryCost
+                        action = agent.pick_action(oldState, h)
+                        query, queryCost = agent.query_function(oldState, action, ep, h)
+                        cumQueryCost += queryCost
 
-                    reward, newState, pContinue = env.advance(action)
-                    if query and first_n_sampled_rewards[n] is not None:
-                        reward = first_n_sampled_rewards[n][oldState, action][agent.query_function.visit_count[oldState, action] - 1]
-                    cumReward += reward 
-                    agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
+                        reward, newState, pContinue = env.advance(action)
+                        if query and first_n_sampled_rewards[n] is not None:
+                            reward = first_n_sampled_rewards[n][oldState, action][agent.query_function.visit_count[oldState, action] - 1]
+                        cumReward += reward 
+                        agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
-                if is_power2(ep): # checkpoint
-                    returns[kk, int(np.log2(ep)), ind] = cumReward
-                    num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
+                    if is_power2(ep): # checkpoint
+                        returns[kk, int(np.log2(ep)), ind] = cumReward
+                        num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
 
-            # ---------------------------------------------------------------------
+                # ---------------------------------------------------------------------
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
         np.save(save_str + 'returns_max_min', returns_max_min)
