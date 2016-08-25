@@ -5,7 +5,7 @@ import TabulaRL.query_functions as query_functions
 import TabulaRL.finite_tabular_agents as finite_tabular_agents
 from TabulaRL.feature_extractor import FeatureTrueState
 #from experiment import run_finite_tabular_experiment
-from TabulaRL.dk_run_finite_tabular_experiment import run_finite_tabular_experiment
+#from TabulaRL.dk_run_finite_tabular_experiment import run_finite_tabular_experiment
 from TabulaRL.environment import make_stochasticChain
 #np.random.seed(1)
 
@@ -15,8 +15,7 @@ import time
 t1 = time.time()
 
 # TODO (now): 
-#   save results at different episodes
-#   use powers of 2 for n, num_episodes
+#   save results at different episodes (powers of 2)
 #
 # TODO (later):
 #   ASQR in the loop
@@ -25,6 +24,10 @@ t1 = time.time()
 
 #-----------------------------------------------------------------------------------
 # UTILITY FUNCTIONS
+
+def is_power2(num):
+    'states if a number is a power of two'
+    return num != 0 and ((num & (num - 1)) == 0)
 
 def sample_gaussian(loc, scale, shape):
     if scale == 0:
@@ -69,15 +72,15 @@ class QueryFixedFunction(query_functions.QueryFunction):
 # SETUP
 import argparse
 parser = argparse.ArgumentParser()
-# we only need different costs if we're using SQR/ASQR
+# we only need different costs if we're using ASQR
 parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--n_max', type=int, default=0)
+parser.add_argument('--log_n_max', type=int, default=10)
 parser.add_argument('--normalize_rewards', type=int, default=0)
-parser.add_argument('--num_episodes', type=int, default=100000)
-parser.add_argument('--num_R_samples', type=int, default=1)
+parser.add_argument('--log_num_episodes', type=int, default=15)
+parser.add_argument('--num_R_samples', type=int, default=20)
 parser.add_argument('--environment', type=str, default='chain5')
 parser.add_argument('--agent', type=str, default='PSRLLimitedQuery')
-parser.add_argument('--algorithm', type=str, default='ASQR')
+parser.add_argument('--algorithm', type=str, default='fixed_n')
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
@@ -141,59 +144,79 @@ initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None
 
 
 # RUN
-num_episodes_remaining = num_episodes
+initial_env = env
+num_episodes_remaining = 2**log_num_episodes
+n_max = 2**log_n_max
+ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
-"""
-Steps of running an algorithm:
-    set-up things to save results
-    loop:
-        sample R~, r~
-        run an experiment (just copy code from run_finite_tabul...)
-"""
+# TODO: save at checkpoints
+# save results here:
+num_queries = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
+returns = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
+returns_max_min = np.empty((num_R_samples, 2))
 
-num_queries = []
-returns = []
-returns_max = []
-returns_min = []
 
-if algorithm == 'ASQR': # runs ~num_episodes/2 times faster than the others!!
-    _, returns, max_returns, min_returns = run_ASQR(initial_agent, n_max, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
+# TODO (for ASQR): john's grid mods, more??
+if algorithm == 'ASQR':
+    _, returns, max_returns, min_returns = run_ASQR(initial_agent, ns, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
     np.save(save_str + 'returns', returns)
     np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
-elif algorithm == 'SQR':
-    num_queries, returns, max_returns, min_returns = run_SQR(initial_agent, n_max, env, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
-    np.save(save_str + 'num_queries', num_queries)
-    np.save(save_str + 'returns', returns)
-    np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
-elif algorithm == 'fixed_n':
-    returnss = []
-    #visit_countss = []
-    num_queriess = []
-    #while time.time() - t1 < 60*60: # run for 1 hour
+else:
     for kk in range(num_R_samples):
-        returns = []
-        num_queries = []
+        print "beginning experiment #", kk
+        env = copy.deepcopy(initial_env)
+
+        if algorithm == 'SQR': # run in a sampled environment, instead
+            sampled_R, sampled_P = initial_agent.sample_mdp()
+            env.R = {kk:(sampled_R[kk], variance_of_simulated_queries) for kk in sampled_R}
+            env.P = sampled_P
+            # TODO: use P_true or sampled_P here? (for now they are the same...)
+            returns_max_min[kk,0] = initial_agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
+            returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
+
         sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
         first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
-        for n in range(n_max + 1):
+        for ind, n in enumerate(ns):
             agent = copy.deepcopy(initial_agent)
-            # TODO: similar thing for SQR/ASQR...
-            if 0:#environment.startswith('grid'):
+            if environment.startswith('grid'):
                 query_function = QueryFixedFunction(query_cost, lambda s,a: (a==0) * n)
             else:
                 query_function = query_functions.QueryFirstNVisits(query_cost, n)
             query_function.setAgent(agent)
-            # Run an experiment
-            result = run_finite_tabular_experiment(agent, env, f_ext, num_episodes,
-                                recFreq=1000, fileFreq=1000, targetPath=save_str + '_fixed_n=' + str(n),
-                                sampled_rewards=first_n_sampled_rewards[n],
-                                printing=0, saving=0)
-            returns.append(result[0])
-            num_queries.append(result[1] / query_cost)
-            #visit_counts.append(agent.query_function.visit_count)
-        returnss.append(returns)
-        num_queriess.append(num_queries)
-    np.save(save_str + 'num_queries', num_queries)
-    np.save(save_str + 'returns', returns)
+
+            # Run an experiment  
+            nEps = num_episodes_remaining
+            # --------------- modified from dk_run_finite_tabular_experiment ------------------
+            qVals, qMax = env.compute_qVals()
+            cumReward = 0
+            cumQueryCost = 0 
+            for ep in xrange(1, nEps + 2):
+                env.reset()
+                epMaxVal = qMax[env.timestep][env.state]
+                agent.update_policy(ep)
+
+                pContinue = 1
+                while pContinue > 0:
+                    # Step through the episode
+                    h, oldState = f_ext.get_feat(env)
+
+                    action = agent.pick_action(oldState, h)
+                    query, queryCost = agent.query_function(oldState, action, ep, h)
+                    cumQueryCost += queryCost
+
+                    reward, newState, pContinue = env.advance(action)
+                    if query and first_n_sampled_rewards[n] is not None:
+                        reward = first_n_sampled_rewards[n][oldState, action][agent.query_function.visit_count[oldState, action] - 1]
+                    cumReward += reward 
+                    agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
+
+                if is_power2(ep): # checkpoint
+                    returns[kk, int(np.log2(ep)), ind] = cumReward
+                    num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
+
+            # ---------------------------------------------------------------------
+        np.save(save_str + 'num_queries', num_queries)
+        np.save(save_str + 'returns', returns)
+        np.save(save_str + 'returns_max_min', returns_max_min)
 
 
