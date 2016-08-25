@@ -1,5 +1,7 @@
 import numpy as np
 import argparse
+from collections import defaultdict
+
 import TabulaRL.gridworld as gridworld
 import TabulaRL.query_functions as query_functions
 import TabulaRL.finite_tabular_agents as finite_tabular_agents
