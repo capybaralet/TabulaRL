@@ -1,2 +1,0 @@
-# args: n, real_env/SQR(/ASQR), grid/chain, env_size, reward_aggregation: relative or absolute? num_jobs
-smart-dispatch -q qwork@mp2 launch /home/capybara/TabulaRL/src/touch_script [1:2]
