@@ -1,6 +1,6 @@
 import numpy as np
 import argparse
-import TabulaRL.gridworld as gridworls
+import TabulaRL.gridworld as gridworld
 import TabulaRL.query_functions as query_functions
 import TabulaRL.finite_tabular_agents as finite_tabular_agents
 from TabulaRL.feature_extractor import FeatureTrueState
