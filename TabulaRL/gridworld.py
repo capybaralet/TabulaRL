@@ -12,7 +12,7 @@ def R_normal_dist_to_expectation(R):
 def reward_for_action(state_rewards, action):
     return { (s,action) : reward for s,reward in enumerate(state_rewards) }
 
-def make_gridworld(grid_width, epLen, rewards, reward_noise):
+def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
     """
     make the environment deterministic 
         (and potentially makes the agent know that)

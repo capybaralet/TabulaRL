@@ -113,7 +113,7 @@ if environment == 'grid1':
     reward_probabilities = [0,] * len(states[:-1]) + [1,]
     #reward_probabilities = gridworld.reward_for_action(reward_probabilities, action=0)
     env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
-elif environment == 'sparse_grid':
+elif environment == 'grid0':
     grid_width = 8
     epLen = 2 * grid_width - 1
     prob_zero_reward=.9

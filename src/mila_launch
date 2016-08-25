@@ -1,16 +1,16 @@
 ssh leto01 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
-ssh leto02 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --env=grid0 --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
+ssh leto02 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --environment=grid0 --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
 ssh leto03 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --agent=PSRL &
-ssh leto04 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --env=grid0 --agent=PSRL &
+ssh leto04 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --environment=grid0 --agent=PSRL &
 ssh leto05 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --log_num_episodes=10 --num_R_samples=3000 &
-ssh leto06 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --env=grid0 --log_num_episodes=10 --num_R_samples=3000 &
+ssh leto06 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --environment=grid0 --log_num_episodes=10 --num_R_samples=3000 &
 ssh leto07 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n &
-ssh leto08 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --env=grid0 &
+ssh leto08 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=fixed_n --environment=grid0 &
 ssh leto11 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
-ssh leto12 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --env=grid0 --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
+ssh leto12 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --environment=grid0 --log_num_episodes=10 --num_R_samples=3000 --agent=PSRL &
 ssh leto13 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --agent=PSRL &
-ssh leto14 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --env=grid0 --agent=PSRL &
+ssh leto14 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --environment=grid0 --agent=PSRL &
 ssh leto15 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --log_num_episodes=10 --num_R_samples=3000 &
-ssh leto16 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --env=grid0 --log_num_episodes=10 --num_R_samples=3000 &
+ssh leto16 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --environment=grid0 --log_num_episodes=10 --num_R_samples=3000 &
 ssh leto17 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR &
-ssh leto50 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --env=grid0 &
+ssh leto50 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=SQR --environment=grid0 &
