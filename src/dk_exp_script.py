@@ -93,14 +93,12 @@ settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args
 import os
 filename = os.path.basename(__file__)
 save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
 
 import datetime
 timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
 save_dir += '/' + timestamp + '___' + settings_str
 if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
+    os.makedirs(save_dir)
 save_str = save_dir + '/'
 print "\n save_str=", save_str, '\n'
 
