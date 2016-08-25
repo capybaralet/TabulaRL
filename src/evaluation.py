@@ -49,8 +49,9 @@ def plot_performance(load_str, query_cost=None):
 #   e.g. integral of P_SQR(n) * performance(n)   (...for a given c, h)
 # TODO: normalized performance
 
+# TODO: 
 
-# TODO: better naming, etc.
+
 def multiplot(list_of_curves, transpose=True):
     if transpose:
         list_of_curves = list_of_curves.T
