@@ -102,22 +102,21 @@ print "\n save_str=", save_str, '\n'
 
 
 # ENVIRONMENT
-if environment == 'grid1':
-    grid_width = 8
-    epLen = 2 * grid_width - 1
-    prob_zero_reward=.9
-    nAction = 5
-    states = range(grid_width**2)
-    reward_probabilities = [0,] * len(states[:-1]) + [1,]
-    #reward_probabilities = gridworld.reward_for_action(reward_probabilities, action=0)
-    env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
-elif environment == 'grid0':
+if environment == 'grid8':
     grid_width = 8
     epLen = 2 * grid_width - 1
     prob_zero_reward=.9
     nAction = 5
     states = range(grid_width**2)
     reward_probabilities = np.load(os.environ['HOME'] + '/TabulaRL/fixed_mdp0.npy')
+    env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
+elif environment == 'grid4':
+    grid_width = 4
+    epLen = 2 * grid_width - 1
+    prob_zero_reward=.8
+    nAction = 5
+    states = range(grid_width**2)
+    reward_probabilities = np.load(os.environ['HOME'] + '/TabulaRL/fixed_grid4.npy')
     env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
 elif environment == 'chain5':
     chain_len = 5
