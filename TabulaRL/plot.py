@@ -15,4 +15,6 @@ def plotQ(env, mdp, agent, timestep=0):
     plot.plotQ(ax, env, q, plot.plot_labeled_arrows(action_directions))
     plot.plotR(ax, env, mdp.R)
     plot.plotRBelief(ax, env, agent.R_prior)
+    ax.axis('off')
     fig.show()
+
