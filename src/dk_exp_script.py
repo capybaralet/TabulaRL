@@ -71,9 +71,11 @@ class QueryFixedFunction(query_functions.QueryFunction):
 import argparse
 parser = argparse.ArgumentParser()
 # we only need different costs if we're using ASQR
-parser.add_argument('--query_cost', type=float, default=1.)
+#parser.add_argument('--query_cost', type=float, default=1.)
+query_cost = 1.
 parser.add_argument('--log_n_max', type=int, default=10)
-parser.add_argument('--normalize_rewards', type=int, default=0)
+#parser.add_argument('--normalize_rewards', type=int, default=0)
+normalize_rewards=0
 parser.add_argument('--log_num_episodes', type=int, default=15)
 parser.add_argument('--num_R_samples', type=int, default=100)
 parser.add_argument('--environment', type=str, default='chain5')

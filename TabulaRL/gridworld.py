@@ -18,6 +18,8 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
         (and potentially makes the agent know that)
     """
 
+    assert type(rewards) != list
+
     nAction=5
     nState = grid_width**2
     def row_and_column(state):

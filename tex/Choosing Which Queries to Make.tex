@@ -122,25 +122,6 @@ Note that given transition operator $\mathcal{T}$, each policy, $\pi$ induces a 
 Unlike a standard linear bandit, however, our queries are restricted to standard basis vectors, while only the arms corresponding to valid policies can ultimately be exploited.
 Furthermore, an agent must visit a state, action in order to query it (although notably, this is \emph{not} the case for ASQR.
 
-\subsection{Function Approximation}
-When we use function approximation, we can maybe replace linear bandit methods with something like the Active Reward Learning method (i.e. a model of the rewards, GP or DNN)
-
-
-
-\section{Importance Sampling for Off-Policy Querying}
-Our query decisions might depend on several things, besides the state and action:
-\begin{enumerate}
-\item The agent's beliefs
-\item The visit/query counts (or more generally, the whole history)
-\end{enumerate}
-
-We can think of (1) as providing a compressed version of (2).  
-To frame the query function as part of the policy, we need to augment the state space with some extra information of this form.
-
-Using this framing allows us to learn about a query functions based on the experience of an agent with a different query function (if the functions are stochastic).
-This is analagous to the "branching agent" idea that Owain mentioned.
-
-
 
 
 
