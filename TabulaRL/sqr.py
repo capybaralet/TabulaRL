@@ -7,6 +7,7 @@ from copy import deepcopy
 from feature_extractor import FeatureTrueState
 from experiment import run_finite_tabular_experiment
 
+from agent_sim import worlds_from_prior, compute_average_performance
 def fillPrior(env, prior, fill): 
     fillPrior = { (s,a) : fill for s in range(env.nState) for a in range(env.nAction) }
     fillPrior.update(**prior)
