@@ -16,16 +16,12 @@ from ASQR_and_SQR import *
 import time
 t1 = time.time()
 
-# TODO (now): 
-#   save results at different episodes (powers of 2)
-#
 # TODO (later):
 #   ASQR in the loop
 #   log visit/query counts, desired query sets
 
-
 #-----------------------------------------------------------------------------------
-# UTILITY FUNCTIONS
+# USEFUL FUNCTIONS
 
 def is_power2(num):
     'states if a number is a power of two'
@@ -67,7 +63,7 @@ class QueryFixedFunction(query_functions.QueryFunction):
     def will_query(self, state, action):
         return self.visit_count[state, action] < self.func(state, action)
 
-# end UTILITY FUNCTIONS
+# end USEFUL FUNCTIONS
 #-----------------------------------------------------------------------------------
 
 
@@ -149,24 +145,18 @@ num_episodes_remaining = 2**log_num_episodes
 n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
-# TODO: save at checkpoints
 # save results here:
 num_queries = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
 returns = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
 returns_max_min = np.empty((num_R_samples, 2))
 
 
-# TODO (for ASQR): john's grid mods, more??
-if 0:#algorithm == 'ASQR':
-    _, returns, max_returns, min_returns = run_ASQR(initial_agent, ns, num_episodes_remaining, query_cost=query_cost, num_R_samples=num_R_samples, normalize_rewards=normalize_rewards)
-    np.save(save_str + 'returns', returns)
-    np.save(save_str + 'returns_max_and_min', [max_returns] + [min_returns])
-else:
+if 1:
     for kk in range(num_R_samples):
         print "beginning experiment #", kk
         env = copy.deepcopy(initial_env)
 
-        if algorithm in ['SQR', 'ASQR']: # use a sampled environment, instead
+        if algorithm in ['SQR', 'ASQR']: # use a sampled environment
             sampled_R, sampled_P = initial_agent.sample_mdp()
             env.R = {kk:(sampled_R[kk], variance_of_simulated_queries) for kk in sampled_R}
             env.P = sampled_P
