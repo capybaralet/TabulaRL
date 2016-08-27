@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import product
 
 from environment import TabularMDP
 
@@ -11,6 +12,12 @@ def R_normal_dist_to_expectation(R):
 
 def reward_for_action(state_rewards, action):
     return { (s,action) : reward for s,reward in enumerate(state_rewards) }
+
+def one_hot(pos, size):
+    r = np.zeros(size)
+    r[pos] = 1
+    return r 
+
 
 def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
     """
@@ -50,9 +57,7 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
             else:
                 R_true[s, a] = 0
 
-            P_true[s, a] = np.zeros(nState)
-            #deterministic transitions
-            P_true[s, a][transition(s, a)] = 1
+            P_true[s, a] = one_hot(transition(s,a), nState)
 
     mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise)
 
@@ -62,10 +67,92 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
     return mdp
 
 
-def make_mdp(nState, nAction, epLen, R, P, reward_noise):
+def make_mdp(nState, nAction, epLen, R, P, reward_noise, reward_noise_given=False):
     env = TabularMDP(nState, nAction, epLen)
-    env.R = { k: (v, reward_noise) for k,v in R.iteritems() }
+    if not reward_noise_given:
+        env.R = { k: (v, reward_noise) for k,v in R.iteritems() }
+    else:
+        env.R = R
     env.P = P
     env.reset()
     return env
 
+def bound(x, lower, upper):
+    return min(max(x, lower), upper-1)
+
+
+
+
+def make_kchain(chains, epLen, reward_noise=1):
+    """"
+    Make a world of several chains stuck together.
+        LEFT/RIGHT moves agent backwards/forwards along chain
+        UP/DOWN moves agent to previous/next chain (if agent is in 0 position along the chain)
+        Agent has some chance of being moved backwards along the chain each step. 
+
+    chains : list 
+        list of tuples of (length, reward at end)
+
+    make the environment deterministic 
+        (and potentially makes the agent know that)
+    """
+    coords = [ (chain, i) for (chain, (length, end_reward)) in enumerate(chains)
+                          for i in range(length)]
+    nState = len(coords)
+    nChains = len(chains)
+    nAction = 5
+    stateActions = list(product(range(nState), range(nAction)))
+
+    state_to_coords_map = dict(enumerate(coords))
+    coords_to_state_map = { v : k for k,v in state_to_coords_map.iteritems() }
+
+    def coords_to_state(coords): 
+        return coords_to_state_map[coords]
+
+    def state_to_coords(state): 
+        return state_to_coords_map[state]
+
+    #          up      right    down    left   stay
+    actions = [(+1,0), (0,+1), (-1,0), (0,-1), (0,0)]
+
+    def transition(state, action):
+        chain, pos = state_to_coords(state)
+        
+        dchain, dpos = actions[action]
+
+        if pos == 0: 
+            chain = chain + dchain
+            chain = bound(chain, 0, len(chains))
+
+        new_pos = pos + dpos
+
+        length, _ = chains[chain]
+        noise = 1. / length
+
+        new_pos   = bound(new_pos  , 0, length)
+        back_pos  = bound(pos - 1, 0, length)
+
+
+        new_state   = one_hot(coords_to_state((chain, new_pos)), nState)
+        noise_state = one_hot(coords_to_state((chain, back_pos)), nState)
+        
+        return new_state * (1-noise) + noise_state * noise
+
+
+    def reward(state, action): 
+        chain, pos = state_to_coords(state)
+        length, r = chains[chain]
+
+        end = (pos == length - 1)
+        noise = (pos == 0) + end
+
+        return end * r, noise
+        
+
+    R_true = { (s,a) : reward(s,a)     for s, a in stateActions }
+    P_true = { (s,a) : transition(s,a) for s, a in stateActions }
+
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise, reward_noise_given=True)
+
+    mdp.transition = transition
+    return mdp
