@@ -49,7 +49,7 @@ def plot_performance(load_str, query_cost=None):
 #   e.g. integral of P_SQR(n) * performance(n)   (...for a given c, h)
 # TODO: normalized performance
 
-# TODO: 
+# TODO: plot performance / tstep
 
 
 def multiplot(list_of_curves, transpose=True):
@@ -76,7 +76,7 @@ avg_perf = np.array(avg_perf)
 # TODO: label axes
 # TODO: plotting function
 def fixed_n_plots(avg_perf):
-    """avg_perf is a 3d array, indexed by cost, horizon, n"""
+    """avg_perf is a 3d array, indexed by cost, horizon, max_num_queries"""
 
     print "avg_perf.shape=", avg_perf.shape
     print "N.B. all of the of the values are indices in log-scales"
