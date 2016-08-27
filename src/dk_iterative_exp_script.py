@@ -158,19 +158,18 @@ for kk in range(num_R_samples):
 
     if algorithm in ['SQR', 'ASQR']: # use a sampled environment
         sampled_R, sampled_P = initial_agent.sample_mdp()
-        env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
+        env.R = {kk:(sampled_R[kk], variance_of_simulated_queries) for kk in sampled_R}
         env.P = sampled_P
         # TODO: use P_true or sampled_P here? (for now they are the same...)
         returns_max_min[kk,0] = initial_agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
         returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
 
-    # TODO: can we just use the same seed or something?
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
     # is this still needed??
     first_n_sampled_rewards = [{sa: sampled_rewards[sa][:n] for sa in sampled_rewards} for n in range(n_max + 1)]
     for ind, n in enumerate(ns):
         agent = copy.deepcopy(initial_agent)
-        if environment.startswith('grid'): # FIXME: update agent
+        if environment.startswith('grid'):
             query_function = QueryFixedFunction(query_cost, lambda s,a: (a==0) * n)
         else:
             query_function = query_functions.QueryFirstNVisits(query_cost, n)
@@ -188,7 +187,7 @@ for kk in range(num_R_samples):
             expected_returns = agent.compute_qVals_true(updated_R, updated_P, sampled_R, sampled_P)[0]
             returns[kk, :, ind] = expected_returns * 2**np.arange(log_num_episodes+1)
             num_queries[kk, :, ind] = n * sum([agent.query_function.will_query(s,a) for [s,a] in first_n_sampled_rewards[n]])
-        else: # Run an experiment 
+        else: # Run an experiment  
             nEps = num_episodes_remaining
             # --------------- modified from dk_run_finite_tabular_experiment ------------------
             qVals, qMax = env.compute_qVals()

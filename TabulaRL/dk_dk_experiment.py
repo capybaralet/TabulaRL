@@ -16,53 +16,6 @@ import query_functions
 print "finished imports"
 targetPath = 'test.csv'
 
-# what variable controls the sampling frequency??
-
-"""
-Note:
-    one obvious improvement for PSRL would be to take MAP or expected reward instead of sampling, once there are no more queries
-
-When you're done querying (s,a), stop sampling R (at s,a) and use the expectation (keep sampling T)
-
-Proposal:
-    everything that you would query: add the query cost to the reward
-        ...but you only pay the query cost once, whereas the information has permanent value (we can account for that, though...)
-            we want to modify Q based on all the queries you expect to perform
-            augment state space with num_queries (or even just the whole posterior...)
-                tracking the whole posterior seems to put us in the BAMDP setting
-    everything else: use expectation instead of sampling reward
-    
-
-FIND PREVIOUS NOTES ABOUT THIS::
-Things we want to account for:
-    reachability
-    prior over rewards (e.g. Rmax)
-    query_cost
-    information gain
-    discounting
-    exploiting existing information (e.g. given an arm that gives Rmax every time you try it, just keep going (at least until it *doesn't* give Rmax)
-The N-heuristic doesn't account for:
-    information gain,
-    reachability
-
-Can we come up with a "score" for each query, and then base our decisions on their score (relative to something like a running average score)
-
-
-Owain: can we find an intelligent way to pick N (for our simple heuristic)?
-    John: mapping from (P(r), query_cost, gamma) --> N (for bandit case, and then just use it in the MDP case anyhow :P)
-    Easy to simulate fixed horizon case here...
-
-
-John: let's find ways to avoid obvious mistakes
-    David:
-        If the maximum improvement in expected returns after querying (s,a) and seeing Rmax is less than the query cost, then don't query!
-            We want to compute the improvement; how can we avoid redoing all planning every time we update the reward?
-                Is this easier with UVFAs?
-            This should be easy enough to compute for bandits...
-                
-
-
-"""
 
 # HYPER
 grid_width = 7
