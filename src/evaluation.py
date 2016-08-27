@@ -7,7 +7,7 @@ from pylab import *
 # TODO: log scale of plots
 
 # COMPUTE PERFORMANCE FROM RESULTS FILES
-def compute_performance(returns, num_queries, query_cost, average_per_tstep=False):
+def compute_performance(returns, num_queries, query_cost):
     perf = returns - num_queries * query_cost
     return perf
 
