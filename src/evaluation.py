@@ -1,21 +1,27 @@
 from pylab import *
+import os
+
 #----------------------------------------------------
 # Below: for dk_exp_script (Aug 24)
-# TODO: more plotting for SQR/ASQR
-#   e.g. integral of P_SQR(n) * performance(n)   (...for a given c, h)
 # TODO: normalized performance
-# TODO: log scale of plots
 
 # COMPUTE PERFORMANCE FROM RESULTS FILES
 def compute_performance(returns, num_queries, query_cost):
     perf = returns - num_queries * query_cost
     return perf
 
-def compute_performances(save_str):
+
+# FIXME: check that results make sense (larger cost gives higher performance!?!?!??!)
+# TODO: pass query_costs as an argument!
+def compute_performances(save_str, which_slice=None):
     """returns avg_perf(_per_tstep):  a 3d array, indexed by cost (c), num_episodes (h), max_num_queries (n)"""
     # these will be 2d arrays of shape (log_num_episodes, log_n_max)
-    avg_returns= np.load(save_str + 'returns.npy').mean(axis=0)
-    avg_num_queries= np.load(save_str + 'num_queries.npy').mean(axis=0)
+    returns= np.load(os.path.join(save_str, 'returns.npy'))
+    num_queries= np.load(os.path.join(save_str, 'num_queries.npy'))
+    if which_slice is None:
+        which_slice = range(len(returns))
+    avg_returns= returns[which_slice].mean(axis=0)
+    avg_num_queries= num_queries[which_slice].mean(axis=0)
     query_costs = 2**np.linspace(-10,10,21)
     avg_perf = [ [ [compute_performance(returns[n], num_queries[n], query_cost) for n in range(len(returns))] 
                   for (returns, num_queries) in zip(avg_returns, avg_num_queries) ]
@@ -24,50 +30,177 @@ def compute_performances(save_str):
     avg_perf_per_tstep = avg_perf / 2**np.arange(avg_perf.shape[1]).reshape((1, avg_perf.shape[1], 1))
     return avg_perf, avg_perf_per_tstep
 
-def plot_performance(avg_perf, label=''):
+log_n_max = 10
+ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
+
+# TODO: figure out how to plot query_functions with multiple params 
+def plot_performance(avg_perf, horizons, query_costs, label='', ns=ns, title_extra=''):
     """ Makes the nice figure that we'd like to see... """
-    # TODO: figure out how to plot query_functions with multiple params 
-    suptitle('average performance per timestep (y) as a function of max number of queries (x)')
-    # change to show actual horizon/query_cost ??
-    horizons = ['short', 'long']
-    query_costs = ['small', 'medium', 'large']
+    suptitle(title_extra + ': (Estimated) average performance per timestep (y) as a function of max number of queries (x)')
+    #horizons = ['short', 'long']
+    #query_costs = ['small', 'medium', 'large']
+    horizons = ['32', '1024']
+    query_costs = ['.002', '.125', '1.']
     for row, horizon in enumerate(horizons):
         for column, query_cost in enumerate(query_costs):
             print column + row*len(query_costs) + 1
             subplot(len(horizons), len(query_costs), column + row*len(query_costs) + 1)
             if column == 0:
                 ylabel('horizon='+horizon)
-            xlabel('query_cost='+query_cost)
+            if row == 0:
+                title('query_cost='+query_cost)
+            else:
+                xlabel('max # queries per state action')
             plot(avg_perf[column, row], label=label)
+            if ns is not None:
+                xticks(range(len(ns)), ns)
 
+
+def compute_expected_performance_given_n(perf_for_selecting_n, avg_perf):
+    """ 
+    This function is used to compare the performance that would be achieved by using SQR/ASQR to chose
+    the value of n (vs. the performance achieved by using the best n as evaluated in the actual environment).
+
+    Inputs:
+        4d tensor of performances of (A)SQR, indexed by: experiment #, cost, num_episodes, max_num_queries 
+
+    Returns:
+        1) the average performance of the best n
+        2) the average performance of the n selected by (A)SQR (using the average of all experiments)
+        3) the average performance of the n selected by (A)SQR (in a single experiment)
+    """
+    return
+
+# TODO: bootstrap performances
+figure()
+max_avg_perf = np.max(avg_perf[10,7])
+
+save_str = save_strs[1]
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in 
+        [np.argmax(compute_performances(save_str, which_slice=range(k, k+1))[0][10, 7]) for k in range(3000)]]
+plot(max_avg_perf - avg_perf_SQR, 'b--') 
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in [np.argmax(compute_performances(save_str, which_slice=range(10*k, 10*(k+1)))[0][10, 7]) for k in range(300)]]
+plot(max_avg_perf - avg_perf_SQR, 'b-')
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in [np.argmax(compute_performances(save_str, which_slice=range(100*k, 100*(k+1)))[0][10, 7]) for k in range(30)]]
+plot(max_avg_perf - avg_perf_SQR, 'b')
+
+# TODO: fix name (ASQR)
+save_str = save_strs[2]
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in [np.argmax(compute_performances(save_str, which_slice=range(k, k+1))[0][10, 7]) for k in range(3000)]]
+plot(max_avg_perf - avg_perf_SQR, 'r--')
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in [np.argmax(compute_performances(save_str, which_slice=range(10*k, 10*(k+1)))[0][10, 7]) for k in range(300)]]
+plot(max_avg_perf - avg_perf_SQR, 'r-')
+avg_perf_SQR = [this_avg_perf[n_ind] for n_ind in [np.argmax(compute_performances(save_str, which_slice=range(100*k, 100*(k+1)))[0][10, 7]) for k in range(30)]]
+plot(max_avg_perf - avg_perf_SQR, 'r')
+
+
+
+#------------------------------------
+# ACTUALLY MAKE PLOTS
+
+# chain5
 save_strs = [
         '2016-08-25_18:02:44___agent=PSRLLimitedQuery__algorithm=fixed_n__environment=chain5__log_n_max=10__log_num_episodes=10__normalize_rewards=0__num_R_samples=3000__query_cost=1.0/',
         '2016-08-25_18:02:42___agent=PSRLLimitedQuery__algorithm=SQR__environment=chain5__log_n_max=10__log_num_episodes=10__normalize_rewards=0__num_R_samples=3000__query_cost=1.0/',
-        '2016-08-25_19:53:05___agent=PSRL__algorithm=ASQR__environment=chain5__log_n_max=10__log_num_episodes=15__normalize_rewards=0__num_R_samples=1000000__query_cost=1.0/',
+        '2016-08-28_01:10:13___agent=PSRLLimitedQuery__algorithm=ASQR__environment=chain5__log_n_max=10__log_num_episodes=10__num_R_samples=3000/'
 ]
 save_strs = ['results/results__dk_exp_script.py/' + ss for ss in save_strs]
 
 figure()
-suptitle('PSRLLimitedQuery')
 for label, save_str in zip(['fixed_n', 'SQR', 'ASQR'], save_strs):
     avg_perf, avg_perf_per_tstep = compute_performances(save_str)
-    # TODO: cleanup
+    horizons = [5, 10]
+    query_costs = [1,7,10]
     representative_perfs = np.empty((3, 2, avg_perf.shape[2]))
-    representative_perfs[0,0] = avg_perf_per_tstep[1, 5]
-    representative_perfs[1,0] = avg_perf_per_tstep[7, 5]
-    representative_perfs[2,0] = avg_perf_per_tstep[10, 5]
-    representative_perfs[0,1] = avg_perf_per_tstep[1, 10]
-    representative_perfs[1,1] = avg_perf_per_tstep[7, 10]
-    representative_perfs[2,1] = avg_perf_per_tstep[10, 10]
-    plot_performance(representative_perfs, label=label)
-    legend()
+    for ii, qq in enumerate(query_costs):
+        for jj, hh in enumerate(horizons):
+            representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
+    horizons = [str(hh) for hh in horizons]
+    query_costs = [str(qq) for qq in query_costs]
+    plot_performance(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    legend(loc=4)
 
 
 
-assert False
+# chain5 (PSRL vs. PSRLLimited...)
+save_strs = [
+        '2016-08-25_18:02:44___agent=PSRLLimitedQuery__algorithm=fixed_n__environment=chain5__log_n_max=10__log_num_episodes=10__normalize_rewards=0__num_R_samples=3000__query_cost=1.0/',
+        '2016-08-25_18:02:44___agent=PSRL__algorithm=fixed_n__environment=chain5__log_n_max=10__log_num_episodes=10__normalize_rewards=0__num_R_samples=3000__query_cost=1.0'
+]
+save_strs = ['results/results__dk_exp_script.py/' + ss for ss in save_strs]
+
+figure()
+for label, save_str in zip(['PSRL_clamped', 'PSRL_continue_sampling'], save_strs):
+    avg_perf, avg_perf_per_tstep = compute_performances(save_str)
+    horizons = [5, 10]
+    query_costs = [1,7,10]
+    representative_perfs = np.empty((3, 2, avg_perf.shape[2]))
+    for ii, qq in enumerate(query_costs):
+        for jj, hh in enumerate(horizons):
+            representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
+    horizons = [str(hh) for hh in horizons]
+    query_costs = [str(qq) for qq in query_costs]
+    plot_performance(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    legend(loc=4)
+
+
+# grid4
+# FIXME: fixed_n performance stuck close to 0?!?!? (do we just need to run more episodes??)
+save_strs = [
+        '2016-08-25_18:02:43___agent=PSRLLimitedQuery__algorithm=fixed_n__environment=grid4__log_n_max=10__log_num_episodes=15__normalize_rewards=0__num_R_samples=100__query_cost=1.0',
+        '2016-08-25_18:02:41___agent=PSRLLimitedQuery__algorithm=SQR__environment=grid4__log_n_max=10__log_num_episodes=15__normalize_rewards=0__num_R_samples=100__query_cost=1.0',
+        '2016-08-28_01:41:38___agent=PSRLLimitedQuery__algorithm=ASQR__environment=grid4__log_n_max=10__log_num_episodes=15__num_R_samples=100'
+]
+save_strs = ['results/results__dk_exp_script.py/' + ss for ss in save_strs]
+
+figure()
+for label, save_str in zip(['fixed_n', 'SQR', 'ASQR'], save_strs):
+    avg_perf, avg_perf_per_tstep = compute_performances(save_str)
+    horizons = [10, 15]
+    query_costs = [1,7,10]
+    representative_perfs = np.empty((3, 2, avg_perf.shape[2]))
+    for ii, qq in enumerate(query_costs):
+        for jj, hh in enumerate(horizons):
+            representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
+    horizons = [str(hh) for hh in horizons]
+    query_costs = [str(qq) for qq in query_costs]
+    plot_performance(representative_perfs, label=label, title_extra='grid4', horizons=horizons, query_costs=query_costs)
+    legend(loc=4)
 
 
 
+#assert False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ----------------OLD------------------------
+# ----------------OLD------------------------
+# ----------------OLD------------------------
+# ----------------OLD------------------------
 # ----------------OLD------------------------
 # PLOTTING UTILITIES:
 def multiplot(list_of_curves, transpose=True):
