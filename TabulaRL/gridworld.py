@@ -162,4 +162,4 @@ def make_kchain(chains, epLen, reward_noise=1):
 
     mdp.row_and_column = row_and_column
     mdp.transition = transition
-    eturn mdp
+    return mdp
