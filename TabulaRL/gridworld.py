@@ -112,8 +112,8 @@ def make_kchain(chains, epLen, reward_noise=1):
     def state_to_coords(state): 
         return state_to_coords_map[state]
 
-    #          up      right    down    left   stay
-    actions = [(+1,0), (0,+1), (-1,0), (0,-1), (0,0)]
+    #          stay    next   fore    prev    aft 
+    actions = [(0,0), (+1,0), (0,+1), (-1,0), (0,-1)]
 
     def transition(state, action):
         chain, pos = state_to_coords(state)
@@ -154,5 +154,12 @@ def make_kchain(chains, epLen, reward_noise=1):
 
     mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise, reward_noise_given=True)
 
+    mdp.grid_width = max(length for length, _ in chains)
+
+    def row_and_column(s):
+        chain, i = state_to_coords(s)
+        return i, chain
+
+    mdp.row_and_column = row_and_column
     mdp.transition = transition
-    return mdp
+    eturn mdp
