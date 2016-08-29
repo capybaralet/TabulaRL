@@ -20,6 +20,10 @@ t1 = time.time()
 #   ASQR in the loop
 #   log visit/query counts, desired query sets
 
+# TODO: don't use env as a variable name!
+
+# TODO: note that increasing the max_reward (with num_states) effects the validity of the prior!!!!
+
 #-----------------------------------------------------------------------------------
 # USEFUL FUNCTIONS
 
@@ -123,11 +127,11 @@ elif environment == 'grid4':
 elif environment == 'chain5':
     chain_len = 5
     epLen = chain_len
-    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-chain_len)
+    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
 elif environment == 'chain10':
     chain_len = 10
     epLen = chain_len
-    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-chain_len)
+    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
@@ -163,6 +167,10 @@ for kk in range(num_R_samples):
         # TODO: use P_true or sampled_P here? (for now they are the same...)
         returns_max_min[kk,0] = initial_agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
         returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
+    else:
+        mean_rewards = {kk:env.R[kk][0] for kk in env.R}
+        returns_max_min[kk,0] = initial_agent.compute_qVals(mean_rewards, env.P)[1][0][0]
+        #returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
 
     # TODO: can we just use the same seed or something?
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
@@ -219,8 +227,10 @@ for kk in range(num_R_samples):
                     num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
 
             # ---------------------------------------------------------------------
+    """
     np.save(save_str + 'num_queries', num_queries)
     np.save(save_str + 'returns', returns)
     np.save(save_str + 'returns_max_min', returns_max_min)
+    """
 
 

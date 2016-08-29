@@ -142,6 +142,7 @@ plot(sample_sizes, expected_SQR_performance, label='n chosen via SQR')
 plot(sample_sizes, expected_ASQR_performance, label='n chosen via ASQR')
 xlabel('number of sampled environments')
 ylabel('average performance')
+legend(loc=4)
 assert False
 
 
