@@ -21,6 +21,21 @@ from agent import *
 
 from query_functions import AlwaysQuery
 
+
+def modifyPrior(prior): 
+    def nonStayKnown(sa, p ): 
+        #non 'stay' actions have infinite precision
+        _, action = sa
+        mu, tau = p
+
+        if action != 0: 
+            return (mu, 1e10)
+        else: 
+            return (mu, tau)
+
+    return { k : nonStayKnown(k, v) for k,v in prior.iteritems() } 
+
+
 class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
     Simple tabular Bayesian learner from Tabula Rasa.
@@ -345,10 +360,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 #-----------------------------------------------------------------------------
 # PSRL
 #-----------------------------------------------------------------------------
-
-# TODO: implement deterministic "sampling" (for SQR)
-#   N.B. - the samples only come into play in the update_obs part (the agent always plans according to its sampled R, which is just a number!)
-
 class PSRL(FiniteHorizonTabularAgent):
     '''
     Posterior Sampling for Reinforcement Learning
@@ -370,6 +381,7 @@ class PSRL(FiniteHorizonTabularAgent):
         self.qMax = qMax
 
 
+# TODO: rename! 
 class PSRLLimitedQuery(PSRL):
     '''
     Posterior Sampling for Reinforcement Learning

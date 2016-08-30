@@ -32,9 +32,8 @@ log_n_max = 10
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
 # TODO: figure out how to plot query_functions with multiple params 
-def plot_performance(avg_perf, horizons, query_costs, label='', ns=ns, title_extra=''):
+def compare_ns(avg_perf, horizons, query_costs, label='', ns=ns, title_extra=''):
     """ Makes the nice figure that we'd like to see... """
-    suptitle(title_extra + ': (Estimated) average performance per timestep (y) as a function of max number of queries (x)')
     #horizons = ['short', 'long']
     #query_costs = ['small', 'medium', 'large']
     horizons = ['32', '1024']
@@ -44,7 +43,7 @@ def plot_performance(avg_perf, horizons, query_costs, label='', ns=ns, title_ext
             print column + row*len(query_costs) + 1
             subplot(len(horizons), len(query_costs), column + row*len(query_costs) + 1)
             if column == 0:
-                ylabel('horizon='+horizon)
+                ylabel('number of episodes='+horizon)
             if row == 0:
                 title('query_cost='+query_cost)
             else:
@@ -54,9 +53,11 @@ def plot_performance(avg_perf, horizons, query_costs, label='', ns=ns, title_ext
                 xticks(range(len(ns)), ns)
 
 
-
 #------------------------------------
 # ACTUALLY MAKE PLOTS
+
+num_episodes = 2**np.arange(0, 11)
+costs = 2**np.linspace(-10, 10, 21)
 
 # chain5 (PSRL vs. PSRLLimited...)
 save_strs = [
@@ -76,7 +77,8 @@ for label, save_str in zip(['PSRL_clamped', 'PSRL_continue_sampling'], save_strs
             representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
     horizons = [str(hh) for hh in horizons]
     query_costs = [str(qq) for qq in query_costs]
-    plot_performance(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    compare_ns(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    suptitle('chain5: (Estimated) average performance per timestep (y) as a function of max number of queries (x)')
     legend(loc=4)
 
 # chain5
@@ -98,12 +100,14 @@ for label, save_str in zip(['fixed_n', 'SQR', 'ASQR'], save_strs):
             representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
     horizons = [str(hh) for hh in horizons]
     query_costs = [str(qq) for qq in query_costs]
-    plot_performance(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    compare_ns(representative_perfs, label=label, title_extra='chain5', horizons=horizons, query_costs=query_costs)
+    suptitle('chain5: (Estimated) average performance per timestep (y) as a function of max number of queries (x)')
     legend(loc=4)
 
 
-
+#------------------------------------------------------------------
 # compare performance of SQR/ASQR for different numbers of samples
+
 def bootstrap(dataset, estimator, num_samples=10000, sample_size=None):
     if sample_size is None:
         sample_size = len(dataset)
@@ -119,36 +123,51 @@ def best_n_estimator(performances):
     """
     return np.argmax(np.mean(np.array(performances), axis=0))
 
-
-this_avg_perf = avg_perf[10,7]
-max_avg_perf = np.max(avg_perf[10,7])
-
+def get_expected_perfs(avg_perf, SQR_perfs, ASQR_perfs, cc, hh):
+    this_avg_perf = avg_perf[cc,hh]
+    max_avg_perf = np.max(avg_perf[cc,hh])
+    SQR_perfs = np.array([perf[cc,hh] for perf in SQR_perfs])
+    ASQR_perfs = np.array([perf[cc,hh] for perf in ASQR_perfs])
+    return (max_avg_perf, [ np.mean([this_avg_perf[best_n] for best_n in  bootstrap(SQR_perfs, best_n_estimator, 1000, sample_size)])
+                                    for sample_size in sample_sizes ],
+    [ np.mean([this_avg_perf[best_n] for best_n in  bootstrap(ASQR_perfs, best_n_estimator, 1000, sample_size)])
+                                    for sample_size in sample_sizes ])
 
 sample_sizes = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-
-SQR_performances = np.array([compute_performances(save_strs[1], which_slice=range(k, k+1))[0] for k in range(3000)])
-SQR_performances = np.array([perf[10,7] for perf in SQR_performances])
-expected_SQR_performance = [ np.mean([this_avg_perf[best_n] for best_n in  bootstrap(SQR_performances, best_n_estimator, 1000, sample_size)])
-                                for sample_size in sample_sizes ]
-ASQR_performances = np.array([compute_performances(save_strs[2], which_slice=range(k, k+1))[0] for k in range(3000)])
-ASQR_performances = np.array([perf[10,7] for perf in ASQR_performances])
-expected_ASQR_performance = [ np.mean([this_avg_perf[best_n] for best_n in  bootstrap(SQR_performances, best_n_estimator, 1000, sample_size)])
-                                for sample_size in sample_sizes ]
+sample_sizes = 2**np.arange(11)
+SQR_perfs = np.array([compute_performances(save_strs[1], which_slice=range(k, k+1))[0] for k in range(3000)])
+ASQR_perfs = np.array([compute_performances(save_strs[2], which_slice=range(k, k+1))[0] for k in range(3000)])
 
 figure()
-title('Average performance of different algorithms for chosing n')
-plot(sample_sizes, [max_avg_perf,]*len(sample_sizes), label='best n')
-plot(sample_sizes, expected_SQR_performance, label='n chosen via SQR')
-plot(sample_sizes, expected_ASQR_performance, label='n chosen via ASQR')
-xlabel('number of sampled environments')
-ylabel('average performance')
+suptitle('Average performance of different algorithms for chosing n')
+for plot_n, cc_hh in enumerate([[5,1], [5,7], [5,10], [10,1], [10,7], [10,10]]):
+    max_avg_perf, SQR_perf, ASQR_perf = [res / num_episodes[hh] for res in 
+      get_expected_perfs(avg_perf, SQR_perfs, ASQR_perfs, cc_hh[0], cc_hh[1])]
+
+    subplot(2, 3, plot_n+1)
+    plot([max_avg_perf,]*len(sample_sizes), label='best n')
+    plot(SQR_perf, label='n chosen via SQR')
+    plot(ASQR_perf, label='n chosen via ASQR')
+    #plot(sample_sizes, [max_avg_perf,]*len(sample_sizes), label='best n')
+    #plot(sample_sizes, SQR_perf, label='n chosen via SQR')
+    #plot(sample_sizes, ASQR_perf, label='n chosen via ASQR')
+    xticks(range(len(sample_sizes)), sample_sizes)
+    xlabel('number of sampled environments')
+    ylabel('average performance')
+    ylim(max_avg_perf*.9, max_avg_perf*1.02)
 legend(loc=4)
+
+
+
+
+
+
 assert False
 
 
 
 
-
+# ------------OLD (/TODO) --------------------
 
 # grid4
 # FIXME: fixed_n performance stuck close to 0?!?!? (do we just need to run more episodes??)
@@ -170,7 +189,7 @@ for label, save_str in zip(['fixed_n', 'SQR', 'ASQR'], save_strs):
             representative_perfs[ii, jj] = avg_perf_per_tstep[qq,hh]
     horizons = [str(hh) for hh in horizons]
     query_costs = [str(qq) for qq in query_costs]
-    plot_performance(representative_perfs, label=label, title_extra='grid4', horizons=horizons, query_costs=query_costs)
+    compare_ns(representative_perfs, label=label, title_extra='grid4', horizons=horizons, query_costs=query_costs)
     legend(loc=4)
 
 

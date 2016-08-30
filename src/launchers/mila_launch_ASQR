@@ -1,2 +1,2 @@
-ssh eos3 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=ASQR  --agent=PSRL --num_R_samples=3000 &
-ssh eos4 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --algorithm=ASQR  --environment=grid4 --agent=PSRL --num_R_samples=3000 &
+ssh eos3 python $HOME/TabulaRL/src/dk_exp_script.py --algorithm=ASQR  --agent=PSRLLimitedQuery --num_R_samples=3000 &
+ssh eos4 python $HOME/TabulaRL/src/dk_exp_script.py --algorithm=ASQR  --environment=grid4 --agent=PSRLLimitedQuery --num_R_samples=3000 &
