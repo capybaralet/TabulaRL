@@ -6,7 +6,7 @@ import TabulaRL.gridworld as gridworld
 import TabulaRL.query_functions as query_functions
 import TabulaRL.finite_tabular_agents as finite_tabular_agents
 from TabulaRL.feature_extractor import FeatureTrueState
-from TabulaRL.environment import make_stochasticChain
+from TabulaRL.environment import make_stochasticChain, make_deterministicChain
 #np.random.seed(1)
 
 from ASQR_and_SQR import *
@@ -15,8 +15,9 @@ import time
 t1 = time.time()
 
 # TODO (later):
-#   ASQR in the loop
-#   log visit/query counts, desired query sets
+#   ASQR, etc. in the loop
+
+# TODO: more logging, e.g. visit/query counts, desired query sets
 
 # TODO: don't use env as a variable name!
 # TODO: chain max_reward HACK: increasing max_reward effects the validity of the prior!!!!
@@ -47,85 +48,80 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--log_n_max', type=int, default=10)
 parser.add_argument('--log_num_episodes', type=int, default=15)
-parser.add_argument('--num_R_samples', type=int, default=100)
-parser.add_argument('--environment', type=str, default='chain5')
-parser.add_argument('--agent', type=str, default='PSRLLimitedQuery')
+parser.add_argument('--num_experiments', type=int, default=1)
+parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn', type=str, default='fixed_n')
+# not included in save_str:
+parser.add_argument('--save', type=str, default=1)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
 
-settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
+if args_dict.pop('save'):
+    settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
 
-# TODO: save results in a single file / database
-import os
-filename = os.path.basename(__file__)
-save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
+    # TODO: save results in a single file / database
+    import os
+    filename = os.path.basename(__file__)
+    save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
 
-import datetime
-timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
-save_dir += '/' + timestamp + '___' + settings_str
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-save_str = save_dir + '/'
-print "\n save_str=", save_str, '\n'
+    import datetime
+    timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+    save_dir += '/' + timestamp + '___' + settings_str
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    save_str = save_dir + '/'
+    print "\n save_str=", save_str, '\n'
 
 
 # ENVIRONMENT
-if environment == 'grid8':
-    grid_width = 8
+if enviro.startswith('grid'):
+    grid_width = int(enviro.split('grid')[1])
     epLen = 2 * grid_width - 1
-    prob_zero_reward=.9
     nAction = 5
     states = range(grid_width**2)
-    reward_probabilities = np.load(os.environ['HOME'] + '/TabulaRL/fixed_mdp0.npy')
-    env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
-elif environment == 'grid4':
-    grid_width = 4
-    epLen = 2 * grid_width - 1
-    prob_zero_reward=.8
-    nAction = 5
-    states = range(grid_width**2)
-    reward_probabilities = np.load(os.environ['HOME'] + '/TabulaRL/fixed_grid4.npy')
-    env = gridworld.make_gridworld(grid_width, epLen, reward_probabilities)
-elif environment == 'chain5':
-    chain_len = 5
+    reward_means = np.diag(np.linspace(0,1,grid_width)).flatten()
+    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means))
+elif enviro.startswith('det_chain'):
+    chain_width = int(enviro.split('chain')[1])
     epLen = chain_len
-    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
-elif environment == 'chain10':
-    chain_len = 10
-    epLen = chain_len
-    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
+    #env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
+    env = make_deterministicChain(chain_len, max_reward=1)
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
 # AGENT
-if agent == 'PSRLLimitedQuery':
-    alg = finite_tabular_agents.PSRLLimitedQuery
-elif agent == 'PSRL':
-    alg = finite_tabular_agents.PSRL
+alg = finite_tabular_agents.PSRLLimitedQuery
 initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
 
 
 
 # RUN
+
+"""
+To do things in the loop, we'll need to:
+    specify the query_cost, horizon
+    run update_query_fn algorithm (may involve making another agent/env copy...)
+    update agent's query function
+
+"""
 initial_env = env
 num_episodes_remaining = 2**log_num_episodes
 n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 query_cost = 1.
 
-# save results here:
-num_queries = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
-returns = np.empty((num_R_samples, log_num_episodes+1, log_n_max+1))
-returns_max_min = np.empty((num_R_samples, 2))
+# record results here:
+num_queries = np.empty((num_experiments, log_num_episodes+1, log_n_max+1))
+returns = np.empty((num_experiments, log_num_episodes+1, log_n_max+1))
+returns_max_min = np.empty((num_experiments, 2))
 
 
-for kk in range(num_R_samples):
+for kk in range(num_experiments):
     print "beginning experiment #", kk
     env = copy.deepcopy(initial_env)
 
-    if query_fn in ['SQR', 'ASQR']: # use a sampled environment
+    if query_fn in ['SQR', 'ASQR']: # use a sampled enviro
         sampled_R, sampled_P = initial_agent.sample_mdp()
         env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
         env.P = sampled_P
@@ -139,7 +135,7 @@ for kk in range(num_R_samples):
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
     for ind, n in enumerate(ns):
         agent = copy.deepcopy(initial_agent)
-        if environment.startswith('grid'):
+        if enviro.startswith('grid'):
             query_function = query_functions.QueryFixedFunction(query_cost, lambda s,a: (a==0) * n)
             agent.R_prior = finite_tabular_agents.modifyPrior(agent.R_prior)
         else:
@@ -184,7 +180,7 @@ for kk in range(num_R_samples):
                     num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
 
             # ---------------------------------------------------------------------
-    if 1:
+    if save:
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
         np.save(save_str + 'returns_max_min', returns_max_min)
