@@ -134,7 +134,7 @@ for kk in range(num_R_samples):
     else:
         mean_rewards = {kk:env.R[kk][0] for kk in env.R}
         returns_max_min[kk,0] = initial_agent.compute_qVals(mean_rewards, env.P)[1][0][0]
-        returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -mean_rewards[kk] for kk in mean_rewards}, sampled_P)[1][0][0]
+        returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -mean_rewards[kk] for kk in mean_rewards}, env.P)[1][0][0]
 
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max) for (s,a) in env.R.keys()}
     for ind, n in enumerate(ns):
@@ -184,7 +184,7 @@ for kk in range(num_R_samples):
                     num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
 
             # ---------------------------------------------------------------------
-    if 0:
+    if 1:
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
         np.save(save_str + 'returns_max_min', returns_max_min)
