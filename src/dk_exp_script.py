@@ -9,38 +9,13 @@ from TabulaRL.feature_extractor import FeatureTrueState
 from TabulaRL.environment import make_stochasticChain, make_deterministicChain
 #np.random.seed(1)
 
-from ASQR_and_SQR import *
+from generic_functions import dict_argmax, is_power2, sample_gaussian, update_gaussian_posterior_mean
 
 import time
 t1 = time.time()
 
-# TODO (later):
-#   ASQR, etc. in the loop
-
 # TODO: more logging, e.g. visit/query counts, desired query sets
-
 # TODO: don't use env as a variable name!
-# TODO: chain max_reward HACK: increasing max_reward effects the validity of the prior!!!!
-#   Use deterministic chain!
-
-#-----------------------------------------------------------------------------------
-# USEFUL FUNCTIONS
-
-def is_power2(num):
-    'states if a number is a power of two'
-    return num != 0 and ((num & (num - 1)) == 0)
-
-def sample_gaussian(loc, scale, shape):
-    if scale == 0:
-        return loc * np.ones(shape)
-    else:
-        return np.random.normal(loc, scale, shape)
-
-def update_gaussian_posterior_mean(prior, observations, tau=1):
-    mu0, tau0 = prior
-    tau1 = tau0 + tau * len(observations)
-    mu1 = (mu0 * tau0 + sum(observations) * tau) / tau1
-    return mu1
 
 #-----------------------------------------------------------------------------------
 # SETUP
@@ -50,7 +25,7 @@ parser.add_argument('--log_n_max', type=int, default=10)
 parser.add_argument('--log_num_episodes', type=int, default=15)
 parser.add_argument('--num_experiments', type=int, default=1)
 parser.add_argument('--enviro', type=str, default='det_chain6')
-parser.add_argument('--query_fn', type=str, default='fixed_n')
+parser.add_argument('--query_fn', type=str, default='fixed_n', options=['ASQR', 'SQR', 'fixed_n'])
 # not included in save_str:
 parser.add_argument('--save', type=str, default=1)
 args = parser.parse_args()
@@ -102,7 +77,18 @@ initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None
 To do things in the loop, we'll need to:
     specify the query_cost, horizon
     run update_query_fn algorithm (may involve making another agent/env copy...)
-    update agent's query function
+        repeat until ___:
+            sample env
+              sample rewards (potentially)
+            evaluate query function in sampled env 
+        return a query function
+        update agent
+
+We'll start with ASQR, since it's already implemented.
+Then we'll do Owain's thing (NAME IT!) since it's already well specified
+Then Jan's thing (NAME IT!)
+
+ALSO: think about better names for (A)SQR??
 
 """
 initial_env = env
@@ -157,7 +143,6 @@ for kk in range(num_experiments):
             cumQueryCost = 0 
             for ep in xrange(1, nEps + 2):
                 env.reset()
-                epMaxVal = qMax[env.timestep][env.state]
                 agent.update_policy(ep)
 
                 pContinue = 1
