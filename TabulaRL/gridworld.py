@@ -13,6 +13,9 @@ def R_normal_dist_to_expectation(R):
 def reward_for_action(state_rewards, action):
     return { (s,action) : reward for s,reward in enumerate(state_rewards) }
 
+def make_sa_rewards(state_rewards):
+    return reward_for_action(state_rewards, action=0)
+
 def one_hot(pos, size):
     r = np.zeros(size)
     r[pos] = 1
