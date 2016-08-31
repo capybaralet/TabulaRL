@@ -86,9 +86,10 @@ if query_fn_selector == 'ASQR':
                 perfs[ii,jj] = neps * expected_returns - query_cost * n * len([sa for sa in sampled_rewards])
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
+# FIXME: needs to look at FUTURE queries not TOTAL queries! (prolly mod in exp loop below...)
 elif query_fn_selector == 'OwainPSRL':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns):
-        # how much value is there to querying each sa n times?
+        # how much value is there to knowing the r_sa?
         VoIs = defaultdict(lambda : [])
         for ii, sampled_env in enumerate(sampled_envs):
             R, P = agent.map_mdp()
@@ -101,12 +102,13 @@ elif query_fn_selector == 'OwainPSRL':
                 updated_P = sampled_P
                 expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
                 return_diff = expected_return_informed - expected_return_ignorant
-                # FIXME: values should be lists!
                 VoIs[sa].append(neps * return_diff)
         avg_VoIs = {sa: np.mean(VoIs[sa]) for sa in VoIs}
+        # compare avg_VoI to query cost, and plan to query up to n times (more)
         num_queries = {sa: sum([(avg_VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in avg_VoIs}
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
+# TODO: (also, still need to decide how variance should be related to num_queries, and how many total queries we'd like to make...
 elif query_fn_selector == 'Jan':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns):
         # how much value is there to querying each sa n times?
