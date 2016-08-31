@@ -10,7 +10,6 @@ from TabulaRL.feature_extractor import FeatureTrueState
 from TabulaRL.environment import make_stochasticChain, make_deterministicChain
 #np.random.seed(1)
 
-#from ASQR_and_SQR import *
 from generic_functions import add_dicts, dict_argmax, is_power2, sample_gaussian, update_gaussian_posterior_mean
 
 import time
@@ -29,7 +28,7 @@ parser.add_argument('--num_exps', type=int, default=1)
 parser.add_argument('--update_freq', type=int, default=1)
 parser.add_argument('--query_cost', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
-parser.add_argument('--query_fn_selector', type=str, default='ASQR')#, options=['ASQR', 'SQR', 'Owain', 'Jan'])
+parser.add_argument('--query_fn_selector', type=str, default='ASQR')#, options=['ASQR', 'SQR', 'OwainPSRL', 'Jan'])
 # not included in save_str:
 parser.add_argument('--save', type=str, default=0)
 args = parser.parse_args()
@@ -76,18 +75,58 @@ initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None
 
 # QUERY FUNCTION SELECTOR
 if query_fn_selector == 'ASQR':
-    def estimate_perf(query_fn, agent, sampled_env, sampled_rewards, neps, query_cost):
-        if type(query_fn) == query_functions.QueryFirstNVisits:
-            # TODO: this could be a function... (see old versions of ASQR...)
-            # TODO: pass sampled rewards only for DIGGING?
-            updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][:query_fn.n], agent.tau) for sa in sampled_rewards}
-            updated_P = sampled_env.P # TODO: use ASQR to learn about P!
-            expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
-            perf = neps * expected_returns - query_cost * query_fn.n * len([sa for sa in sampled_rewards])
-        #elif type(query_fn) == query_functions.QueryFixedFunction:
-        else:
-            assert False
-        return perf
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns):
+        perfs = np.empty((len(sampled_envs), len(ns)))
+        for ii, sampled_env in enumerate(sampled_envs):
+            for jj, n in enumerate(ns):
+                sampled_rewards = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
+                updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][:n], agent.tau) for sa in sampled_rewards}
+                updated_P = sampled_env.P
+                expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
+                perfs[ii,jj] = neps * expected_returns - query_cost * n * len([sa for sa in sampled_rewards])
+        return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
+
+elif query_fn_selector == 'OwainPSRL':
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns):
+        # how much value is there to querying each sa n times?
+        VoIs = defaultdict(lambda : [])
+        for ii, sampled_env in enumerate(sampled_envs):
+            R, P = agent.map_mdp()
+            sampled_R, sampled_P = sampled_env.R, sampled_env.P
+            expected_return_ignorant = agent.compute_qVals_true(R, P, {sa: sampled_R[sa][0] for sa in sampled_R}, sampled_P)[0]
+            for sa in agent.R_prior:
+                # for each sampled_env, M, we THEN sample a reward value, r_sa for each sa and look at the VoI of knowing that r(sa) = r_sa in M
+                updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
+                updated_R[sa] = sample_gaussian(sampled_env.R[sa][0], sampled_env.R[sa][1], 1)#[0]
+                updated_P = sampled_P
+                expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                # FIXME: values should be lists!
+                VoIs[sa].append(neps * return_diff)
+        avg_VoIs = {sa: np.mean(VoIs[sa]) for sa in VoIs}
+        num_queries = {sa: sum([(avg_VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in avg_VoIs}
+        return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
+
+elif query_fn_selector == 'Jan':
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns):
+        # how much value is there to querying each sa n times?
+        VoIs = defaultdict(lambda : [])
+        for ii, sampled_env in enumerate(sampled_envs):
+            R, P = agent.map_mdp()
+            sampled_R, sampled_P = sampled_env.R, sampled_env.P
+            expected_return_ignorant = agent.compute_qVals_true(R, P, {sa: sampled_R[sa][0] for sa in sampled_R}, sampled_P)[0]
+            for sa in agent.R_prior:
+                # for each sampled_env, M, we THEN sample a reward value, r_sa for each sa and look at the VoI of knowing that r(sa) = r_sa in M
+                updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
+                updated_R[sa] = sample_gaussian(sampled_env.R[sa][0], sampled_env.R[sa][1], 1)#[0]
+                updated_P = sampled_P
+                expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                # FIXME: values should be lists!
+                VoIs[sa].append(neps * return_diff)
+        avg_VoIs = {sa: np.mean(VoIs[sa]) for sa in VoIs}
+        num_queries = {sa: sum([(avg_VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in avg_VoIs}
+        return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 else:
     print "not implemented!"
     assert False 
@@ -103,13 +142,15 @@ num_updates = num_episodes / update_freq + 1
 n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
-query_fns = [query_functions.QueryFirstNVisits(query_cost, n) for n in ns]
-num_env_samples=10
+#query_fns = [query_functions.QueryFirstNVisits(query_cost, n) for n in ns]
+num_env_samples=2
 
 
 """
 We'll start with ASQR, since it's already implemented.
 Then we'll do Owain's thing (NAME IT!) since it's already well specified
+    This one doesn't have an (explicitly represented) set of possible query_fns!
+    Would we take multiple samples of r(sa)s?
 Then Jan's thing (NAME IT!)
 
 ALSO: 
@@ -118,6 +159,13 @@ ALSO:
         how to chose query order for ASQR?
 
 What do I want to log??
+What do I want to run??
+
+So... in previous experiments, (A)SQR reliably achieved near-optimal performance when we took enough samples (which is kind of surprising!)
+So that means we need to find something harder to demonstrate that updating in the loop helps that much.
+
+We also expect that (A)SQR doesn't work in some environments (because of, e.g. reachability), and we should demonstrate that.
+
     
 
 """
@@ -147,27 +195,19 @@ for kk in range(num_exps): # run an entire exp
         if ep % update_freq == 0:
             # these will be automatically added (because I pass the visit count around between query functions)
             #visit_count = add_dicts(visit_count, query_function.visit_count)
-            perfs = {q_fn: np.empty(num_env_samples) for q_fn in query_fns}
+            sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
                 sampled_R, sampled_P = agent.sample_mdp()
                 sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
                 sampled_env.P = sampled_P
+                sampled_envs.append(sampled_env)
                 #returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
                 #returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
-                sampled_rewards_sampled_env = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
-                for query_fn in query_fns:
-                    perfs[query_fn][n_env] = estimate_perf(copy.deepcopy(query_fn), 
-                                                           copy.deepcopy(agent), 
-                                                           sampled_env, 
-                                                           sampled_rewards_sampled_env, 
-                                                           num_episodes - ep + 1, 
-                                                           query_cost) 
-
-            avg_perfs = {q_fn: perfs[q_fn].mean() for q_fn in query_fns}
-            #query_function = copy.deepcopy(dict_argmax(avg_perfs))
-            query_function = dict_argmax(avg_perfs)
-            if 1: # update all query_fns to have the correct visit count
+            query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns)
+            query_function.visit_count = visit_count
+            # TODO: rm?
+            if 0: # update all query_fns to have the correct visit count
                 for query_fn in query_fns:
                     query_fn.visit_count = visit_count
             query_function.setAgent(agent)
