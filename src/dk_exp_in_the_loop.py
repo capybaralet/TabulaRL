@@ -217,8 +217,8 @@ We also expect that (A)SQR doesn't work in some environments (because of, e.g. r
 
 # record results here:
 # TODO: change for intheloop  (extra dim: num_updates?)
-num_queries = np.empty((num_exps, log_num_episodes+1, log_n_max+1))
-returns = np.empty((num_exps, log_num_episodes+1, log_n_max+1))
+num_queries = np.empty((num_exps, log_num_episodes+1))
+returns = np.empty((num_exps, log_num_episodes+1))
 returns_max_min = np.empty((num_exps, 2))
 
 for kk in range(num_exps): # run an entire exp
@@ -272,8 +272,8 @@ for kk in range(num_exps): # run an entire exp
 
         # CHECKPOINT (TODO)
         if is_power2(ep):
-            returns[kk, int(np.log2(ep)), ind] = cumReward
-            num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
+            returns[kk, int(np.log2(ep))] = cumReward
+            num_queries[kk, int(np.log2(ep))] = cumQueryCost / query_cost
 
             # ---------------------------------------------------------------------
     if save:
