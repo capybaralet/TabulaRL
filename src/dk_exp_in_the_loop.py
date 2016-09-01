@@ -18,12 +18,17 @@ t1 = time.time()
 # TODO: more logging, e.g. visit/query counts, desired query sets
 # TODO: don't use env as a variable name!
 
+"""
+For now, I'm running OwainPSRL(_tilde)
+
+"""
+
 #-----------------------------------------------------------------------------------
 # SETUP
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--log_n_max', type=int, default=10)
-parser.add_argument('--log_num_episodes', type=int, default=5)
+parser.add_argument('--log_num_episodes', type=int, default=10)
 num_env_samples=1 # TODO: argparse?
 parser.add_argument('--num_exps', type=int, default=1)
 parser.add_argument('--update_freq', type=int, default=1)
@@ -64,7 +69,6 @@ if enviro.startswith('grid'):
 elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('chain')[1])
     epLen = chain_len
-    #env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
     env = make_deterministicChain(chain_len, chain_len)
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
@@ -230,8 +234,7 @@ for kk in range(num_exps): # run an entire exp
         # UPDATE query function?
         # (For now, we just update periodically.)
         if (ep-1) % update_freq == 0:
-            # these will be automatically added (because I pass the visit count around between query functions)
-            #visit_count = add_dicts(visit_count, query_function.visit_count)
+            # TODO: log query_functions desired_query_sets
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
@@ -239,8 +242,8 @@ for kk in range(num_exps): # run an entire exp
                 sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
                 sampled_env.P = sampled_P
                 sampled_envs.append(sampled_env)
-                #returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
-                #returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
+                returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
+                returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
             query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count)
             query_function.visit_count = visit_count
             query_function.setAgent(agent)
@@ -264,7 +267,7 @@ for kk in range(num_exps): # run an entire exp
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
         # CHECKPOINT (TODO)
-        if 0:#is_power2(ep):
+        if is_power2(ep):
             returns[kk, int(np.log2(ep)), ind] = cumReward
             num_queries[kk, int(np.log2(ep)), ind] = cumQueryCost / query_cost
 
