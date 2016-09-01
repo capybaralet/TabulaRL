@@ -281,4 +281,6 @@ for kk in range(num_exps): # run an entire exp
         np.save(save_str + 'returns', returns)
         np.save(save_str + 'returns_max_min', returns_max_min)
 
+if save:
+    os.system('touch' + save_str + 'FINISHED')
 

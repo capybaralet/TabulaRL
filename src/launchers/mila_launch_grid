@@ -1,0 +1,3 @@
+ssh leto06 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --query_fn=fixed_n --enviro=grid4 --log_num_episodes=10 --num_exps=300 &
+ssh leto16 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --query_fn=SQR --enviro=grid4 --log_num_episodes=10 --num_exps=300 &
+ssh leto05 python /u/kruegerd/TabulaRL/src/dk_exp_script.py --query_fn=ASQR --enviro=grid4 --log_num_episodes=10 --num_exps=300 &

@@ -1,0 +1,2 @@
+ssh eos3 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OwainPSRL  --enviro=stoch_chain5 --num_exps=300 --query_cost=.125 &
+ssh eos4 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OwainPSRL_tilde  --enviro=stoch_chain5 --num_exps=300 --query_cost=.125 &
