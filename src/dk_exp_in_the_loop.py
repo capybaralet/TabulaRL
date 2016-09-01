@@ -70,6 +70,10 @@ elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('chain')[1])
     epLen = chain_len
     env = make_deterministicChain(chain_len, chain_len)
+elif enviro.startswith('stoch_chain'):
+    chain_len = int(enviro.split('chain')[1])
+    epLen = chain_len
+    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
