@@ -33,9 +33,12 @@ class QueryFirstNVisits(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())
         self.visit_count = defaultdict(lambda :0)
+        self.query_count = defaultdict(lambda :0)
 
     def __call__(self, state, action, episode, timestep):
         query = self.will_query(state, action)
+        if query:
+            self.query_count[state, action] += 1
         self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
@@ -48,9 +51,12 @@ class QueryFixedFunction(QueryFunction):
     def __init__(self, queryCost, func):
         self.__dict__.update(locals())
         self.visit_count = defaultdict(lambda :0)
+        self.query_count = defaultdict(lambda :0)
 
     def __call__(self, state, action, episode, timestep):
         query = self.will_query(state, action)
+        if query:
+            self.query_count[state, action] += 1
         self.visit_count[state, action] += 1
         return query, query*self.queryCost
 

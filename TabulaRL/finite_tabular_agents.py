@@ -380,12 +380,14 @@ class PSRL(FiniteHorizonTabularAgent):
         self.qVals = qVals
         self.qMax = qMax
 
-
 # TODO: rename! 
 class PSRLLimitedQuery(PSRL):
     '''
     Posterior Sampling for Reinforcement Learning
     '''
+
+    def sample_mdp_unclamped(self):
+        return FiniteHorizonTabularAgent.sample_mdp(self)
 
     def sample_mdp(self):
         '''

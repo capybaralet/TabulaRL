@@ -83,18 +83,22 @@ initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None
 query_function = query_functions.QueryFirstNVisits(query_cost, n=0)
 query_function.setAgent(initial_agent)
 
+dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
 
 # QUERY FUNCTION SELECTOR
+# TODO: implement the "best-arm" version of the algo
+
 if query_fn_selector == 'ASQR':
-    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count):
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         perfs = np.empty((len(sampled_envs), len(ns)))
         for ii, sampled_env in enumerate(sampled_envs):
+            # TODO: should we be sampling here? we've already sampled an environment...
+            sampled_rewards = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
             for jj, n in enumerate(ns):
-                sampled_rewards = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
                 updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][visit_count[sa]:n], agent.tau) for sa in sampled_rewards}
                 updated_P = sampled_env.P
                 expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
-                perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - visit_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
+                perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
 # VoI = E * (R(pi+, M+) - R(pi, M+))
@@ -106,7 +110,7 @@ if query_fn_selector == 'ASQR':
 # Is there some analogy with using the UCBs for planning?
 # TODO:
 elif query_fn_selector == 'OwainPSRL':
-    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count):
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
         VoIs = defaultdict(lambda : [])
@@ -123,12 +127,13 @@ elif query_fn_selector == 'OwainPSRL':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: visit_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
 # VoI = E * (R(pi+, M~) - R(pi, M~)) <-- not necessarily positive :/
 elif query_fn_selector == 'OwainPSRL_tilde':
-    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count):
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
         VoIs = defaultdict(lambda : [])
@@ -146,7 +151,7 @@ elif query_fn_selector == 'OwainPSRL_tilde':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: visit_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
 
@@ -155,6 +160,7 @@ elif query_fn_selector == 'OwainPSRL_tilde':
 #   What if we sample just all sa simultaneously in the sampled environment, and add their VoI??
 #   NOT SURE WHAT I'M DOING HERE....
 elif query_fn_selector == 'OwainPSRL_multiple_envs':
+    assert False
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count):
         # how much value is there to knowing the r_sa?
         VoIs = defaultdict(lambda : [])
@@ -221,6 +227,7 @@ num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
 returns_max_min = np.empty((num_exps, 2))
 
+# FIXME: using visit_count instead of num_queries (in the query_function_selectors)
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
     # TODO: rm?
@@ -230,6 +237,7 @@ for kk in range(num_exps): # run an entire exp
     agent = copy.deepcopy(initial_agent)
 
     visit_count = defaultdict(lambda : 0)
+    query_count = defaultdict(lambda : 0)
     cumReward = 0
     cumQueryCost = 0 
     for ep in xrange(1, num_episodes + 2):
@@ -242,14 +250,19 @@ for kk in range(num_exps): # run an entire exp
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
-                sampled_R, sampled_P = agent.sample_mdp()
+                # FIXME: sampled_R is always 0??
+                #   I need to use PSRL here (and PSRLLimitedQuery only *after* I've decided which queries to make!)
+                sampled_R, sampled_P = agent.sample_mdp_unclamped()
+                #import ipdb; ipdb.set_trace()
                 sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
                 sampled_env.P = sampled_P
                 sampled_envs.append(sampled_env)
                 returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
                 returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
-            query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count)
+            # choose a query function, as update its visit_count and query_count
+            query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
             query_function.visit_count = visit_count
+            query_function.query_count = query_count
             query_function.setAgent(agent)
 
         # RUN some episodes with the current query function:
