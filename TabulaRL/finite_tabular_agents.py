@@ -170,7 +170,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         P_samp = {}
         for s in xrange(self.nState):
             if not self.reward_depends_on_action:
-                mu, tau = self.R_prior[s, a]
+                mu, tau = self.R_prior[s, 0]
             for a in xrange(self.nAction):
                 if self.reward_depends_on_action:
                     mu, tau = self.R_prior[s, a]

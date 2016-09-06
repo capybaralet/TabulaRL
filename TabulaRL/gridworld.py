@@ -25,7 +25,7 @@ def one_hot(pos, size):
     return r 
 
 
-def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False):
+def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False, gotta_move=False):
     """
     make the environment deterministic 
         (and potentially makes the agent know that)
@@ -78,7 +78,7 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
 
             P_true[s, a] = one_hot(transition(s,a), nState)
 
-    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise)
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise, gotta_move=gotta_move)
 
     mdp.grid_width = grid_width
     mdp.transition = transition
@@ -86,8 +86,8 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
     return mdp
 
 
-def make_mdp(nState, nAction, epLen, R, P, reward_noise, reward_noise_given=False):
-    env = TabularMDP(nState, nAction, epLen)
+def make_mdp(nState, nAction, epLen, R, P, reward_noise, reward_noise_given=False, gotta_move=False):
+    env = TabularMDP(nState, nAction, epLen, gotta_move)
     if not reward_noise_given:
         env.R = { k: (v, reward_noise) for k,v in R.iteritems() }
     else:

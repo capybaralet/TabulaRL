@@ -37,9 +37,12 @@ parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='ASQR')#, options=['ASQR', 'SQR', 'OwainPSRL', 'Jan'])
 # not included in save_str:
 parser.add_argument('--save', type=str, default=1)
+parser.add_argument('--printing', type=str, default=1)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
+
+printing = args_dict.pop('printing')
 
 if args_dict.pop('save'):
     settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
@@ -60,17 +63,19 @@ if args_dict.pop('save'):
 
 # ENVIRONMENT
 # TODO:
-#   remove digging (instead, give agent a prior which says reward only depends on state)
+#   I can just make staying still fatal, and then go back to having linear-ish rewards... 
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
     epLen = 2 * grid_width - 1
-    reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
-    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)))
+    #reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
+    #env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)))
+    reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
+    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), gotta_move=True)
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
     epLen = 2 * grid_width - 1
-    reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
-    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), multi_chain=True)
+    reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
+    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), multi_chain=True, gotta_move=True)
 elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('det_chain')[1])
     epLen = chain_len
@@ -142,16 +147,16 @@ elif query_fn_selector == 'OPSRL_omniscient':
         VoIs = defaultdict(lambda : [])
         R, P = agent.map_mdp()
         sampled_R, sampled_P = sampled_env.R, sampled_env.P
+        updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
+        updated_P = sampled_P
+        expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
         for sa in agent.R_prior:
             # create M~, M-
-            updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
             R_minus = copy.deepcopy(updated_R)
             R_minus[sa] = R[sa]
-            updated_P = sampled_P
             P_minus = sampled_P
             # compute Rs
             expected_return_ignorant = agent.compute_qVals_true(R_minus, P_minus, updated_R, updated_P)[0]
-            expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
@@ -203,6 +208,7 @@ We also expect that (A)SQR doesn't work in some environments (because of, e.g. r
 # TODO: change for intheloop  (extra dim: num_updates?)
 num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
+# TODO: log it; normalize in the loop
 returns_max_min = np.empty((num_exps, 2))
 
 # FIXME: using visit_count instead of num_queries (in the query_function_selectors)
@@ -219,7 +225,8 @@ for kk in range(num_exps): # run an entire exp
     cumReward = 0
     cumQueryCost = 0 
     for ep in xrange(1, num_episodes + 2):
-        print ep
+        if printing:
+            print ep
 
         # UPDATE query function?
         # (For now, we just update periodically.)
@@ -232,8 +239,8 @@ for kk in range(num_exps): # run an entire exp
                 sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
                 sampled_env.P = sampled_P
                 sampled_envs.append(sampled_env)
-                returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
-                returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
+                #returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
+                #returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
             # choose a query function, as update its visit_count and query_count
             query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
             query_function.visit_count = visit_count
@@ -262,6 +269,11 @@ for kk in range(num_exps): # run an entire exp
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = cumQueryCost / query_cost
+            if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
+                import pylab
+                state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
+                pylab.imshow(state_visits.reshape((grid_width, grid_width)), cmap=pylab.cm.gray, interpolation='nearest')
+                pylab.draw(); pylab.show()
 
             # ---------------------------------------------------------------------
     if save:
