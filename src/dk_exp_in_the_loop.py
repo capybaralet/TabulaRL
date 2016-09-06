@@ -1,7 +1,9 @@
 import numpy as np
 import argparse
-from collections import defaultdict
+import itertools
 import copy
+
+from collections import defaultdict
 
 import TabulaRL.gridworld as gridworld
 import TabulaRL.query_functions as query_functions
@@ -222,8 +224,8 @@ for kk in range(num_exps): # run an entire exp
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*epLen) for (s,a) in env.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
-    visit_count = defaultdict(lambda : 0)
-    query_count = defaultdict(lambda : 0)
+    visit_count = {sa: 0 for sa in itertools.product(range(agent.nState), range(agent.nAction))}
+    query_count = {sa: 0 for sa in itertools.product(range(agent.nState), range(agent.nAction))}
     cumReward = 0
     cumQueryCost = 0 
     for ep in xrange(1, num_episodes + 2):

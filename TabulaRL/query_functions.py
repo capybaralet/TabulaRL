@@ -1,4 +1,5 @@
-from collections import defaultdict
+from collections import defaultdict # causing problems for pickling
+import itertools
 import numpy as np
 
 #-------------------------------------------------------------------------------
@@ -32,8 +33,14 @@ class DecayQueryProbability(QueryFunction):
 class QueryFirstNVisits(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())
-        self.visit_count = defaultdict(lambda :0)
-        self.query_count = defaultdict(lambda :0)
+        #self.visit_count = defaultdict(lambda :0)
+        #self.query_count = defaultdict(lambda :0)
+
+    def setAgent(self, agent):
+        self.__dict__.update(locals())
+        self.agent.query_function = self
+        self.visit_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
 
     def __call__(self, state, action, episode, timestep):
         query = self.will_query(state, action)
@@ -50,8 +57,14 @@ class QueryFirstNVisits(QueryFunction):
 class QueryFixedFunction(QueryFunction):
     def __init__(self, queryCost, func):
         self.__dict__.update(locals())
-        self.visit_count = defaultdict(lambda :0)
-        self.query_count = defaultdict(lambda :0)
+        #self.visit_count = defaultdict(lambda :0)
+        #self.query_count = defaultdict(lambda :0)
+
+    def setAgent(self, agent):
+        self.__dict__.update(locals())
+        self.agent.query_function = self
+        self.visit_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
 
     def __call__(self, state, action, episode, timestep):
         query = self.will_query(state, action)
