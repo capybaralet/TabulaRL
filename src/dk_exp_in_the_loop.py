@@ -10,7 +10,7 @@ from TabulaRL.feature_extractor import FeatureTrueState
 from TabulaRL.environment import make_stochasticChain, make_deterministicChain
 #np.random.seed(1)
 
-from generic_functions import add_dicts, dict_argmax, is_power2, sample_gaussian, update_gaussian_posterior_mean
+from generic_functions import add_dicts, dict_argmax, is_power2, sample_gaussian, update_gaussian_posterior_mean, pysave
 
 import time
 t1 = time.time()
@@ -284,7 +284,7 @@ for kk in range(num_exps): # run an entire exp
     if save:
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
-        pysave(exp_log)
+        pysave(save_str + 'exp_log', exp_log)
         #np.save(save_str + 'returns_max_min', returns_max_min)
 
 if save:

@@ -1,6 +1,16 @@
 import operator
 import numpy as np
 
+import cPickle as pickle
+
+def pysave(filepath, object):
+    with open(filepath, 'wb') as file_:
+        pickle.dump(object, file_)
+
+def pyload(filepath):
+    with open(filepath, 'rb') as file_:
+        return pickle.load(file_)
+
 
 def add_dicts(d1, d2):
     return {sa: d1[sa] + d2[sa] for sa in d1}

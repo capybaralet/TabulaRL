@@ -1,0 +1,28 @@
+# 
+ssh eos11 pkill -u kruegerd &
+ssh eos12 pkill -u kruegerd &
+ssh eos13 pkill -u kruegerd &
+ssh eos14 pkill -u kruegerd &
+ssh eos15 pkill -u kruegerd &
+ssh eos16 pkill -u kruegerd &
+ssh eos17 pkill -u kruegerd &
+ssh eos18 pkill -u kruegerd &
+#
+ssh leto01 pkill -u kruegerd &
+ssh leto02 pkill -u kruegerd &
+ssh leto03 pkill -u kruegerd &
+ssh leto04 pkill -u kruegerd &
+ssh leto05 pkill -u kruegerd &
+ssh leto06 pkill -u kruegerd &
+ssh leto07 pkill -u kruegerd &
+ssh leto08 pkill -u kruegerd &
+#
+ssh leto11 pkill -u kruegerd &
+ssh leto12 pkill -u kruegerd &
+ssh leto13 pkill -u kruegerd &
+ssh leto14 pkill -u kruegerd &
+ssh leto15 pkill -u kruegerd &
+ssh leto16 pkill -u kruegerd &
+ssh leto17 pkill -u kruegerd &
+ssh leto50 pkill -u kruegerd &
+
