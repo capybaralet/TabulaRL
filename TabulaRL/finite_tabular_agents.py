@@ -119,7 +119,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
             if self.reward_depends_on_action:
                 self.R_prior[oldState, action] = (mu1, tau1)
             else:
-                for action in self.nAction:
+                for action in range(self.nAction):
                     self.R_prior[oldState, action] = (mu1, tau1)
             self.observed_reward += reward
 

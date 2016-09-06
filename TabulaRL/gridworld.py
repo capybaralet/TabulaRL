@@ -43,11 +43,11 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
                 row, column = row_and_column(state)
                 if action == 1 and row > 0 and column == 0:
                         return state - grid_width
-                if action == 2 and column < grid_width - 1 and row < column:
+                if action == 2 and column < grid_width - 1 and row > column:
                         return state + 1
                 if action == 3 and row < grid_width - 1 and column == 0:
                         return state + grid_width
-                if action == 4 and column > 0 and row <= column:
+                if action == 4 and column > 0:
                         return state - 1
                 else:
                         return state
