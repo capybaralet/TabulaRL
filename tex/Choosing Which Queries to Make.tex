@@ -47,7 +47,7 @@ We use $\mathop{PSRL}_n$ to denote this modification of $\mathop{PSRL}$ using wi
 
 
 % Simulated Query Rollouts
-\section{A Proposal for Tuning $n$}
+\section{SQR: A Proposal for Tuning $n$}
 We propose tuning $n$ via Simulated Query Rollouts (SQR). 
 
 The basic idea is to sample $k$ different reward functions (or, more generally, environments) $\mathcal{\tilde{R}}_1, ..., \mathcal{\tilde{R}}_k$ from the agent's prior on $\mathcal{R}$, and evaluate the agent's performance on each of these simulated worlds for different query strategies, e.g. different values of $n$.
@@ -88,7 +88,7 @@ The running time to compute $n$ here is roughly $N * k * \mathop{PSRL}(S, A, T) 
 % ^ is this true?  Doesn't it depend on how well our prior matches the ground truth??
 
 % Approximate Simulated Query Rollouts
-\section{A Cheaper Approximation}
+\section{ASQR: A Cheaper Approximation}
 We now present a procedure for Approximate Simulated Query Rollout (ASQR).
 To remove the need to run $\mathop{PSRL}$ in line 5 of SQR (Algorithm~\ref{SQR}), we can instead:
 
@@ -104,25 +104,27 @@ Or it may over-estimate performance, since the $\mathop{PSRL}$ agent does not ha
 These differences would be especially large when many states or important states are not very reachable (and so would be queried more slowly or less often by the $\mathop{PSRL}$ agent).
 
 % ASQR in the loop
-\section{Further Extensions}
-We can run the above algorithms at any time during learning, in order to dynamically adjust our desired query set based on new information we've acquired.
+\section{Updating the query function in the loop}
+We'd like to dynamically adjust our query function based on new information we've acquired.
 At a high level, this is analogous to the way Thompson Sampling resamples throughout learning.
 
+ASQR and SQR can both be run at any time during learning, using the agent's current posterior.
 As a simple heuristic, we propose running ASQR with $k=1$ every $N$-th time an environment is sampled in Thompson Sampling.
 In the worst case, this algorithm doubles the amount of times that planning must be performed.
 It would probably be better to invest more computation up-front in choosing good desired query sets during the early stages of learning.
 
+Since querying each state equally often is likely highly suboptimal, we'd like to consider more possible desired query sets; unfortunately, there are exponentially many.
 
-Since querying each state equally often is likely highly suboptimal, we'd like to consider a broader class of desired query sets, but the number of such sets grows exponentially in the total number of queries.
-We believe techniques for linear bandits might be used to specify the priority of each possible query at a given moment, thus specifying a strict total order over desired query sets (with the smallest element being the queries already performed).
+Techniques for linear bandits might be used to specify the priority of each possible query at a given moment, thus specifying a strict total order over desired query sets (with the smallest element being the queries already performed).
 Then we could use the above techniques to instead tune which index in this order to select as $q^{max}_t$ at any given $t$.
-
 The connection with linear bandits comes from viewing each state, action pair, $(s,a)$, as one dimension of arm-space.
 Note that given transition operator $\mathcal{T}$, each policy, $\pi$ induces a distribution over $(s,a)$, and hence a point on the $L_1$ sphere in arm-space.
 Unlike a standard linear bandit, however, our queries are restricted to standard basis vectors, while only the arms corresponding to valid policies can ultimately be exploited.
 Furthermore, an agent must visit a state, action in order to query it (although notably, this is \emph{not} the case for ASQR.
 
-
+% We can think of the choice of the current query function as an option (as in the options framework).
+% This choice should also, in general, specify how the option will terminate. 
+% 
 
 
 

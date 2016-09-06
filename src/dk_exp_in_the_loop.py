@@ -27,17 +27,19 @@ For now, I'm running OwainPSRL(_tilde)
 # SETUP
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--log_n_max', type=int, default=10)
+#parser.add_argument('--log_n_max', type=int, default=10)
+log_n_max=10
 parser.add_argument('--log_num_episodes', type=int, default=10)
-num_env_samples=1 # TODO: argparse?
+num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
-parser.add_argument('--update_freq', type=int, default=1)
+#parser.add_argument('--update_freq', type=int, default=1)
+update_freq = 1
 parser.add_argument('--query_cost', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
-parser.add_argument('--query_fn_selector', type=str, default='ASQR')#, options=['ASQR', 'SQR', 'OwainPSRL', 'Jan'])
+parser.add_argument('--query_fn_selector', type=str, default='ASQR')
 # not included in save_str:
 parser.add_argument('--save', type=str, default=1)
-parser.add_argument('--printing', type=str, default=1)
+parser.add_argument('--printing', type=str, default=0)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
@@ -205,13 +207,13 @@ We also expect that (A)SQR doesn't work in some environments (because of, e.g. r
 """
 
 # record results here:
-# TODO: change for intheloop  (extra dim: num_updates?)
 num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
-# TODO: log it; normalize in the loop
-returns_max_min = np.empty((num_exps, 2))
+exp_log = {}
 
-# FIXME: using visit_count instead of num_queries (in the query_function_selectors)
+# TODO: log it; normalize in the loop
+#returns_max_min = np.empty((num_exps, 2))
+
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
     # TODO: rm?
@@ -231,7 +233,7 @@ for kk in range(num_exps): # run an entire exp
         # UPDATE query function?
         # (For now, we just update periodically.)
         if (ep-1) % update_freq == 0:
-            # TODO: log query_functions desired_query_sets
+            # TODO: log query_functions desired_query_sets visit_count query_count...
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
@@ -269,6 +271,9 @@ for kk in range(num_exps): # run an entire exp
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = cumQueryCost / query_cost
+            exp_log[ep] = {}
+            exp_log[ep]['visit_count'] = visit_count
+            exp_log[ep]['query_count'] = query_count
             if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
                 import pylab
                 state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
@@ -279,8 +284,9 @@ for kk in range(num_exps): # run an entire exp
     if save:
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
-        np.save(save_str + 'returns_max_min', returns_max_min)
+        pysave(exp_log)
+        #np.save(save_str + 'returns_max_min', returns_max_min)
 
 if save:
-    os.system('touch' + save_str + 'FINISHED')
+    os.system('touch ' + save_str + 'FINISHED')
 

@@ -1,11 +1,48 @@
 from pylab import *
 import os
 
+
+# from https://stackoverflow.com/questions/11882393/matplotlib-disregard-outliers-when-plotting
+def is_outlier(points, thresh=3.5):
+    """
+    Returns a boolean array with True if points are outliers and False 
+    otherwise.
+
+    Parameters:
+    -----------
+        points : An numobservations by numdimensions array of observations
+        thresh : The modified z-score to use as a threshold. Observations with
+            a modified z-score (based on the median absolute deviation) greater
+            than this value will be classified as outliers.
+
+    Returns:
+    --------
+        mask : A numobservations-length boolean array.
+
+    References:
+    ----------
+        Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and
+        Handle Outliers", The ASQC Basic References in Quality Control:
+        Statistical Techniques, Edward F. Mykytka, Ph.D., Editor. 
+    """
+    if len(points.shape) == 1:
+        points = points[:,None]
+    median = np.median(points, axis=0)
+    diff = np.sum((points - median)**2, axis=-1)
+    diff = np.sqrt(diff)
+    med_abs_deviation = np.median(diff)
+
+    modified_z_score = 0.6745 * diff / med_abs_deviation
+
+    return modified_z_score > thresh
+
 #----------------------------------------------------
 # Below: for dk_exp_script (Aug 24)
 # TODO: normalized performance
 
 # COMPUTE PERFORMANCE FROM RESULTS FILES
+
+
 def compute_performance(returns, num_queries, query_cost):
     perf = returns - num_queries * query_cost
     return perf
@@ -56,6 +93,46 @@ def compare_ns(avg_perf, horizons, query_costs, label='', ns=ns, title_extra='')
 #------------------------------------
 # ACTUALLY MAKE PLOTS
 
+save_strs = ['2016-09-01_19:51:07___enviro=grid3__log_n_max=10__log_num_episodes=10__num_exps=3000__query_cost=0.125__query_fn_selector=OwainPSRL__update_freq=1',
+        '2016-09-01_19:51:03___enviro=grid3__log_n_max=10__log_num_episodes=10__num_exps=3000__query_cost=0.125__query_fn_selector=OwainPSRL_tilde__update_freq=1']
+#save_strs = ['2016-09-01_13:39:58___enviro=grid4__log_n_max=10__log_num_episodes=10__num_exps=300__query_cost=0.125__query_fn_selector=OwainPSRL__update_freq=1',
+#'2016-09-01_13:39:52___enviro=grid4__log_n_max=10__log_num_episodes=10__num_exps=300__query_cost=0.125__query_fn_selector=OwainPSRL_tilde__update_freq=1']
+save_strs = ['results/results__dk_exp_in_the_loop.py/' + ss for ss in save_strs]
+figure()
+perfs = {}
+for ss in save_strs:
+    perfs[ss] = (np.load(ss + '/returns.npy') - .125 * np.load(ss + '/num_queries.npy')) / 2**np.arange(11).reshape((1,-1))
+    plot(perfs[ss].mean(0))
+figure()
+for ss in save_strs:
+    for i in range(4):
+        subplot(2,2,i+1)
+        xx = perfs[ss][:, 3*i+1]
+        hist(xx[~is_outlier(xx)], 20)
+
+#save_strs = ['2016-09-01_13:39:52___enviro=stoch_chain5__log_n_max=10__log_num_episodes=10__num_exps=300__query_cost=0.125__query_fn_selector=OwainPSRL__update_freq=1',
+#'2016-09-01_13:39:55___enviro=stoch_chain5__log_n_max=10__log_num_episodes=10__num_exps=300__query_cost=0.125__query_fn_selector=OwainPSRL_tilde__update_freq=1']
+save_strs = ['2016-09-01_19:51:03___enviro=stoch_chain5__log_n_max=10__log_num_episodes=10__num_exps=3000__query_cost=0.125__query_fn_selector=OwainPSRL__update_freq=1',
+        '2016-09-01_19:51:03___enviro=stoch_chain5__log_n_max=10__log_num_episodes=10__num_exps=3000__query_cost=0.125__query_fn_selector=OwainPSRL_tilde__update_freq=1']
+save_strs = ['results/results__dk_exp_in_the_loop.py/' + ss for ss in save_strs]
+figure()
+perfs = {}
+for ss in save_strs:
+    perfs[ss] = (np.load(ss + '/returns.npy') - .125 * np.load(ss + '/num_queries.npy')) / 2**np.arange(11).reshape((1,-1))
+    plot(perfs[ss].mean(0))
+figure()
+for ss in save_strs:
+    for i in range(4):
+        subplot(2,2,i+1)
+        xx = perfs[ss][:, 3*i+1]
+        hist(xx[~is_outlier(xx)], 20)
+
+assert False
+
+
+#------------------------------------
+#------------------------------------
+
 num_episodes = 2**np.arange(0, 11)
 costs = 2**np.linspace(-10, 10, 21)
 
@@ -69,6 +146,7 @@ save_strs = ['results/results__dk_exp_script.py/' + ss for ss in save_strs]
 figure()
 for label, save_str in zip(['PSRL_clamped', 'PSRL_continue_sampling'], save_strs):
     avg_perf, avg_perf_per_tstep = compute_performances(save_str)
+    assert False
     horizons = [5, 10]
     query_costs = [1,7,10]
     representative_perfs = np.empty((3, 2, avg_perf.shape[2]))
