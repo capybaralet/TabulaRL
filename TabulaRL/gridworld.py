@@ -13,8 +13,11 @@ def R_normal_dist_to_expectation(R):
 def reward_for_action(state_rewards, action):
     return { (s,action) : reward for s,reward in enumerate(state_rewards) }
 
-def make_sa_rewards(state_rewards):
-    return reward_for_action(state_rewards, action=0)
+def make_sa_rewards(state_rewards, actions=[0]):
+    rval = {}
+    for action in actions:
+        rval.update( { (s,action) : reward for s,reward in enumerate(state_rewards) } )
+    return rval
 
 def one_hot(pos, size):
     r = np.zeros(size)
@@ -22,7 +25,7 @@ def one_hot(pos, size):
     return r 
 
 
-def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
+def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False):
     """
     make the environment deterministic 
         (and potentially makes the agent know that)
@@ -35,18 +38,32 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
     def row_and_column(state):
             return state / grid_width, state % grid_width
 
-    def transition(state, action):
-            row, column = row_and_column(state)
-            if action == 1 and row > 0:
-                    return state - grid_width
-            if action == 2 and column < grid_width - 1:
-                    return state + 1
-            if action == 3 and row < grid_width - 1:
-                    return state + grid_width
-            if action == 4 and column > 0:
-                    return state - 1
-            else:
-                    return state
+    if multi_chain: # agent can only move along Ls to the terminal states...
+        def transition(state, action):
+                row, column = row_and_column(state)
+                if action == 1 and row > 0 and column == 0:
+                        return state - grid_width
+                if action == 2 and column < grid_width - 1 and row < column:
+                        return state + 1
+                if action == 3 and row < grid_width - 1 and column == 0:
+                        return state + grid_width
+                if action == 4 and column > 0 and row <= column:
+                        return state - 1
+                else:
+                        return state
+    else:
+        def transition(state, action):
+                row, column = row_and_column(state)
+                if action == 1 and row > 0:
+                        return state - grid_width
+                if action == 2 and column < grid_width - 1:
+                        return state + 1
+                if action == 3 and row < grid_width - 1:
+                        return state + grid_width
+                if action == 4 and column > 0:
+                        return state - 1
+                else:
+                        return state
 
 
     R_true = {}
@@ -54,7 +71,6 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1):
 
     for s in xrange(nState):
         for a in xrange(nAction):
-
             if (s,a) in rewards:
                 R_true[s, a] = rewards[s, a]
             else:

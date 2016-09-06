@@ -59,34 +59,46 @@ if args_dict.pop('save'):
 
 
 # ENVIRONMENT
+# TODO:
+#   remove digging (instead, give agent a prior which says reward only depends on state)
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
     epLen = 2 * grid_width - 1
-    nAction = 5
-    states = range(grid_width**2)
-    reward_means = np.diag(np.linspace(0,1,grid_width)).flatten()
-    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means))
+    reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
+    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)))
+elif enviro.startswith('multi_chain'):
+    grid_width = int(enviro.split('multi_chain')[1])
+    epLen = 2 * grid_width - 1
+    reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
+    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), multi_chain=True)
 elif enviro.startswith('det_chain'):
-    chain_len = int(enviro.split('chain')[1])
+    chain_len = int(enviro.split('det_chain')[1])
     epLen = chain_len
     env = make_deterministicChain(chain_len, chain_len)
 elif enviro.startswith('stoch_chain'):
-    chain_len = int(enviro.split('chain')[1])
+    chain_len = int(enviro.split('stoch_chain')[1])
     epLen = chain_len
     env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
+else:
+    assert False
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
 # AGENT
+# FIXME: use P_true = env.P
 alg = finite_tabular_agents.PSRLLimitedQuery
-initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
+if enviro.startswith('grid') or enviro.startswith('multi_chain'):
+    initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None, reward_depends_on_action=False)
+else:
+    initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
 query_function = query_functions.QueryFirstNVisits(query_cost, n=0)
 query_function.setAgent(initial_agent)
 
-dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=None, R_true=None)
+dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
 
 # QUERY FUNCTION SELECTOR
 # TODO: implement the "best-arm" version of the algo
+# TODO: clean-up this stuff a lot (maybe move to separate dir?)
 
 if query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
@@ -101,15 +113,7 @@ if query_fn_selector == 'ASQR':
                 perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
-# VoI = E * (R(pi+, M+) - R(pi, M+))
-#
-# OLD NOTES:
-# Here, we compute the rewards in the agent's MLE env    (potentially with the sampled r(sa) replacing the MLE r(sa)) 
-# We also discussed computing rewards in the sampled_env (potentially with the MLE r(sa) replacing the sampled r(sa))
-# More generally, we could look at various ways of interpolating btw the two...
-# Is there some analogy with using the UCBs for planning?
-# TODO:
-elif query_fn_selector == 'OwainPSRL':
+elif query_fn_selector == 'OPSRL_greedy':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
@@ -131,56 +135,30 @@ elif query_fn_selector == 'OwainPSRL':
         #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
-# VoI = E * (R(pi+, M~) - R(pi, M~)) <-- not necessarily positive :/
-elif query_fn_selector == 'OwainPSRL_tilde':
+elif query_fn_selector == 'OPSRL_omniscient':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
         VoIs = defaultdict(lambda : [])
         R, P = agent.map_mdp()
         sampled_R, sampled_P = sampled_env.R, sampled_env.P
-        sampled_R = {sa: sampled_R[sa][0] for sa in sampled_R}
         for sa in agent.R_prior:
-            # create M+
-            updated_R = copy.deepcopy(R)
-            updated_R[sa] = sampled_R[sa]
+            # create M~, M-
+            updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
+            R_minus = copy.deepcopy(updated_R)
+            R_minus[sa] = R[sa]
             updated_P = sampled_P
+            P_minus = sampled_P
             # compute Rs
-            expected_return_ignorant = agent.compute_qVals_true(R, P, sampled_R, sampled_P)[0]
-            expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, sampled_R, sampled_P)[0]
+            expected_return_ignorant = agent.compute_qVals_true(R_minus, P_minus, updated_R, updated_P)[0]
+            expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
         num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
-
-# FIXME: we also want to change the PLANNING! (although that's just doing PSRL, no?)
-#   if sampled_envs == 1, then we can just sample once (right?)
-#   What if we sample just all sa simultaneously in the sampled environment, and add their VoI??
-#   NOT SURE WHAT I'M DOING HERE....
-elif query_fn_selector == 'OwainPSRL_multiple_envs':
-    assert False
-    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count):
-        # how much value is there to knowing the r_sa?
-        VoIs = defaultdict(lambda : [])
-        # TODO: check it: wasn't I supposed to use ii??
-        for ii, sampled_env in enumerate(sampled_envs):
-            R, P = agent.map_mdp()
-            sampled_R, sampled_P = sampled_env.R, sampled_env.P
-            expected_return_ignorant = agent.compute_qVals_true(R, P, {sa: sampled_R[sa][0] for sa in sampled_R}, sampled_P)[0]
-            for sa in agent.R_prior:
-                # for each sampled_env, M, we THEN sample a reward value, r_sa for each sa and look at the VoI of knowing that r(sa) = r_sa in M
-                updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
-                updated_R[sa] = sample_gaussian(sampled_env.R[sa][0], sampled_env.R[sa][1], 1)#[0]
-                updated_P = sampled_P
-                expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
-                return_diff = expected_return_informed - expected_return_ignorant
-                VoIs[sa].append(neps * return_diff)
-        avg_VoIs = {sa: np.mean(VoIs[sa]) for sa in VoIs}
-        # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: visit_count[sa] + sum([(avg_VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in avg_VoIs}
-        return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 else:
     print "not implemented!"
     assert False 
@@ -233,7 +211,7 @@ for kk in range(num_exps): # run an entire exp
     # TODO: rm?
     env = copy.deepcopy(initial_env)
     # TODO: the total number of queries of a given state may be higher than n_max, now
-    sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*num_episodes) for (s,a) in env.R.keys()}
+    sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*epLen) for (s,a) in env.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
     visit_count = defaultdict(lambda : 0)
@@ -250,10 +228,7 @@ for kk in range(num_exps): # run an entire exp
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
-                # FIXME: sampled_R is always 0??
-                #   I need to use PSRL here (and PSRLLimitedQuery only *after* I've decided which queries to make!)
                 sampled_R, sampled_P = agent.sample_mdp_unclamped()
-                #import ipdb; ipdb.set_trace()
                 sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
                 sampled_env.P = sampled_P
                 sampled_envs.append(sampled_env)
@@ -283,7 +258,7 @@ for kk in range(num_exps): # run an entire exp
             cumReward += reward 
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
-        # CHECKPOINT (TODO)
+        # CHECKPOINT (TODO: more)
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = cumQueryCost / query_cost

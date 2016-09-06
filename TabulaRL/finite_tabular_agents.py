@@ -53,7 +53,9 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     # FIXME: P_true, R_true need to be accounted for (everywhere!) - (NTS: I don't know if there are any specific places)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
-                 P_true=None, R_true=None, query_function=AlwaysQuery(0.), stop_learning=True, **kwargs):
+                 P_true=None, R_true=None, query_function=AlwaysQuery(0.), stop_learning=True, 
+                 reward_depends_on_action=True,
+                 **kwargs):
         '''
         Tabular episodic learner for time-homoegenous MDP.
         Must be used together with true state feature extractor.
@@ -114,7 +116,11 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
             mu0, tau0 = self.R_prior[oldState, action]
             tau1 = tau0 + self.tau
             mu1 = (mu0 * tau0 + reward * self.tau) / tau1
-            self.R_prior[oldState, action] = (mu1, tau1)
+            if self.reward_depends_on_action:
+                self.R_prior[oldState, action] = (mu1, tau1)
+            else:
+                for action in self.nAction:
+                    self.R_prior[oldState, action] = (mu1, tau1)
             self.observed_reward += reward
 
         if pContinue == 1:
