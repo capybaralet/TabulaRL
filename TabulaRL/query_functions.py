@@ -63,7 +63,7 @@ class QueryFirstNVisits(QueryFunction):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.n
         else:
-            return sum([self.query_count[state, aa] for aa in range(self.agent.nAction)]) < self.n
+            return self.query_count[state] < self.n
 
 
 class QueryFixedFunction(QueryFunction):
@@ -99,7 +99,7 @@ class QueryFixedFunction(QueryFunction):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.func(state, action)
         else:
-            return sum([self.query_count[state, aa] for aa in range(self.agent.nAction)]) < self.func(state, action)
+            return self.query_count[state] < self.func(state, action)
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
