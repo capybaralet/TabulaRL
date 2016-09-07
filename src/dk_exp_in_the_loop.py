@@ -109,7 +109,7 @@ if query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         perfs = np.empty((len(sampled_envs), len(ns)))
         for ii, sampled_env in enumerate(sampled_envs):
-            # TODO: should we be sampling here? we've already sampled an environment...
+            # TODO: should have a posterior over reward variance for this to make sense
             sampled_rewards = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
             for jj, n in enumerate(ns):
                 updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][visit_count[sa]:n], agent.tau) for sa in sampled_rewards}
