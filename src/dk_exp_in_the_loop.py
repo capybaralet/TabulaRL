@@ -63,17 +63,14 @@ if args_dict.pop('save'):
 
 
 # ENVIRONMENT
-# TODO: fix epLen for grid
 # TODO: less reward noise
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
     epLen = 2 * grid_width# - 1
-    #reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
-    #env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)))
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), gotta_move=True)
-# FIXME: leaving the extra states around messes with ASQR!
-# FIXME: max performance should be 1!
+# TODO: leaving the extra states around messes with ASQR!
+# FIXME: max performance should be 1! (check it!)
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
     epLen = 2 * grid_width# - 1
@@ -104,9 +101,8 @@ query_function.setAgent(initial_agent)
 dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
 
 # QUERY FUNCTION SELECTOR
-# TODO: clean-up this stuff a lot (maybe move to separate dir?)
-            
 # query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
+# TODO: clean-up this stuff a lot (maybe move to separate script?)
 
 if query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
@@ -140,7 +136,7 @@ elif query_fn_selector == 'OPSRL_greedy':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
         #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
@@ -164,15 +160,13 @@ elif query_fn_selector == 'OPSRL_omniscient':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
         #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
 else:
     print "not implemented!"
     assert False 
-
-
 
 
 #-----------------------------------------------------------------------------------
@@ -183,20 +177,19 @@ num_updates = num_episodes / update_freq + 1
 n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
-
 # record results here:
 num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
 exp_log = {}
 
-# TODO: log it; normalize in the loop
+
+# TODO: log it; normalize in the loop (?)
 #returns_max_min = np.empty((num_exps, 2))
 
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
     # TODO: rm?
     env = copy.deepcopy(initial_env)
-    # TODO: the total number of queries of a given state may be higher than n_max, now
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*epLen) for (s,a) in env.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
@@ -212,7 +205,6 @@ for kk in range(num_exps): # run an entire exp
         if (ep-1) % update_freq == 0:
             visit_count = query_function.visit_count
             query_count = query_function.query_count
-            # TODO: log query_functions desired_query_sets visit_count query_count...
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
                 sampled_env = copy.deepcopy(initial_env)
@@ -251,8 +243,8 @@ for kk in range(num_exps): # run an entire exp
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = sum(query_count.values())#cumQueryCost / query_cost
             exp_log[ep] = {}
-            exp_log[ep]['visit_count'] = visit_count
-            exp_log[ep]['query_count'] = query_count
+            exp_log[ep]['visit_count'] = copy.deepcopy(visit_count)
+            exp_log[ep]['query_count'] = copy.deepcopy(query_count)
             if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
                 import pylab
                 state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
