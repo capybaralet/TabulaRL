@@ -21,7 +21,7 @@ ssh leto11 pkill -u kruegerd &
 ssh leto12 pkill -u kruegerd &
 ssh leto13 pkill -u kruegerd &
 ssh leto14 pkill -u kruegerd &
-ssh leto15 pkill -u kruegerd &
+ssh leto51 pkill -u kruegerd &
 ssh leto16 pkill -u kruegerd &
 ssh leto17 pkill -u kruegerd &
 ssh leto50 pkill -u kruegerd &

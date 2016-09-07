@@ -25,7 +25,7 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=7)
+parser.add_argument('--log_num_episodes', type=int, default=10)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
 #parser.add_argument('--update_freq', type=int, default=1)
