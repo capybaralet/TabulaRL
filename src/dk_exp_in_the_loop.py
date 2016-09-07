@@ -69,7 +69,6 @@ if enviro.startswith('grid'):
     envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)),
                                      multi_chain=False, gotta_move=True, reward_noise=reward_noise)
 # TODO: leaving the extra states around messes with ASQR!
-# FIXME: max performance should be 1! (check it!)
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
     epLen = 2 * grid_width - 2
@@ -138,11 +137,11 @@ elif query_fn_selector == 'OPSRL_greedy':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
         #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
-elif query_fn_selector == 'OPSRL_omniscient':
+elif query_fn_selector == 'OPSRL_omni':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
@@ -162,7 +161,7 @@ elif query_fn_selector == 'OPSRL_omniscient':
             return_diff = expected_return_informed - expected_return_ignorant
             VoIs[sa] = neps * return_diff
         # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] > query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
+        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
         #import ipdb; ipdb.set_trace()
         return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
 
@@ -244,9 +243,9 @@ for kk in range(num_exps): # run an entire exp
             exp_log[ep] = {}
             exp_log[ep]['visit_count'] = copy.deepcopy(visit_count)
             exp_log[ep]['query_count'] = copy.deepcopy(query_count)
+            state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
             if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
                 import pylab
-                state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
                 pylab.imshow(state_visits.reshape((grid_width, grid_width)), cmap=pylab.cm.gray, interpolation='nearest')
                 pylab.draw(); pylab.show()
 
@@ -255,7 +254,6 @@ for kk in range(num_exps): # run an entire exp
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
         pysave(save_str + 'exp_log', exp_log)
-        #np.save(save_str + 'returns_max_min', returns_max_min)
 
 if save:
     os.system('touch ' + save_str + 'FINISHED')
