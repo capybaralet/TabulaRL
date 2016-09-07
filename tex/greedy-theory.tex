@@ -1,0 +1,172 @@
+TODO:
+All the faults?
+Consider oilfield example
+
+
+Greedy VOI PSRL
+---------
+
+PSRL is good at exploring when there's no cost for getting reward information. So one approach is to modify PSRL to adjust for the query cost. 
+
+One approach to *that* is to let PSRL determine our actions and have a separate method for deciding to query or not. The immediate problem with this is that PSRL may explore states that won't be queried and don't make sense to visit unless they're going to be queried. PSRL incentivizes exploring state-action (s,a) pairs by thompson sampling the reward function (and transition function). Thus we can avoid this problem by simply 'locking down' the reward function for those s,a pairs that we don't intend to query. That way there's no extra incentive to visit them.
+
+All that's missing now is a way to decide what to query. We approach this by estimating the VOI of learning about different s,a pairs. 
+
+We estimate the true VOI of s,a pairs by computing the value of learning perfect information about a single s,a pair and never learning anything else. 
+In order words we can substitute the question: "how good would it be to learn this s,a pair perfectly if I were to never to learn anything else?"
+
+An agent has a prior $R_prior$ over reward functions. For now we'll assume the rewards are independent. 
+
+Then expected value of learning $r(s,a)$ exactly is
+
+VOI_greedy = E_{r ~ R_prior}  [ 
+  U(\pi_r*+r(s,a), r) - 
+  U(\pi_r*,  r) 
+  ]
+
+r* = \mean[r]
+here $ r* + r(s,a) $ means a reward function identical to r* except that at $s,a$, the mean has been replaced with $r(s,a)$
+U(\pi, r) is the value of policy \pi evaluated under reward function r.
+ 
+Aside: if the values of r are independent, we can replace the computation with
+  VOI_greedy = E_{r(s,a) ~ R_prior(s,a)}  [ 
+    U(\pi_r*+r(s,a), r*+r(s,a)) - 
+    U(\pi_r*,  r*+r(s,a)) 
+    ]
+  Since we only vary the reward of a single s,a there should be a way to compute this efficiently.
+
+We can then compute how many queries we should be willing to make at maximum.
+
+n_max(s,a) = k * VOI_greedy*T/c 
+
+Where k is some constant 
+
+Actual planning proceeds very closely to PSRL: Thomposon sampling a reward function, except for those state actions which wouldn't be queried if visited (set to their expected values). 
+Then the agent plans according to that reward function and queries if the number of times it has queried a state-action is less than n_max(s,a)
+
+We will use the following distribution for thompson sampling
+R_planning(s,a) ~ { R_prior(s,a)        if n_max(s,a) > 1
+                    E_r~R_prior r(s,a)  otherwise
+
+The planning reward distribution 'locks down' the rewards of the state actions that never get visited.
+
+For each episode i 
+  sample r_samp ~ R_planning  
+  \pi_i = \pi_{r_samp}
+
+
+Advantages
+---------
+1. Limiting cases for query cost behave well 
+  For lim c -> 0, greedy VOI behaves like the state of the art algorithm, PSRL.
+  For lim c -> \inf, greedy VOI just plans based on the expected value of its prior. If the query cost is high enough, this is Bayes optimal.
+
+2. If a state won't be queried, it doesn't get any exploration benefit from Thompson sampling.
+  Consider a bandit with two arms: 
+    arm 1: r=0 deterministically (known) 
+    arm 2: 90% chance r=1, 10% chance r=-20 (deterministic)
+  run for 100 episodes, query cost = 200
+
+  Greedy VOI PSRL doesn't visit arm 2 because its not going to query it (high query cost)
+  PSRL would try arm 2 90% of the time (but only once if it learns that its bad). If it didn't actually learn the value, it would do that the entire time.
+
+3. State-action pairs who's reward cannot possibly affect the policy should are not queried. It is useless to pay the cost of something that won't change your mind.
+  Greedy VOI doesn't query because the info doesn't affect the policy and thus doesn't change the expectation.
+
+  Another way of thinking about this:
+    only pay substantial query cost for state-actions that are 'close' to being included in your policy (if currently out of your policy) or 'close' to being excluded from your policy (if currently in your policy).
+
+    Consider the mdp below
+  (start)
+    o -> o (restart)
+    |
+    v
+    o
+    (restart)
+    The agent's prior has 50% chance of +1 or -1 reward for each state (independent).
+
+    Then its useless to query the reward of start state but good to query the reward of the two arms.
+4. Will query when the total VOI is positive but the VOI for a single observation is 0 or very low
+      However this has a different problem: single observations may have a VOI of 0 even though more observations have a large VOI.
+
+      Consider a bandit with two arms:
+        arm 1: fixed known, r=.5 
+        arm 2: bernoulli rewards, prior for p ~ Beta(1, 5)
+
+      A single positive observation on arm2 will change the prior to Beta(2,5) which has a mean 2/5 which is less than arm 1
+
+
+Flaws
+-----
+1. It looks only query ahead. 
+  1. For some mdps the VOI of full knowledge about a single state is zero but its clearly good to explore.
+  below VOI for both middle states is zero.  
+
+  (start)
+    o - selfloop r= +1 then end 
+    |
+    o r=-200 or -1 deterministically 50%
+    |
+    o r=-200 or -1 deterministically 50%
+    | 
+    o r= +100 end
+
+    (many eposodes)
+
+  2. (skippable) For some mdps the VOI of the single state-action is high it will inevitably become obsolete.
+
+  (start)
+  ->o
+  | | r= +1 or -1 deterministically (Should you query this? No.)
+  | v
+  --o
+    |
+    v
+   (end) r= +10 or -10 deterministically 
+
+   Before you've seen any other values, querying the first state action has positive VOI. But the only information that affects the policy is the value of end state. The information about the first state action will inevitably become obsolete.
+    
+2. It assumes it gets full information about the state action
+    It will take a long time to get close to perfect information
+      Consider a bandit with two arms: 
+        arm 1: r=0 deterministically (known) 
+        arm 2: r=1 deterministically (50% chance), r={ 1 with p=99% ; -1000 with p=1%}  (50% chance)
+        
+      100 episodes, 
+      query cost = .1
+
+      Each observation of arm2 gives so little information that its not worth learning about it. But perfect VOI would be worth quite a lot.
+      This shows that the correct approach needs to take into account how much info one gets with each observation.
+
+      The obvious alternative is compute the VOI for a single observation instead. However, Advantage 4 shows this has clear problems as well.
+      
+Variants
+-------
+  1. Approximate VOI_greedy by only evaluating the integral at a few points on the distribution of $r(s,a)$. The UCB/LCB may be good choices.
+  2. Compute n_max only for most relevant s,a pairs (since for large MDPs there are many s,a pairs) by
+    1. Collect 'state-actions of interest' by simulating PSRL several times and collect what s,a pairs it visits. 
+    2. Compute n_max(s,a) for those states
+    3. Repeat from 1 but now using the induced R_planning (with state-actions that won't be queried 'locked down' at their expectations) to Thompson sample from. This adjusts for the fact that deciding not to learn about some states will affect which states you will visit.
+  3. Instead of pretending you get perfect information from a state instead simulate getting imperfect information (reducing the VOI).
+
+
+Omni VOI PSRL
+-------------
+
+Greedy VOI PSRL assumes that after learning this one thing, you never learn anything else. Another attractive assumption is to assume you eventually learn everything. That's what we do for Omni VOI PSRL. 
+
+This is a simple modification of the VOI_greedy equation everything else stays the same. We compute how good it would be to learn this specific fact if we knew everything else.
+
+VOI_omni = E_{r ~ R_prior}  [ 
+  U(\pi_r,  r) -
+  U(\pi_r+r*(s,a), r) 
+  ]
+
+Unfortunately this using a single draw from R_prior to estimate the VOI_omni is much worse than for VOI_greedy. Its unclear how many draws to use. 
+
+This avoids the problem quickly-obsoleted information (Flaw 1.2). But never queries in cases where everything can be obsoleted: 
+
+imagine a bandit where exactly two of the arms deterministically give +1 and the rest give 0. With otherwise perfect info, its useless to learn about any one arm.
+
+
+  
