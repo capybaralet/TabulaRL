@@ -86,6 +86,41 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
     return mdp
 
 
+def make_longY(nState, epLen, rewards, reward_noise=1):
+    """
+    An environment where almost all states are unavoidable (and hence not worth querying)
+    """
+    assert type(rewards) != list
+    assert nState > 2
+
+    #nAction=1
+    nAction=2
+    def transition(state, action):
+        #return (state + 1) % nState # long corridor, no branching
+        if state == nState - 3: # branch
+            if action == 0: # left
+                return state + 1
+            elif action == 1: # right
+                return state + 2
+        elif state > nState - 3: # stays put at the ends
+            return state 
+        else:
+            return state + 1
+
+    R_true = {}
+    P_true = {}
+    for s in xrange(nState):
+        for a in xrange(nAction):
+            if (s,a) in rewards:
+                R_true[s, a] = rewards[s, a]
+            else:
+                R_true[s, a] = 0
+            P_true[s, a] = one_hot(transition(s,a), nState)
+
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise)
+    mdp.transition = transition
+    return mdp
+
 def make_mdp(nState, nAction, epLen, R, P, reward_noise, reward_noise_given=False, gotta_move=False):
     env = TabularMDP(nState, nAction, epLen, gotta_move)
     if not reward_noise_given:

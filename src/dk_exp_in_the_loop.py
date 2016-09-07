@@ -31,7 +31,7 @@ parser.add_argument('--num_exps', type=int, default=1)
 #parser.add_argument('--update_freq', type=int, default=1)
 update_freq = 1
 parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--reward_noise', type=float, default=.1)
+parser.add_argument('--reward_noise', type=float, default=.5)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
 # not included in save_str:
@@ -74,7 +74,7 @@ elif enviro.startswith('multi_chain'):
     epLen = 2 * grid_width - 2
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), 
-                                     multi_chain=True, gotta_move=True, reward_noise=reward_noise)
+                                     multi_chain=True, gotta_move=True)
 elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('det_chain')[1])
     epLen = chain_len
@@ -83,6 +83,13 @@ elif enviro.startswith('stoch_chain'):
     chain_len = int(enviro.split('stoch_chain')[1])
     epLen = chain_len
     envv = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
+elif enviro.startswith('longY'):
+    nState = int(enviro.split('longY')[1])
+    epLen = nState - 1
+    reward_means = np.zeros(nState)
+    reward_means[-1] = 1
+    envv = gridworld.make_longY(nState, epLen, 
+                                 rewards=gridworld.make_sa_rewards(reward_means, actions=range(2)), reward_noise=reward_noise)
 else:
     assert False
 f_ext = FeatureTrueState(envv.epLen, envv.nState, envv.nAction, envv.nState)
@@ -90,7 +97,7 @@ f_ext = FeatureTrueState(envv.epLen, envv.nState, envv.nAction, envv.nState)
 
 # AGENT
 alg = finite_tabular_agents.PSRLLimitedQuery
-if enviro.startswith('grid') or enviro.startswith('multi_chain'):
+if enviro.startswith('grid') or enviro.startswith('multi_chain') or enviro.startswith('longY'):
     initial_agent = alg(envv.nState, envv.nAction, envv.epLen, 
                          P_true=envv.P, R_true=None, reward_depends_on_action=False, tau=1/reward_noise**2, tau0=1/reward_noise**2)
 else:
@@ -119,6 +126,7 @@ if query_fn_selector == 'ASQR':
                 #import ipdb; ipdb.set_trace()
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
+# FIXME: need to use the agent's prior knowledge that reward only depends on state (when it does)
 elif query_fn_selector == 'OPSRL_greedy':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
@@ -126,20 +134,35 @@ elif query_fn_selector == 'OPSRL_greedy':
         VoIs = defaultdict(lambda : [])
         R, P = agent.map_mdp()
         sampled_R, sampled_P = sampled_env.R, sampled_env.P
-        for sa in agent.R_prior:
-            # create M+
-            updated_R = copy.deepcopy(R)
-            updated_R[sa] = sampled_R[sa][0]
-            updated_P = sampled_P
-            # compute Rs
-            expected_return_ignorant = agent.compute_qVals_true(R, P, updated_R, updated_P)[0]
-            expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
-            return_diff = expected_return_informed - expected_return_ignorant
-            VoIs[sa] = neps * return_diff
-        # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
-        #import ipdb; ipdb.set_trace()
-        return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
+        if agent.reward_depends_on_action:
+            for sa in agent.R_prior:
+                # create M+
+                updated_R = copy.deepcopy(R)
+                updated_R[sa] = sampled_R[sa][0]
+                updated_P = sampled_P
+                # compute Rs
+                expected_return_ignorant = agent.compute_qVals_true(R, P, updated_R, updated_P)[0]
+                expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                VoIs[sa] = neps * return_diff
+            # compare avg_VoI to query cost, and plan to query up to n times (more)
+            num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
+            return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
+        else:
+            for s in range(agent.nState):
+                # create M+
+                updated_R = copy.deepcopy(R)
+                for action in range(agent.nAction):
+                    updated_R[s, action] = sampled_R[s, 0][0]
+                updated_P = sampled_P
+                # compute Rs
+                expected_return_ignorant = agent.compute_qVals_true(R, P, updated_R, updated_P)[0]
+                expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                VoIs[s] = neps * return_diff
+            # compare avg_VoI to query cost, and plan to query up to n times (more)
+            num_queries = {s: query_count[s] + sum([(VoIs[s] >= query_cost * nn) for nn in range(1, max(ns))]) for s in VoIs}
+            return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s])
 
 elif query_fn_selector == 'OPSRL_omni':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
@@ -151,19 +174,33 @@ elif query_fn_selector == 'OPSRL_omni':
         updated_R = {sa: sampled_R[sa][0] for sa in sampled_R}
         updated_P = sampled_P
         expected_return_informed = agent.compute_qVals_true(updated_R, updated_P, updated_R, updated_P)[0]
-        for sa in agent.R_prior:
-            # create M~, M-
-            R_minus = copy.deepcopy(updated_R)
-            R_minus[sa] = R[sa]
-            P_minus = sampled_P
-            # compute Rs
-            expected_return_ignorant = agent.compute_qVals_true(R_minus, P_minus, updated_R, updated_P)[0]
-            return_diff = expected_return_informed - expected_return_ignorant
-            VoIs[sa] = neps * return_diff
-        # compare avg_VoI to query cost, and plan to query up to n times (more)
-        num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
-        #import ipdb; ipdb.set_trace()
-        return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
+        if agent.reward_depends_on_action:
+            for sa in agent.R_prior:
+                # create M~, M-
+                R_minus = copy.deepcopy(updated_R)
+                R_minus[sa] = R[sa]
+                P_minus = sampled_P
+                # compute Rs
+                expected_return_ignorant = agent.compute_qVals_true(R_minus, P_minus, updated_R, updated_P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                VoIs[sa] = neps * return_diff
+            # compare avg_VoI to query cost, and plan to query up to n times (more)
+            num_queries = {sa: query_count[sa] + sum([(VoIs[sa] >= query_cost * nn) for nn in range(1, max(ns))]) for sa in VoIs}
+            return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s, a])
+        else:
+            for s in range(agent.nState):
+                # create M~, M-
+                R_minus = copy.deepcopy(updated_R)
+                for action in range(agent.nAction):
+                    R_minus[s, action] = R[s, 0]
+                P_minus = sampled_P
+                # compute Rs
+                expected_return_ignorant = agent.compute_qVals_true(R_minus, P_minus, updated_R, updated_P)[0]
+                return_diff = expected_return_informed - expected_return_ignorant
+                VoIs[s] = neps * return_diff
+            # compare avg_VoI to query cost, and plan to query up to n times (more)
+            num_queries = {s: query_count[s] + sum([(VoIs[s] >= query_cost * nn) for nn in range(1, max(ns))]) for s in VoIs}
+            return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s])
 
 else:
     print "not implemented!"

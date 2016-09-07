@@ -40,18 +40,30 @@ class QueryFirstNVisits(QueryFunction):
         self.__dict__.update(locals())
         self.agent.query_function = self
         self.visit_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
-        self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        if self.agent.reward_depends_on_action:
+            self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        else:
+            self.query_count = {sa: 0 for sa in range(self.agent.nState)}
 
     def __call__(self, state, action, episode, timestep):
-        query = self.will_query(state, action)
-        if query:
-            self.query_count[state, action] += 1
-        self.visit_count[state, action] += 1
+        if self.agent.reward_depends_on_action:
+            query = self.will_query(state, action)
+            if query:
+                self.query_count[state, action] += 1
+            self.visit_count[state, action] += 1
+        else:
+            query = self.will_query(state, action)
+            if query:
+                self.query_count[state] += 1
+            self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
-    # We can rewrite all query functions to use this subroutine when called
+    #We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
-        return self.visit_count[state, action] < self.n
+        if self.agent.reward_depends_on_action:
+            return self.visit_count[state, action] < self.n
+        else:
+            return sum([self.visit_count[state, aa] for aa in range(self.agent.nAction)]) < self.n
 
 
 class QueryFixedFunction(QueryFunction):
@@ -64,18 +76,30 @@ class QueryFixedFunction(QueryFunction):
         self.__dict__.update(locals())
         self.agent.query_function = self
         self.visit_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
-        self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        if self.agent.reward_depends_on_action:
+            self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
+        else:
+            self.query_count = {sa: 0 for sa in range(self.agent.nState)}
 
     def __call__(self, state, action, episode, timestep):
-        query = self.will_query(state, action)
-        if query:
-            self.query_count[state, action] += 1
-        self.visit_count[state, action] += 1
+        if self.agent.reward_depends_on_action:
+            query = self.will_query(state, action)
+            if query:
+                self.query_count[state, action] += 1
+            self.visit_count[state, action] += 1
+        else:
+            query = self.will_query(state, action)
+            if query:
+                self.query_count[state] += 1
+            self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
     #We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
-        return self.visit_count[state, action] < self.func(state, action)
+        if self.agent.reward_depends_on_action:
+            return self.visit_count[state, action] < self.func(state, action)
+        else:
+            return sum([self.visit_count[state, aa] for aa in range(self.agent.nAction)]) < self.func(state, action)
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):

@@ -171,13 +171,15 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
         for s in xrange(self.nState):
             if not self.reward_depends_on_action:
                 mu, tau = self.R_prior[s, 0]
+                sample = mu + np.random.normal() * 1./np.sqrt(tau)
             for a in xrange(self.nAction):
-                if self.reward_depends_on_action:
-                    mu, tau = self.R_prior[s, a]
                 if self.R_true:
                     R_samp[s,a] = self.R_true[s,a][0]
                 else:
-                    R_samp[s, a] = mu + np.random.normal() * 1./np.sqrt(tau)
+                    if self.reward_depends_on_action:
+                        mu, tau = self.R_prior[s, a]
+                        sample = mu + np.random.normal() * 1./np.sqrt(tau)
+                    R_samp[s, a] = sample
 
                 if self.P_true is None:
                     P_samp[s, a] = np.random.dirichlet(self.P_prior[s, a])
@@ -403,6 +405,7 @@ class PSRLLimitedQuery(PSRL):
         Sample MDP but clamp rewards if we're no longer learning them.
         '''
         R_samp, P_samp = FiniteHorizonTabularAgent.sample_mdp(self)
+        #import ipdb; ipdb.set_trace()
 
         def thompson_or_not(sa, r): 
             if self.query_function.will_query(*sa):
