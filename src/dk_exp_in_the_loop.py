@@ -31,7 +31,7 @@ parser.add_argument('--num_exps', type=int, default=1)
 #parser.add_argument('--update_freq', type=int, default=1)
 update_freq = 1
 parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--reward_noise', type=float, default=1.)
+parser.add_argument('--reward_noise', type=float, default=.1)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
 # not included in save_str:
@@ -184,7 +184,7 @@ exp_log = {}
 
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
-    sampled_rewards = {(s,a) : sample_gaussian(envv.R[s,a][0], envv.R[s,a][1], n_max*epLen) for (s,a) in envv.R.keys()}
+    sampled_rewards = {(s,a) : sample_gaussian(envv.R[s,a][0], envv.R[s,a][1], num_episodes*epLen) for (s,a) in envv.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
     cumReward = 0
@@ -243,7 +243,7 @@ for kk in range(num_exps): # run an entire exp
             exp_log[ep] = {}
             exp_log[ep]['visit_count'] = copy.deepcopy(visit_count)
             exp_log[ep]['query_count'] = copy.deepcopy(query_count)
-            state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(grid_width**2)])
+            state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(envv.nState)])
             if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
                 import pylab
                 pylab.imshow(state_visits.reshape((grid_width, grid_width)), cmap=pylab.cm.gray, interpolation='nearest')
