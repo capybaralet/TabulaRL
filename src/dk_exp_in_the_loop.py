@@ -187,8 +187,8 @@ for kk in range(num_exps): # run an entire exp
     sampled_rewards = {(s,a) : sample_gaussian(envv.R[s,a][0], envv.R[s,a][1], num_episodes*epLen) for (s,a) in envv.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
-    visit_count = {sa: 0 for sa in itertools.product(envv.nState, envv.nAction)}
-    query_count = {sa: 0 for sa in itertools.product(envv.nState, envv.nAction)}
+    visit_count = {sa: 0 for sa in itertools.product(range(envv.nState), range(envv.nAction))}
+    query_count = {sa: 0 for sa in itertools.product(range(envv.nState), range(envv.nAction))}
     cumReward = 0
     cumQueryCost = 0 
 
