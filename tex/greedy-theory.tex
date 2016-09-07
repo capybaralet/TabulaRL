@@ -1,8 +1,3 @@
-TODO:
-All the faults?
-Consider oilfield example
-
-
 Greedy VOI PSRL
 ---------
 
@@ -69,6 +64,14 @@ Advantages
 
   Greedy VOI PSRL doesn't visit arm 2 because its not going to query it (high query cost)
   PSRL would try arm 2 90% of the time (but only once if it learns that its bad). If it didn't actually learn the value, it would do that the entire time.
+
+  Another case: Farming vs. Exploring for oil
+    A bandit with two kinds of deterministic arms (and many of both): 
+      Farming arms: 50% chance of r=1, 50% chance of r=0
+      Oil exploration: 99% chance of r=0, 1% chance of r=10
+
+    PSRL will always go to a random oil arm, which is bad for short horizons. if the horizon is h>10, then it makes sense to visit an oil field. Otherwise, if h<10, farming is a better choice.
+    
 
 3. State-action pairs who's reward cannot possibly affect the policy should are not queried. It is useless to pay the cost of something that won't change your mind.
   Greedy VOI doesn't query because the info doesn't affect the policy and thus doesn't change the expectation.
@@ -139,6 +142,8 @@ Flaws
       This shows that the correct approach needs to take into account how much info one gets with each observation.
 
       The obvious alternative is compute the VOI for a single observation instead. However, Advantage 4 shows this has clear problems as well.
+
+
       
 Variants
 -------
