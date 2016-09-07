@@ -279,6 +279,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qMax[j][s] = qVals[s, j][a]
                 qMax_true[j][s] = qVals_true[s, j][a]
         
+        # M_true, M_prior
         return qMax_true[0][0], qMax[0][0]
 
 
