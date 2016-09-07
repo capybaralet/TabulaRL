@@ -61,9 +61,9 @@ class QueryFirstNVisits(QueryFunction):
     #We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
         if self.agent.reward_depends_on_action:
-            return self.visit_count[state, action] < self.n
+            return self.query_count[state, action] < self.n
         else:
-            return sum([self.visit_count[state, aa] for aa in range(self.agent.nAction)]) < self.n
+            return sum([self.query_count[state, aa] for aa in range(self.agent.nAction)]) < self.n
 
 
 class QueryFixedFunction(QueryFunction):
@@ -97,9 +97,9 @@ class QueryFixedFunction(QueryFunction):
     #We can rewrite all query functions to use this subroutine when called
     def will_query(self, state, action):
         if self.agent.reward_depends_on_action:
-            return self.visit_count[state, action] < self.func(state, action)
+            return self.query_count[state, action] < self.func(state, action)
         else:
-            return sum([self.visit_count[state, aa] for aa in range(self.agent.nAction)]) < self.func(state, action)
+            return sum([self.query_count[state, aa] for aa in range(self.agent.nAction)]) < self.func(state, action)
 
 class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
