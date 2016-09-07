@@ -109,7 +109,7 @@ for kk in range(num_experiments):
 
     if query_fn in ['SQR', 'ASQR']: # use a sampled enviro
         sampled_R, sampled_P = initial_agent.sample_mdp()
-        env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
+        env.R = {kk:(sampled_R[kk], agent.tau) for kk in sampled_R}
         env.P = sampled_P
         returns_max_min[kk,0] = initial_agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
         returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]

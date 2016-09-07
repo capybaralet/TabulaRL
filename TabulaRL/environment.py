@@ -195,7 +195,7 @@ def make_riverSwim(epLen=20, nState=6):
 
     return riverSwim
 
-def make_deterministicChain(nState, epLen):
+def make_deterministicChain(nState, epLen, reward_noise=1):
     '''
     Creates a deterministic chain MDP with two actions.
 
@@ -217,8 +217,8 @@ def make_deterministicChain(nState, epLen):
             P_true[s, a] = np.zeros(nState)
 
     # Rewards
-    R_true[0, 0] = (0, 1)
-    R_true[nState - 1, 1] = (1, 1)
+    R_true[0, 0] = (0, reward_noise)
+    R_true[nState - 1, 1] = (1, reward_noise)
 
     # Transitions
     for s in xrange(nState):
@@ -232,7 +232,7 @@ def make_deterministicChain(nState, epLen):
 
     return chainMDP
 
-def make_stochasticChain(chainLen, max_reward=1):
+def make_stochasticChain(chainLen, max_reward=1, reward_noise=1):
     '''
     Creates a difficult stochastic chain MDP with two actions.
 
@@ -256,8 +256,8 @@ def make_stochasticChain(chainLen, max_reward=1):
             P_true[s, a] = np.zeros(nState)
 
     # Rewards
-    R_true[0, 0] = (0, 1)
-    R_true[nState - 1, 1] = (max_reward, 1)
+    R_true[0, 0] = (0, reward_noise)
+    R_true[nState - 1, 1] = (max_reward, reward_noise)
 
     # Transitions
     for s in xrange(nState):

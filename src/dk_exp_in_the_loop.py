@@ -17,10 +17,7 @@ from generic_functions import add_dicts, dict_argmax, is_power2, sample_gaussian
 import time
 t1 = time.time()
 
-# TODO: more logging, e.g. visit/query counts, desired query sets
-# TODO: don't use env as a variable name!
-
-# TODO: note that we can't run simultaneous experiments anymore (since what we decide to query depends on the number of episodes remaining!)
+# TODO: clean-up logging
 
 #-----------------------------------------------------------------------------------
 # SETUP
@@ -28,21 +25,23 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=5)
+parser.add_argument('--log_num_episodes', type=int, default=7)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
 #parser.add_argument('--update_freq', type=int, default=1)
 update_freq = 1
-parser.add_argument('--query_cost', type=float, default=1000000.)
+parser.add_argument('--query_cost', type=float, default=1.)
+parser.add_argument('--reward_noise', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
 # not included in save_str:
-parser.add_argument('--save', type=str, default=1)
+parser.add_argument('--save', type=str, default=0)
 parser.add_argument('--printing', type=str, default=0)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
 
+normalize_rewards = False
 printing = args_dict.pop('printing')
 
 if args_dict.pop('save'):
@@ -63,42 +62,45 @@ if args_dict.pop('save'):
 
 
 # ENVIRONMENT
-# TODO: less reward noise
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
-    epLen = 2 * grid_width# - 1
+    epLen = 2 * grid_width - 2
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
-    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), gotta_move=True)
+    envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)),
+                                     multi_chain=False, gotta_move=True, reward_noise=reward_noise)
 # TODO: leaving the extra states around messes with ASQR!
 # FIXME: max performance should be 1! (check it!)
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
-    epLen = 2 * grid_width# - 1
+    epLen = 2 * grid_width - 2
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
-    env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), multi_chain=True, gotta_move=True)
+    envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), 
+                                     multi_chain=True, gotta_move=True, reward_noise=reward_noise)
 elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('det_chain')[1])
     epLen = chain_len
-    env = make_deterministicChain(chain_len, chain_len)
+    envv = make_deterministicChain(chain_len, chain_len)
 elif enviro.startswith('stoch_chain'):
     chain_len = int(enviro.split('stoch_chain')[1])
     epLen = chain_len
-    env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
+    envv = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
 else:
     assert False
-f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
+f_ext = FeatureTrueState(envv.epLen, envv.nState, envv.nAction, envv.nState)
 
 
 # AGENT
 alg = finite_tabular_agents.PSRLLimitedQuery
 if enviro.startswith('grid') or enviro.startswith('multi_chain'):
-    initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None, reward_depends_on_action=False)
+    initial_agent = alg(envv.nState, envv.nAction, envv.epLen, 
+                         P_true=envv.P, R_true=None, reward_depends_on_action=False, tau=1/reward_noise**2, tau0=1/reward_noise**2)
 else:
-    initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
+    initial_agent = alg(envv.nState, envv.nAction, envv.epLen, 
+                         P_true=envv.P, R_true=None, tau=1/reward_noise**2, tau0=1/reward_noise**2)
 query_function = query_functions.QueryFirstNVisits(query_cost, n=0)
 query_function.setAgent(initial_agent)
 
-dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
+dummy_PSRL_agent = finite_tabular_agents.PSRL(envv.nState, envv.nAction, envv.epLen, P_true=envv.P, R_true=None)
 
 # QUERY FUNCTION SELECTOR
 # query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
@@ -171,7 +173,6 @@ else:
 
 #-----------------------------------------------------------------------------------
 # RUN
-initial_env = env
 num_episodes= 2**log_num_episodes
 num_updates = num_episodes / update_freq + 1
 n_max = 2**log_n_max
@@ -182,15 +183,9 @@ num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
 exp_log = {}
 
-
-# TODO: log it; normalize in the loop (?)
-#returns_max_min = np.empty((num_exps, 2))
-
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
-    # TODO: rm?
-    env = copy.deepcopy(initial_env)
-    sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*epLen) for (s,a) in env.R.keys()}
+    sampled_rewards = {(s,a) : sample_gaussian(envv.R[s,a][0], envv.R[s,a][1], n_max*epLen) for (s,a) in envv.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
     cumReward = 0
@@ -207,38 +202,42 @@ for kk in range(num_exps): # run an entire exp
             query_count = query_function.query_count
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
-                sampled_env = copy.deepcopy(initial_env)
+                sampled_env = copy.deepcopy(envv)
                 sampled_R, sampled_P = agent.sample_mdp_unclamped()
-                sampled_env.R = {kk:(sampled_R[kk], 1) for kk in sampled_R}
+                if normalize_rewards: # TODO: account for uncertainty in P
+                    returns_max = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
+                    returns_min = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
+                    returns_diff = returns_max - returns_min
+                    sampled_env.R = {kk: (returns_diff * (sampled_R[kk] - returns_min), agent.tau) for kk in sampled_R}
+                else:
+                    sampled_env.R = {kk:(sampled_R[kk], agent.tau) for kk in sampled_R}
                 sampled_env.P = sampled_P
                 sampled_envs.append(sampled_env)
-                #returns_max_min[kk,0] = agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
-                #returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
-            # choose a query function, as update its visit_count and query_count
+            # choose a query function and update its visit_count and query_count
             query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
             query_function.setAgent(agent)
             query_function.visit_count = visit_count
             query_function.query_count = query_count
 
         # RUN some episodes with the current query function:
-        env.reset() # return to tstep=state=0
+        envv.reset() # return to tstep=state=0
         agent.update_policy(ep)
         pContinue = 1
         while pContinue > 0:
             # Step through the episode
-            h, oldState = f_ext.get_feat(env)
+            h, oldState = f_ext.get_feat(envv)
 
             action = agent.pick_action(oldState, h)
             query, queryCost = agent.query_function(oldState, action, ep, h)
             cumQueryCost += queryCost
 
-            reward, newState, pContinue = env.advance(action)
+            reward, newState, pContinue = envv.advance(action)
             if query:
                 reward = sampled_rewards[oldState, action][visit_count[oldState, action] - 1]
             cumReward += reward 
             agent.update_obs(oldState, action, reward, newState, pContinue, h, query)
 
-        # CHECKPOINT (TODO: more)
+        # CHECKPOINT
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = sum(query_count.values())#cumQueryCost / query_cost
