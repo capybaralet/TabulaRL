@@ -20,10 +20,7 @@ t1 = time.time()
 # TODO: more logging, e.g. visit/query counts, desired query sets
 # TODO: don't use env as a variable name!
 
-"""
-For now, I'm running OwainPSRL(_tilde)
-
-"""
+# TODO: note that we can't run simultaneous experiments anymore (since what we decide to query depends on the number of episodes remaining!)
 
 #-----------------------------------------------------------------------------------
 # SETUP
@@ -31,14 +28,14 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=10)
+parser.add_argument('--log_num_episodes', type=int, default=5)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
 #parser.add_argument('--update_freq', type=int, default=1)
 update_freq = 1
-parser.add_argument('--query_cost', type=float, default=1.)
+parser.add_argument('--query_cost', type=float, default=1000000.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
-parser.add_argument('--query_fn_selector', type=str, default='ASQR')
+parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
 # not included in save_str:
 parser.add_argument('--save', type=str, default=1)
 parser.add_argument('--printing', type=str, default=0)
@@ -66,18 +63,20 @@ if args_dict.pop('save'):
 
 
 # ENVIRONMENT
-# TODO:
-#   I can just make staying still fatal, and then go back to having linear-ish rewards... 
+# TODO: fix epLen for grid
+# TODO: less reward noise
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
-    epLen = 2 * grid_width - 1
+    epLen = 2 * grid_width# - 1
     #reward_means = np.diag(3.**-np.arange(grid_width)[::-1]).flatten()
     #env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)))
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), gotta_move=True)
+# FIXME: leaving the extra states around messes with ASQR!
+# FIXME: max performance should be 1!
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
-    epLen = 2 * grid_width - 1
+    epLen = 2 * grid_width# - 1
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), multi_chain=True, gotta_move=True)
 elif enviro.startswith('det_chain'):
@@ -94,7 +93,6 @@ f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
 # AGENT
-# FIXME: use P_true = env.P
 alg = finite_tabular_agents.PSRLLimitedQuery
 if enviro.startswith('grid') or enviro.startswith('multi_chain'):
     initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None, reward_depends_on_action=False)
@@ -106,8 +104,9 @@ query_function.setAgent(initial_agent)
 dummy_PSRL_agent = finite_tabular_agents.PSRL(env.nState, env.nAction, env.epLen, P_true=env.P, R_true=None)
 
 # QUERY FUNCTION SELECTOR
-# TODO: implement the "best-arm" version of the algo
 # TODO: clean-up this stuff a lot (maybe move to separate dir?)
+            
+# query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
 
 if query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
@@ -120,6 +119,7 @@ if query_fn_selector == 'ASQR':
                 updated_P = sampled_env.P
                 expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
                 perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
+                #import ipdb; ipdb.set_trace()
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
 elif query_fn_selector == 'OPSRL_greedy':
@@ -184,30 +184,6 @@ n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 
 
-
-"""
-ALSO: 
-    think about better names for (A)SQR??
-    think about other algos...
-        how to chose query order for ASQR?
-
-What do I want to log??
-What do I want to run??
-
-So... in previous experiments, (A)SQR reliably achieved near-optimal performance when we took enough samples (which is kind of surprising!)
-So that means we need to find something harder to demonstrate that updating in the loop helps that much.
-HOW TO SOLVE THIS:
-    1. Search over more specific ns (so its harder to find the exact right one)
-    2. Use different envs
-        reachability
-    3. Look at wall-clock time?
-    4.
-
-We also expect that (A)SQR doesn't work in some environments (because of, e.g. reachability), and we should demonstrate that.
-    
-
-"""
-
 # record results here:
 num_queries = np.empty((num_exps, log_num_episodes+1))
 returns = np.empty((num_exps, log_num_episodes+1))
@@ -224,17 +200,18 @@ for kk in range(num_exps): # run an entire exp
     sampled_rewards = {(s,a) : sample_gaussian(env.R[s,a][0], env.R[s,a][1], n_max*epLen) for (s,a) in env.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
-    visit_count = {sa: 0 for sa in itertools.product(range(agent.nState), range(agent.nAction))}
-    query_count = {sa: 0 for sa in itertools.product(range(agent.nState), range(agent.nAction))}
     cumReward = 0
     cumQueryCost = 0 
-    for ep in xrange(1, num_episodes + 2):
+
+    for ep in xrange(1, num_episodes + 1):
         if printing:
             print ep
 
         # UPDATE query function?
         # (For now, we just update periodically.)
         if (ep-1) % update_freq == 0:
+            visit_count = query_function.visit_count
+            query_count = query_function.query_count
             # TODO: log query_functions desired_query_sets visit_count query_count...
             sampled_envs = []
             for n_env in range(num_env_samples): # sample a new environment
@@ -247,9 +224,9 @@ for kk in range(num_exps): # run an entire exp
                 #returns_max_min[kk,1] = - agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]
             # choose a query function, as update its visit_count and query_count
             query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
+            query_function.setAgent(agent)
             query_function.visit_count = visit_count
             query_function.query_count = query_count
-            query_function.setAgent(agent)
 
         # RUN some episodes with the current query function:
         env.reset() # return to tstep=state=0
@@ -272,7 +249,7 @@ for kk in range(num_exps): # run an entire exp
         # CHECKPOINT (TODO: more)
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
-            num_queries[kk, int(np.log2(ep))] = cumQueryCost / query_cost
+            num_queries[kk, int(np.log2(ep))] = sum(query_count.values())#cumQueryCost / query_cost
             exp_log[ep] = {}
             exp_log[ep]['visit_count'] = visit_count
             exp_log[ep]['query_count'] = query_count
