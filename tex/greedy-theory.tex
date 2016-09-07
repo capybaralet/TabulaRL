@@ -1,62 +1,66 @@
 Greedy VOI PSRL
 ---------
 
-PSRL is good at exploring when there's no cost for getting reward information. So one approach is to modify PSRL to adjust for the query cost. 
+PSRL is good at exploring when there's no cost for getting reward information. So one approach to exploration with query costs is to modify PSRL to adjust for the query cost. 
 
-One approach to *that* is to let PSRL determine our actions and have a separate method for deciding to query or not. The immediate problem with this is that PSRL may explore states that won't be queried and don't make sense to visit unless they're going to be queried. PSRL incentivizes exploring state-action (s,a) pairs by thompson sampling the reward function (and transition function). Thus we can avoid this problem by simply 'locking down' the reward function for those s,a pairs that we don't intend to query. That way there's no extra incentive to visit them.
+One approach to *that* is to let PSRL determine our actions and have a separate method for deciding to query or not. The immediate problem with this is that PSRL may explore states that won't be queried and don't make sense to visit unless they're going to be queried. PSRL incentivizes exploring state-action (s,a) pairs by Thompson sampling the reward function (and transition function). Fortunately, we can avoid this problem by simply 'locking down' the reward function for those s,a pairs that we don't intend to query. That way there's no extra incentive to visit them.
 
 All that's missing now is a way to decide what to query. We approach this by estimating the VOI of learning about different s,a pairs. 
 
-We estimate the true VOI of s,a pairs by computing the value of learning perfect information about a single s,a pair and never learning anything else. 
+We estimate the true VOI of individual s,a pairs by computing the value of learning perfect information about a single s,a pair and never learning anything else. 
 In order words we can substitute the question: "how good would it be to learn this s,a pair perfectly if I were to never to learn anything else?"
 
-An agent has a prior $R_prior$ over reward functions. For now we'll assume the rewards are independent. 
+Greedy VOI PSRL works sd follows: 
 
-Then expected value of learning $r(s,a)$ exactly is
+If we assume our agent has a prior $R_prior$ over reward functions. And that the rewards are independent. 
 
-VOI_greedy = E_{r ~ R_prior}  [ 
+Then expected value of learning $r(s,a)$ exactly is:
+
+VOI_greedy(s,a) = E_{r ~ R_prior}  [ 
   U(\pi_r*+r(s,a), r) - 
   U(\pi_r*,  r) 
   ]
 
+here
 r* = \mean[r]
-here $ r* + r(s,a) $ means a reward function identical to r* except that at $s,a$, the mean has been replaced with $r(s,a)$
+$ r* + r(s,a) $ means a reward function identical to r* except that at $s,a$, the mean has been replaced with $r(s,a)$
 U(\pi, r) is the value of policy \pi evaluated under reward function r.
  
 Aside: if the values of r are independent, we can replace the computation with
-  VOI_greedy = E_{r(s,a) ~ R_prior(s,a)}  [ 
+  VOI_greedy(s,a) = E_{r(s,a) ~ R_prior(s,a)}  [ 
     U(\pi_r*+r(s,a), r*+r(s,a)) - 
     U(\pi_r*,  r*+r(s,a)) 
     ]
-  Since we only vary the reward of a single s,a there should be a way to compute this efficiently.
+  Since here we only vary the reward of a single s,a there should be a way to compute this efficiently.
 
 We can then compute how many queries we should be willing to make at maximum.
 
-n_max(s,a) = k * VOI_greedy*T/c 
+n_max(s,a) = k * VOI_greedy(s,a)*T/c 
 
-Where k is some constant 
+Where k is some constant, T is number of episodes remaining and c is the query cost.
 
-Actual planning proceeds very closely to PSRL: Thomposon sampling a reward function, except for those state actions which wouldn't be queried if visited (set to their expected values). 
-Then the agent plans according to that reward function and queries if the number of times it has queried a state-action is less than n_max(s,a)
+Actual planning proceeds very closely to PSRL: 
+First Thomposon sampling a reward function, except for those s,a that wouldn't be queried if visited, which are set to their expected values. 
+Then plan according to that reward function and queries if the number of times it has queried a state-action is less than n_max(s,a)
 
-We will use the following distribution for thompson sampling
-R_planning(s,a) ~ { R_prior(s,a)        if n_max(s,a) > 1
-                    E_r~R_prior r(s,a)  otherwise
-
-The planning reward distribution 'locks down' the rewards of the state actions that never get visited.
+Reward functions for planning are drawn from the following distribution, which the planning reward distribution 'locks down' the rewards of the s,a that never get visited.
+R_i,planning(s,a) ~ { R_i,prior(s,a)        if n_i,max(s,a) > 1
+                      E_r~R_i,prior r(s,a)  otherwise
 
 For each episode i 
-  sample r_samp ~ R_planning  
+  sample r_samp ~ R_i,planning  
   \pi_i = \pi_{r_samp}
 
 
-Advantages
+Greedy VOI PSRL has several good properties and several bad ones.
+
+Good properties of Greedy VOI PSRL
 ---------
 1. Limiting cases for query cost behave well 
   For lim c -> 0, greedy VOI behaves like the state of the art algorithm, PSRL.
   For lim c -> \inf, greedy VOI just plans based on the expected value of its prior. If the query cost is high enough, this is Bayes optimal.
 
-2. If a state won't be queried, it doesn't get any exploration benefit from Thompson sampling.
+2. If a state-action won't be queried, it doesn't get any exploration benefit from Thompson sampling.
   Consider a bandit with two arms: 
     arm 1: r=0 deterministically (known) 
     arm 2: 90% chance r=1, 10% chance r=-20 (deterministic)
@@ -98,8 +102,7 @@ Advantages
 
       A single positive observation on arm2 will change the prior to Beta(2,5) which has a mean 2/5 which is less than arm 1
 
-
-Flaws
+Bad properties of Greedy VOI PSRL
 -----
 1. It looks only query ahead. 
   1. For some mdps the VOI of full knowledge about a single state is zero but its clearly good to explore.
@@ -127,9 +130,9 @@ Flaws
     v
    (end) r= +10 or -10 deterministically 
 
-   Before you've seen any other values, querying the first state action has positive VOI. But the only information that affects the policy is the value of end state. The information about the first state action will inevitably become obsolete.
+   Before you've seen any other values, querying the first s,a has positive VOI. But the only information that affects the policy is the value of end state. The information about the first s,a will inevitably become obsolete.
     
-2. It assumes it gets full information about the state action
+2. It assumes it gets full information about the s,a
     It will take a long time to get close to perfect information
       Consider a bandit with two arms: 
         arm 1: r=0 deterministically (known) 
@@ -143,9 +146,7 @@ Flaws
 
       The obvious alternative is compute the VOI for a single observation instead. However, Advantage 4 shows this has clear problems as well.
 
-
-      
-Variants
+Variants on Greedy VOI PSRL
 -------
   1. Approximate VOI_greedy by only evaluating the integral at a few points on the distribution of $r(s,a)$. The UCB/LCB may be good choices.
   2. Compute n_max only for most relevant s,a pairs (since for large MDPs there are many s,a pairs) by
@@ -173,5 +174,3 @@ This avoids the problem quickly-obsoleted information (Flaw 1.2). But never quer
 
 imagine a bandit where exactly two of the arms deterministically give +1 and the rest give 0. With otherwise perfect info, its useless to learn about any one arm.
 
-
-  
