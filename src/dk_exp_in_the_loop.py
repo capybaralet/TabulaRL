@@ -125,7 +125,7 @@ if query_fn_selector == 'ASQR':
                 if agent.reward_depends_on_action:
                     perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
                 else:
-                    perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - sum([query_count[s, a] for a in range(agent.nAction)]) for s in range(agent.nState)]) #n * len([sa for sa in sampled_rewards])
+                    perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[s] for s in range(agent.nState)]) #n * len([sa for sa in sampled_rewards])
                 #import ipdb; ipdb.set_trace()
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
