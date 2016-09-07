@@ -64,14 +64,14 @@ if args_dict.pop('save'):
 # ENVIRONMENT
 if enviro.startswith('grid'):
     grid_width = int(enviro.split('grid')[1])
-    epLen = 2 * grid_width - 2
+    epLen = 2 * grid_width - 1
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)),
                                      multi_chain=False, gotta_move=True, reward_noise=reward_noise)
 # TODO: leaving the extra states around messes with ASQR!
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
-    epLen = 2 * grid_width - 2
+    epLen = 2 * grid_width - 1 # agent needs one extra move (only gets reward in a state if it acts in it!)
     reward_means = np.diag(np.linspace(0, 1, grid_width)).flatten()
     envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)), 
                                      multi_chain=True, gotta_move=True)
@@ -122,7 +122,10 @@ if query_fn_selector == 'ASQR':
                 updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][visit_count[sa]:n], agent.tau) for sa in sampled_rewards}
                 updated_P = sampled_env.P
                 expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
-                perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
+                if agent.reward_depends_on_action:
+                    perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
+                else:
+                    perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - sum([query_count[s, a] for a in range(agent.nAction)]) for s in range(agent.nState)]) #n * len([sa for sa in sampled_rewards])
                 #import ipdb; ipdb.set_trace()
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
@@ -162,6 +165,7 @@ elif query_fn_selector == 'OPSRL_greedy':
                 VoIs[s] = neps * return_diff
             # compare avg_VoI to query cost, and plan to query up to n times (more)
             num_queries = {s: query_count[s] + sum([(VoIs[s] >= query_cost * nn) for nn in range(1, max(ns))]) for s in VoIs}
+            #import ipdb; ipdb.set_trace()
             return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s])
 
 elif query_fn_selector == 'OPSRL_omni':
