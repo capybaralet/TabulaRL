@@ -225,6 +225,9 @@ exp_log = {}
 
 for kk in range(num_exps): # run an entire exp
     print "beginning exp #", kk
+
+    exp_log[kk] = {}
+
     sampled_rewards = {(s,a) : sample_gaussian(envv.R[s,a][0], envv.R[s,a][1], num_episodes*epLen) for (s,a) in envv.R.keys()}
     agent = copy.deepcopy(initial_agent)
 
@@ -285,10 +288,13 @@ for kk in range(num_exps): # run an entire exp
         if is_power2(ep):
             returns[kk, int(np.log2(ep))] = cumReward
             num_queries[kk, int(np.log2(ep))] = sum(query_count.values())#cumQueryCost / query_cost
-            exp_log[ep] = {}
-            exp_log[ep]['visit_count'] = copy.deepcopy(visit_count)
-            exp_log[ep]['query_count'] = copy.deepcopy(query_count)
             state_visits = np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(envv.nState)])
+            # save for every experiment (not just the last)!
+            exp_log[kk][ep] = {}
+            exp_log[kk][ep]['returns'] = cumReward
+            exp_log[kk][ep]['visit_count'] = copy.deepcopy(visit_count)
+            exp_log[kk][ep]['state_visits'] = copy.deepcopy(state_visits)
+            exp_log[kk][ep]['query_count'] = copy.deepcopy(query_count)
             if printing and (enviro.startswith('grid') or enviro.startswith('multi_chain')):
                 import pylab
                 pylab.imshow(state_visits.reshape((grid_width, grid_width)), cmap=pylab.cm.gray, interpolation='nearest')
