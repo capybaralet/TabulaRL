@@ -72,25 +72,6 @@ initial_agent = alg(env.nState, env.nAction, env.epLen, P_true=None, R_true=None
 
 
 # RUN
-
-"""
-To do things in the loop, we'll need to:
-    specify the query_cost, horizon
-    run update_query_fn algorithm (may involve making another agent/env copy...)
-        repeat until ___:
-            sample env
-              sample rewards (potentially)
-            evaluate query function in sampled env 
-        return a query function
-        update agent
-
-We'll start with ASQR, since it's already implemented.
-Then we'll do Owain's thing (NAME IT!) since it's already well specified
-Then Jan's thing (NAME IT!)
-
-ALSO: think about better names for (A)SQR??
-
-"""
 initial_env = env
 num_episodes_remaining = 2**log_num_episodes
 n_max = 2**log_n_max

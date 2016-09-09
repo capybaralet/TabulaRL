@@ -18,36 +18,18 @@ TODO:
         exp_setting (debug / etc...)
 
 
+MDP object:
+    Initial_state distribution
+    States - range(nstate)
+    Actions - {s: actions from s}
+    T, R
+
+
+Distribution object:
+    update_obs
+    MAP
+    expectation
 
 
 
-
-
-
-
-
-
-Generally speaking, for the launchers, I should make a script that makes the launcher, either in a debug version, or normal.
-    (then I can make (pretty) sure that all of the jobs run on my laptop, which would be nice...)
-
-We want more flexible environments!
-    1. different number of actions / state
-    2. reward depends only on state (and agent knows that)
-    ...?
-
-
-
-GOD DAMN!
-It looks like the environment uses std_dev, but the agent uses precision
-    ...and therefor using the agent/env reward would lead to some interesting bugs...
-
-It's getting hard to keep track of all the attributes and we're not respecting the objects' interfaces.
-    Maybe we should have a top-level "experiment" object that takes an agent, environment (and settings / hparams) and runs them
-    The query functions can be attributes of the agent or the top-level environment.
-
-WOW this code is going to shit.
-I'm wondering if I shouldn't just strip out a few key components and go from there...
-
-I really hate having to pass things around... 
-Mostly, I just want my functions to return everything into the global scope...
 

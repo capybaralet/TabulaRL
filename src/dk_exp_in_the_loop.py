@@ -44,6 +44,8 @@ locals().update(args_dict) # add all args to local namespace
 normalize_rewards = False
 printing = args_dict.pop('printing')
 
+num_episodes= 2**log_num_episodes
+
 if args_dict.pop('save'):
     settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
 
@@ -109,10 +111,26 @@ query_function.setAgent(initial_agent)
 dummy_PSRL_agent = finite_tabular_agents.PSRL(envv.nState, envv.nAction, envv.epLen, P_true=envv.P, R_true=None)
 
 # QUERY FUNCTION SELECTOR
-# query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
 # TODO: clean-up this stuff a lot (maybe move to separate script?)
+# for fixed ones, we'll use 25 / sa
+# query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
+if query_fn_selector.startswith('fixed_first'):
+    strs = query_fn_selector.split('fixed_first')[1].split('visits')
+    if len(strs) == 1:
+        def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+            return query_functions.QueryFirstN(int(strs[0]))
+    elif len(strs) == 2:
+        def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+            return query_functions.QueryFirstNVisits(int(strs[0]))
+elif query_fn_selector == 'fixed_always':
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+        return query_functions.AlwaysQuery()
+elif query_fn_selector == 'fixed_decay':
+    max_query_prob = float(query_fn_selector.split('fixed_decay')[1])
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+        return query_functions.DecayQueryProbability(func=lambda e,t : max_query_prob * neps / num_episodes)
 
-if query_fn_selector == 'ASQR':
+elif query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         perfs = np.empty((len(sampled_envs), len(ns)))
         for ii, sampled_env in enumerate(sampled_envs):
@@ -213,7 +231,6 @@ else:
 
 #-----------------------------------------------------------------------------------
 # RUN
-num_episodes= 2**log_num_episodes
 num_updates = num_episodes / update_freq + 1
 n_max = 2**log_n_max
 ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
