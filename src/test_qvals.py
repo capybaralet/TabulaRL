@@ -17,15 +17,6 @@ reward_noise = .5
 query_cost = 1
 
 
-
-
-# FIXME: ret_true == 0???
-# compute actual policy...
-
-
-
-
-
 def get_env(enviro):
     if enviro.startswith('grid'):
         grid_width = int(enviro.split('grid')[1])
@@ -79,129 +70,8 @@ def moving_average(values,window):
     smas = np.convolve(values, weigths, 'valid')
     return np.hstack((smas[0]*np.ones(window-1), smas)) # as a numpy array
 
-def compute_qVals_arr(self, R, P, R_true, P_true):
-    '''
-    Evaluate an agent's expected returns when it plans according to R and P
-    in an environment defined by R_true, P_true
 
-    Returns:
-        The true expected returns of the agent, 
-         what it thinks its expected returns are.
-    '''
-    qVals = -99*np.ones((self.nState, self.epLen, self.nAction))
-    qVals_true = -99*np.ones((self.nState, self.epLen, self.nAction))
-    qMax = -99*np.ones((self.epLen+1, self.nState))
-    qMax_true = -99*np.ones((self.epLen+1, self.nState))
-
-    qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-    qMax_true[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-    
-    for i in range(self.epLen):
-        j = self.epLen - i - 1
-        qMax[j] = np.zeros(self.nState, dtype=np.float32)
-        qMax_true[j] = np.zeros(self.nState, dtype=np.float32)
-         
-        for s in range(self.nState):
-            qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
-            qVals_true[s, j] = np.zeros(self.nAction, dtype=np.float32)
-
-            for a in range(self.nAction):
-                qVals[s, j, a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
-                qVals_true[s, j, a] = R_true[s, a] + np.dot(P_true[s, a], qMax_true[j + 1])
-    
-            # agent acts according to what it believes
-            a = np.argmax(qVals[s, j])
-            print a
-            # we compute both its estimate of the value of this state/tstep, and the true value
-            qMax[j, s] = qVals[s, j, a]
-            qMax_true[j, s] = qVals_true[s, j, a]
-    
-        print "np.round(qVals_true)"
-        print np.round(qVals_true[:,j])
-        print "np.round(qVals) "
-        print np.round(qVals[:,j]) 
-        print "np.round(qMax_true)"
-        print np.round(qMax_true[j])
-        print "np.round(qMax)"
-        print np.round(qMax[j])
-        print ''
-        #import ipdb; ipdb.set_trace()
-    # M_true, M_prior
-    #import ipdb; ipdb.set_trace()
-    return qVals_true, qVals, qMax_true, qMax
-
-def compute_qVals_true__(self, R, P, R_true, P_true):
-    '''
-    Evaluate an agent's expected returns when it plans according to R and P
-    in an environment defined by R_true, P_true
-
-    Returns:
-        The true expected returns of the agent, 
-         what it thinks its expected returns are.
-    '''
-    qVals = {}
-    qMax = {} # aka "V"
-    qVals_true = {}
-    qMax_true = {}
-
-    qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-    qMax_true[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-    
-    for i in range(self.epLen):
-        j = self.epLen - i - 1
-        qMax[j] = np.zeros(self.nState, dtype=np.float32)
-        qMax_true[j] = np.zeros(self.nState, dtype=np.float32)
-         
-        for s in range(self.nState):
-            qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
-            qVals_true[s, j] = np.zeros(self.nAction, dtype=np.float32)
-
-            for a in range(self.nAction):
-                qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
-                qVals_true[s, j][a] = R_true[s, a] + np.dot(P_true[s, a], qMax_true[j + 1])
-    
-            # agent acts according to what it believes
-            a = np.argmax(qVals[s, j])
-            # we compute both its estimate of the value of this state/tstep, and the true value
-            qMax[j][s] = qVals[s, j][a]
-            qMax_true[j][s] = qVals_true[s, j][a]
-    
-        #import ipdb; ipdb.set_trace()
-    # M_true, M_prior
-    #import ipdb; ipdb.set_trace()
-    return qVals_true, qVals, qMax_true[0][0], qMax[0][0]
-
-def compute_qVals(self, R, P):
-    qVals = {}
-    qMax = {}
-    qMax[self.epLen] = np.zeros(self.nState, dtype=np.float32)
-    for i in range(self.epLen):
-        j = self.epLen - i - 1
-        qMax[j] = np.zeros(self.nState, dtype=np.float32)
-        for s in range(self.nState):
-            qVals[s, j] = np.zeros(self.nAction, dtype=np.float32)
-            for a in range(self.nAction):
-                qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
-            a = np.argmax(qVals[s,j])
-            print "a", a
-            qMax[j][s] = np.max(qVals[s, j])
-            print qMax[j][s], qVals[s,j][a]
-    return qVals, qMax
-
-
-# debugging
-if 1:
-    ret_true_, ret_belief_, mt_, m_ = compute_qVals_true__(agent, est_R, est_P, R_means, envv.P)
-    ret_true_ = qvals_array(ret_true_, envv)
-    ret_belief_ = qvals_array(ret_belief_, envv)
-
-    #qvt, qv, vt, v = compute_qVals_arr(agent, est_R, est_P, R_means, envv.P)
-    qvt, qv, vt, v = compute_qVals_arr(agent, est_R, envv.P, R_means, envv.P)
-    qvv, vv = compute_qVals(agent, R_means, envv.P)
-    assert False
-
-
-enviros = ['grid2']#, 'det_chain3', 'multi_chain3', 'longY4']
+enviros = ['grid3', 'det_chain3', 'multi_chain3', 'longY4']
 
 # RUN TESTS
 for enviro in enviros:
