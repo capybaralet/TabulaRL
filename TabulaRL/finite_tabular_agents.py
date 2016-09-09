@@ -409,7 +409,8 @@ class PSRLLimitedQuery(PSRL):
         #import ipdb; ipdb.set_trace()
 
         def thompson_or_not(sa, r): 
-            if self.query_function.will_query(*sa):
+            # FIXME: will_query should use actual episode/tstep
+            if self.query_function.will_query(*sa, episode=0, timestep=0):
                 return r
             else:
                 return self.R_prior[sa][0]

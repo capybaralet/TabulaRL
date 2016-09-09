@@ -21,13 +21,13 @@ t1 = time.time()
 # SETUP
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--log_n_max', type=int, default=10)
-parser.add_argument('--log_num_episodes', type=int, default=15)
+parser.add_argument('--log_n_max', type=int, default=3)
+parser.add_argument('--log_num_episodes', type=int, default=4)
 parser.add_argument('--num_exps', type=int, default=1)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn', type=str, default='fixed_n')
 # not included in save_str:
-parser.add_argument('--save', type=str, default=1)
+parser.add_argument('--save', type=str, default=0)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace

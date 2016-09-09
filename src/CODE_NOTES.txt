@@ -1,3 +1,31 @@
+TODO:
+    reorganize MAIN CODE BASE:
+        top-level class
+        more general environments, etc.
+        clean interfaces
+        clean-up scruff
+    launchers / exp_logging:
+        use a database (?)
+        make launchers have debug version 
+            I should use the same cmd_line args for all of my exp scripts:
+                saving, printing, debugging, testing, ...?
+                    (build in analysis, as well???)
+                    log github commits and stuff...? (that could go in the launcher)
+    
+    launcher should take:
+        info about where to save stuff
+        info about what system is being used (clusters, laptop, mila, etc.)
+        exp_setting (debug / etc...)
+
+
+
+
+
+
+
+
+
+
 
 Generally speaking, for the launchers, I should make a script that makes the launcher, either in a debug version, or normal.
     (then I can make (pretty) sure that all of the jobs run on my laptop, which would be nice...)

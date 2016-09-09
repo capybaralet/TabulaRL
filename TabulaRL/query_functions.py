@@ -3,38 +3,15 @@ import itertools
 import numpy as np
 
 #-------------------------------------------------------------------------------
+"""
+TODO: it might make more sense to put all of this in the agent 
+"""
+
+# timestep \in [0, epLen]
 
 class QueryFunction(object):
     def __init__(self, queryCost):
         self.__dict__.update(locals())
-
-    def setAgent(self, agent):
-        self.__dict__.update(locals())
-        self.agent.query_function = self
-
-class AlwaysQuery(QueryFunction):
-    def __call__(self, state, action, episode, timestep):
-        return True, self.queryCost
-
-    def will_query(self, state, action):
-        return True
-
-
-# query with time-dependent probability
-class DecayQueryProbability(QueryFunction):
-    def __init__(self, queryCost, decay):
-        self.__dict__.update(locals())
-
-    def __call__(self, state, action, episode, timestep):
-        query = self.probability**timestep < np.random.uniform(), 
-        return query, query * self.queryCost
-
-
-class QueryFirstNVisits(QueryFunction):
-    def __init__(self, queryCost, n):
-        self.__dict__.update(locals())
-        #self.visit_count = defaultdict(lambda :0)
-        #self.query_count = defaultdict(lambda :0)
 
     def setAgent(self, agent):
         self.__dict__.update(locals())
@@ -46,20 +23,39 @@ class QueryFirstNVisits(QueryFunction):
             self.query_count = {sa: 0 for sa in range(self.agent.nState)}
 
     def __call__(self, state, action, episode, timestep):
+        query = self.will_query(state, action, episode, timestep)
         if self.agent.reward_depends_on_action:
-            query = self.will_query(state, action)
             if query:
                 self.query_count[state, action] += 1
-            self.visit_count[state, action] += 1
         else:
-            query = self.will_query(state, action)
             if query:
                 self.query_count[state] += 1
-            self.visit_count[state, action] += 1
+        self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
-    #We can rewrite all query functions to use this subroutine when called
-    def will_query(self, state, action):
+    def will_query(self, state, action, episode, timestep):
+        print "NOT IMPLEMENTED"
+        assert False
+
+
+class AlwaysQuery(QueryFunction):
+    def will_query(self, state, action, episode, timestep):
+        return True
+
+
+class QueryFirstN(QueryFunction):
+    def __init__(self, queryCost, n):
+        self.__dict__.update(locals())
+
+    def will_query(self, state, action, episode, timestep):
+        return sum(self.query_count.values()) < self.n
+
+
+class QueryFirstNVisits(QueryFunction):
+    def __init__(self, queryCost, n):
+        self.__dict__.update(locals())
+
+    def will_query(self, state, action, episode, timestep):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.n
         else:
@@ -69,49 +65,29 @@ class QueryFirstNVisits(QueryFunction):
 class QueryFixedFunction(QueryFunction):
     def __init__(self, queryCost, func):
         self.__dict__.update(locals())
-        #self.visit_count = defaultdict(lambda :0)
-        #self.query_count = defaultdict(lambda :0)
 
-    def setAgent(self, agent):
-        self.__dict__.update(locals())
-        self.agent.query_function = self
-        self.visit_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
-        if self.agent.reward_depends_on_action:
-            self.query_count = {sa: 0 for sa in itertools.product(range(self.agent.nState), range(self.agent.nAction))}
-        else:
-            self.query_count = {sa: 0 for sa in range(self.agent.nState)}
-
-    def __call__(self, state, action, episode, timestep):
-        if self.agent.reward_depends_on_action:
-            query = self.will_query(state, action)
-            if query:
-                self.query_count[state, action] += 1
-            self.visit_count[state, action] += 1
-        else:
-            query = self.will_query(state, action)
-            if query:
-                self.query_count[state] += 1
-            self.visit_count[state, action] += 1
-        return query, query*self.queryCost
-
-    #We can rewrite all query functions to use this subroutine when called
-    def will_query(self, state, action):
+    def will_query(self, state, action, episode, timestep):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.func(state, action)
         else:
             return self.query_count[state] < self.func(state, action)
 
-class QueryFirstN(QueryFunction):
-    def __init__(self, queryCost, n):
+
+# query with time-dependent (decaying) probability
+# TODO: would want to know episode length...
+class DecayQueryProbability(QueryFunction):
+    def __init__(self, queryCost, func):
         self.__dict__.update(locals())
-        self.count = 0
 
-    def __call__(self, state, action, episode, timestep):
-        self.count += 1
-        query = self.count < self.n
-        return query, query*self.queryCost
+    def will_query(self, state, action, episode, timestep):
+        return self.func(episode, timestep) < np.random.uniform()
 
 
+
+
+
+
+# TODO: below
 class RewardProportional(QueryFunction):
     def __init__(self, queryCost, constant):
         self.__dict__.update(locals())
