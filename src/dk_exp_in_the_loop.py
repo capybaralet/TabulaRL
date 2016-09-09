@@ -25,13 +25,13 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=10)
+parser.add_argument('--log_num_episodes', type=int, default=12)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
-#parser.add_argument('--update_freq', type=int, default=1)
-update_freq = 1
+parser.add_argument('--update_freq', type=int, default=1)
+#update_freq = 1
 parser.add_argument('--query_cost', type=float, default=1.)
-parser.add_argument('--reward_noise', type=float, default=.5)
+parser.add_argument('--reward_noise', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
 # not included in save_str:
