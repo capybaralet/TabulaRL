@@ -189,7 +189,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
 
         return R_samp, P_samp
 
-    # this appears to be the "expected MDP" as I was calling it
     def map_mdp(self):
         '''
         Returns the maximum a posteriori MDP from the posterior.
@@ -207,6 +206,11 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
             for a in xrange(self.nAction):
                 R_hat[s, a] = self.R_prior[s, a][0]
                 P_hat[s, a] = self.P_prior[s, a] / np.sum(self.P_prior[s, a])
+
+        if self.R_true:
+            R_hat = self.R_true
+        if self.P_true:
+            P_hat = self.P_true
 
         return R_hat, P_hat
 
@@ -280,7 +284,6 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
                 qMax[j][s] = qVals[s, j][a]
                 qMax_true[j][s] = qVals_true[s, j][a]
         
-        # M_true, M_prior
         return qMax_true[0][0], qMax[0][0]
 
 
