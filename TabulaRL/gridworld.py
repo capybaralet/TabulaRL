@@ -78,6 +78,7 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
             P_true[s, a] = one_hot(transition(s,a), nState)
 
     R_true = { k: (v, reward_noise) for k,v in R_true.iteritems() }
+    #import ipdb; ipdb.set_trace()
     mdp = make_mdp(nState, nAction, epLen, R_true, P_true, gotta_move=gotta_move)
 
     mdp.grid_width = grid_width
@@ -127,13 +128,15 @@ def make_mdp(nState, nAction, epLen, R, P, reward_noise=None, gotta_move=False):
     if gotta_move: # add death state
         env = TabularMDP(nState+1, nAction, epLen)
         # all rewards are 0 in the death state
-        env.R = R.update({(nState,a): (0,1e10) for a in range(nAction)}
+        R.update({(nState,a): (0,1e10) for a in range(nAction)})
         # staying put leads to the death state
-        env.P = P.update({(s,0): nState for s in range(nState)})
+        P.update({sa: one_hot(np.argmax(P[sa]), nState+1) for sa in P})
+        P.update({(s,0): one_hot(nState, nState+1) for s in range(nState)})
+        P.update({(nState,a): one_hot(nState, nState+1) for a in range(nAction)})
     else:
         env = TabularMDP(nState, nAction, epLen)
-        env.R = R
-        env.P = P
+    env.R = R
+    env.P = P
     env.reset()
     return env
 
