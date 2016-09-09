@@ -128,7 +128,7 @@ def make_mdp(nState, nAction, epLen, R, P, reward_noise=None, gotta_move=False):
     if gotta_move: # add death state
         env = TabularMDP(nState+1, nAction, epLen)
         # all rewards are 0 in the death state
-        R.update({(nState,a): (0,1e10) for a in range(nAction)})
+        R.update({(nState,a): (0,1e-10) for a in range(nAction)})
         # staying put leads to the death state
         P.update({sa: one_hot(np.argmax(P[sa]), nState+1) for sa in P})
         P.update({(s,0): one_hot(nState, nState+1) for s in range(nState)})
