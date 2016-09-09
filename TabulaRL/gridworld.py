@@ -27,8 +27,7 @@ def one_hot(pos, size):
 
 def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False, gotta_move=False):
     """
-    make the environment deterministic 
-        (and potentially makes the agent know that)
+    gotta_move: if True, then the stay action (a0) leads to (extra) death state with no reward
     """
 
     assert type(rewards) != list
@@ -78,7 +77,8 @@ def make_gridworld(grid_width, epLen, rewards, reward_noise=1, multi_chain=False
 
             P_true[s, a] = one_hot(transition(s,a), nState)
 
-    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise, gotta_move=gotta_move)
+    R_true = { k: (v, reward_noise) for k,v in R_true.iteritems() }
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, gotta_move=gotta_move)
 
     mdp.grid_width = grid_width
     mdp.transition = transition
@@ -117,17 +117,23 @@ def make_longY(nState, epLen, rewards, reward_noise=1):
                 R_true[s, a] = 0
             P_true[s, a] = one_hot(transition(s,a), nState)
 
-    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise)
+    R_true = { k: (v, reward_noise) for k,v in R_true.iteritems() }
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true)
     mdp.transition = transition
     return mdp
 
-def make_mdp(nState, nAction, epLen, R, P, reward_noise, reward_noise_given=False, gotta_move=False):
-    env = TabularMDP(nState, nAction, epLen, gotta_move)
-    if not reward_noise_given:
-        env.R = { k: (v, reward_noise) for k,v in R.iteritems() }
+def make_mdp(nState, nAction, epLen, R, P, reward_noise=None, gotta_move=False):
+    assert reward_noise is None
+    if gotta_move: # add death state
+        env = TabularMDP(nState+1, nAction, epLen)
+        # all rewards are 0 in the death state
+        env.R = R.update({(nState,a): (0,1e10) for a in range(nAction)}
+        # staying put leads to the death state
+        env.P = P.update({(s,0): nState for s in range(nState)})
     else:
+        env = TabularMDP(nState, nAction, epLen)
         env.R = R
-    env.P = P
+        env.P = P
     env.reset()
     return env
 
@@ -203,10 +209,10 @@ def make_kchain(chains, epLen, reward_noise=1):
         return end * r, noise
         
 
-    R_true = { (s,a) : reward(s,a)     for s, a in stateActions }
+    R_true = { (s,a) : (reward(s,a), reward_noise)  for s, a in stateActions }
     P_true = { (s,a) : transition(s,a) for s, a in stateActions }
 
-    mdp = make_mdp(nState, nAction, epLen, R_true, P_true, reward_noise, reward_noise_given=True)
+    mdp = make_mdp(nState, nAction, epLen, R_true, P_true)
 
     mdp.grid_width = max(length for length, _ in chains)
 

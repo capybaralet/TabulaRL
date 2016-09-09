@@ -10,6 +10,7 @@ def pyload(filepath):
 save_dir = '/Users/david/TabulaRL/src/results/results__dk_exp_in_the_loop.py/Sept9/'
 ns = 2**np.arange(13)
 query_costs = [10., 1.]
+query_costs = [1.]
 
 dirs = [dd for dd in os.listdir(save_dir)]
 
@@ -38,16 +39,23 @@ for envv in ['longY10', 'chain10', 'multi_chain4', 'grid4']:
                     else:
                         avg_nqs_1.append(nq[:,-1].mean())
                 avg_perf = ret - query_cost * nq
-                subplot(121)
+                subplot(131)
+                title('performance')
                 plot(np.zeros(len(ns)), 'k')
                 plot(avg_perf.mean(0) / ns, label=alg)
                 xticks(range(len(ns)), ns)
-                #ylim(-10,3)
-                legend(loc=4)
-                subplot(122)
-                xticks(range(len(ns)), ns)
+                subplot(132)
+                title('num queries')
                 ylim(-1,5)
                 plot(nq.mean(0) / ns, label=alg)
+                xticks(range(len(ns)), ns)
+                #ylim(-10,3)
+                subplot(133)
+                title('returns')
+                plot(np.zeros(len(ns)), 'k')
+                plot(ret.mean(0) / ns, label=alg)
+                xticks(range(len(ns)), ns)
+                legend(loc=4)
                 # state_visits
             else:#except:
                 assert False
