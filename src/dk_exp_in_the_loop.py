@@ -118,17 +118,17 @@ if query_fn_selector.startswith('fixed_first'):
     strs = query_fn_selector.split('fixed_first')[1].split('visits')
     if len(strs) == 1:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-            return query_functions.QueryFirstN(int(strs[0]))
+            return query_functions.QueryFirstN(query_cost, int(strs[0]))
     elif len(strs) == 2:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-            return query_functions.QueryFirstNVisits(int(strs[0]))
+            return query_functions.QueryFirstNVisits(query_cost, int(strs[0]))
 elif query_fn_selector == 'fixed_always':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-        return query_functions.AlwaysQuery()
-elif query_fn_selector == 'fixed_decay':
+        return query_functions.AlwaysQuery(query_cost )
+elif query_fn_selector.startswith('fixed_decay'):
     max_query_prob = float(query_fn_selector.split('fixed_decay')[1])
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-        return query_functions.DecayQueryProbability(func=lambda e,t : max_query_prob * neps / num_episodes)
+        return query_functions.DecayQueryProbability(query_cost, func=lambda e,t : max_query_prob * neps / num_episodes)
 
 elif query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
