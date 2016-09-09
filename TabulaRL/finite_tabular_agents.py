@@ -50,7 +50,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
     '''
 
     
-    # FIXME: P_true, R_true need to be accounted for (everywhere!) - (NTS: I don't know if there are any specific places)
+    # FIXME: P_true, R_true need to be accounted for (everywhere!) - (NTS: I don't know if there are any specific places) (WHY YES THERE ARE!!!!)
     def __init__(self, nState, nAction, epLen,
                  alpha0=1., mu0=0., tau0=1., tau=1., 
                  P_true=None, R_true=None, query_function=AlwaysQuery(0.), stop_learning=True, 
@@ -220,6 +220,7 @@ class FiniteHorizonTabularAgent(FiniteHorizonAgent):
             P - P[s,a] = probability vector of transitions
 
         Returns:
+            dicts:
             qVals - qVals[state, timestep] is vector of Q values for each action
             qMax - qMax[timestep] is the vector of optimal values at timestep
         '''
