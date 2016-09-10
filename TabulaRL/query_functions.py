@@ -22,7 +22,7 @@ class QueryFunction(object):
         else:
             self.query_count = {sa: 0 for sa in range(self.agent.nState)}
 
-    def __call__(self, state, action, episode, timestep):
+    def __call__(self, state, action, episode=None, timestep=None):
         query = self.will_query(state, action, episode, timestep)
         if self.agent.reward_depends_on_action:
             if query:
@@ -33,13 +33,13 @@ class QueryFunction(object):
         self.visit_count[state, action] += 1
         return query, query*self.queryCost
 
-    def will_query(self, state, action, episode, timestep):
+    def will_query(self, state, action, episode=None, timestep=None):
         print "NOT IMPLEMENTED"
         assert False
 
 
 class AlwaysQuery(QueryFunction):
-    def will_query(self, state, action, episode, timestep):
+    def will_query(self, state, action, episode=None, timestep=None):
         return True
 
 
@@ -47,7 +47,7 @@ class QueryFirstN(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())
 
-    def will_query(self, state, action, episode, timestep):
+    def will_query(self, state, action, episode=None, timestep=None):
         return sum(self.query_count.values()) < self.n
 
 
@@ -55,7 +55,7 @@ class QueryFirstNVisits(QueryFunction):
     def __init__(self, queryCost, n):
         self.__dict__.update(locals())
 
-    def will_query(self, state, action, episode, timestep):
+    def will_query(self, state, action, episode=None, timestep=None):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.n
         else:
@@ -66,7 +66,7 @@ class QueryFixedFunction(QueryFunction):
     def __init__(self, queryCost, func):
         self.__dict__.update(locals())
 
-    def will_query(self, state, action, episode, timestep):
+    def will_query(self, state, action, episode=None, timestep=None):
         if self.agent.reward_depends_on_action:
             return self.query_count[state, action] < self.func(state, action)
         else:

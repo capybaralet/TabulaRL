@@ -1,5 +1,6 @@
 import numpy as np
 import argparse
+import copy
 from collections import defaultdict
 
 import TabulaRL.gridworld as gridworld
@@ -15,6 +16,7 @@ import time
 t1 = time.time()
 
 # TODO: more logging, e.g. visit/query counts, desired query sets
+#   compare with dk_exp_in_the_loop
 # TODO: don't use env as a variable name!
 
 #-----------------------------------------------------------------------------------
@@ -58,10 +60,10 @@ if enviro.startswith('grid'):
     reward_means = np.diag(np.linspace(0,1,grid_width)).flatten()
     env = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means))
 elif enviro.startswith('det_chain'):
-    chain_width = int(enviro.split('chain')[1])
+    chain_len = int(enviro.split('chain')[1])
     epLen = chain_len
     #env = make_stochasticChain(chain_len, max_reward=((chain_len - 1.)/chain_len)**-(chain_len-1))
-    env = make_deterministicChain(chain_len, max_reward=1)
+    env = make_deterministicChain(chain_len, epLen)
 f_ext = FeatureTrueState(env.epLen, env.nState, env.nAction, env.nState)
 
 
@@ -79,18 +81,18 @@ ns = np.hstack((np.array([0,]), 2**np.arange(log_n_max)))
 query_cost = 1.
 
 # record results here:
-num_queries = np.empty((num_experiments, log_num_episodes+1, log_n_max+1))
-returns = np.empty((num_experiments, log_num_episodes+1, log_n_max+1))
-returns_max_min = np.empty((num_experiments, 2))
+num_queries = np.empty((num_exps, log_num_episodes+1, log_n_max+1))
+returns = np.empty((num_exps, log_num_episodes+1, log_n_max+1))
+returns_max_min = np.empty((num_exps, 2))
 
 
-for kk in range(num_experiments):
+for kk in range(num_exps):
     print "beginning experiment #", kk
     env = copy.deepcopy(initial_env)
 
     if query_fn in ['SQR', 'ASQR']: # use a sampled enviro
         sampled_R, sampled_P = initial_agent.sample_mdp()
-        env.R = {kk:(sampled_R[kk], agent.tau) for kk in sampled_R}
+        env.R = {kk:(sampled_R[kk], initial_agent.tau) for kk in sampled_R}
         env.P = sampled_P
         returns_max_min[kk,0] = initial_agent.compute_qVals(sampled_R, sampled_P)[1][0][0]
         returns_max_min[kk,1] = - initial_agent.compute_qVals({kk: -sampled_R[kk] for kk in sampled_R}, sampled_P)[1][0][0]

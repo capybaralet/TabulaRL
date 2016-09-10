@@ -25,7 +25,7 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=12)
+parser.add_argument('--log_num_episodes', type=int, default=4)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
 parser.add_argument('--update_freq', type=int, default=1)
@@ -52,7 +52,8 @@ if args_dict.pop('save'):
     # TODO: save results in a single file / database
     import os
     filename = os.path.basename(__file__)
-    save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
+    #save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
+    save_dir = os.path.join(os.environ['SAVE_PATH'], 'TabulaRL/' + filename)
 
     import datetime
     timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
@@ -80,7 +81,7 @@ elif enviro.startswith('multi_chain'):
 elif enviro.startswith('det_chain'):
     chain_len = int(enviro.split('det_chain')[1])
     epLen = chain_len
-    envv = make_deterministicChain(chain_len, chain_len)
+    envv = make_deterministicChain(chain_len, epLen)
 elif enviro.startswith('stoch_chain'):
     chain_len = int(enviro.split('stoch_chain')[1])
     epLen = chain_len
@@ -119,13 +120,20 @@ if query_fn_selector.startswith('fixed_first'):
     if len(strs) == 1:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
             return query_functions.QueryFirstN(query_cost, int(strs[0]))
-    elif len(strs) == 2:
+    elif strs[1] == 'per':
+        def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+            return query_functions.QueryFirstN(query_cost, int(strs[0])*envv.nState * (1 + agent.reward_depends_on_action * (envv.nAction - 1)))
+    elif strs[1] == 'visits':
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
             return query_functions.QueryFirstNVisits(query_cost, int(strs[0]))
 elif query_fn_selector == 'fixed_always':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         return query_functions.AlwaysQuery(query_cost )
 elif query_fn_selector.startswith('fixed_decay'):
+    max_query_prob = float(query_fn_selector.split('fixed_decay')[1])
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+        return query_functions.DecayQueryProbability(query_cost, func=lambda e,t : max_query_prob * neps / num_episodes)
+elif query_fn_selector.startswith('fixed_ASQR'):
     max_query_prob = float(query_fn_selector.split('fixed_decay')[1])
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         return query_functions.DecayQueryProbability(query_cost, func=lambda e,t : max_query_prob * neps / num_episodes)
@@ -318,7 +326,7 @@ for kk in range(num_exps): # run an entire exp
                 pylab.draw(); pylab.show()
 
             # ---------------------------------------------------------------------
-    if save:
+    if save and kk % 10 == 0:
         np.save(save_str + 'num_queries', num_queries)
         np.save(save_str + 'returns', returns)
         pysave(save_str + 'exp_log', exp_log)

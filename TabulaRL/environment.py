@@ -47,7 +47,7 @@ class TabularMDP(Environment):
     P - dict by (s,a) - each P[s,a] = transition vector size S
     '''
 
-    def __init__(self, nState, nAction, epLen, gotta_move=False):
+    def __init__(self, nState, nAction, epLen):
         '''
         Initialize a tabular episodic MDP
 
@@ -107,9 +107,6 @@ class TabularMDP(Environment):
         self.timestep += 1
 
         if self.timestep == self.epLen:
-            pContinue = 0
-            self.reset()
-        elif self.gotta_move and action == 0:
             pContinue = 0
             self.reset()
         else:
