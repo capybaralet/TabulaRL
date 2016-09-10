@@ -33,7 +33,7 @@ parser.add_argument('--update_freq', type=int, default=1)
 parser.add_argument('--query_cost', type=float, default=1.)
 parser.add_argument('--reward_noise', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
-parser.add_argument('--query_fn_selector', type=str, default='OPSRL_greedy')
+parser.add_argument('--query_fn_selector', type=str, default='VOI_PSRL_greedy')
 # not included in save_str:
 parser.add_argument('--save', type=str, default=0)
 parser.add_argument('--printing', type=str, default=0)
@@ -109,7 +109,21 @@ else:
 query_function = query_functions.QueryFirstNVisits(query_cost, n=0)
 query_function.setAgent(initial_agent)
 
-dummy_PSRL_agent = finite_tabular_agents.PSRL(envv.nState, envv.nAction, envv.epLen, P_true=envv.P, R_true=None)
+def ASQR_query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+    perfs = np.empty((len(sampled_envs), len(ns)))
+    for ii, sampled_env in enumerate(sampled_envs):
+        # TODO: should have a posterior over reward variance for this to make sense
+        sampled_rewards = {(s,a) : sample_gaussian(sampled_env.R[s,a][0], sampled_env.R[s,a][1], n_max) for (s,a) in sampled_env.R.keys()}
+        for jj, n in enumerate(ns):
+            updated_R = {sa: update_gaussian_posterior_mean(agent.R_prior[sa], sampled_rewards[sa][visit_count[sa]:n], agent.tau) for sa in sampled_rewards}
+            updated_P = sampled_env.P
+            expected_returns = agent.compute_qVals_true(updated_R, updated_P, {sa: sampled_env.R[sa][0] for sa in sampled_env.R}, sampled_env.P)[0]
+            if agent.reward_depends_on_action:
+                perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[sa] for sa in sampled_rewards]) #n * len([sa for sa in sampled_rewards])
+            else:
+                perfs[ii,jj] = neps * expected_returns - query_cost * sum([n - query_count[s] for s in range(agent.nState)]) #n * len([sa for sa in sampled_rewards])
+            #import ipdb; ipdb.set_trace()
+    return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
 # QUERY FUNCTION SELECTOR
 # TODO: clean-up this stuff a lot (maybe move to separate script?)
@@ -119,11 +133,12 @@ if query_fn_selector.startswith('fixed_first'):
     strs = query_fn_selector.split('fixed_first')[1].split('visits')
     if len(strs) == 1:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-            return query_functions.QueryFirstN(query_cost, int(strs[0]))
-    elif strs[1] == 'per':
-        def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+            #return query_functions.QueryFirstN(query_cost, int(strs[0]))
             return query_functions.QueryFirstN(query_cost, int(strs[0])*envv.nState * (1 + agent.reward_depends_on_action * (envv.nAction - 1)))
-    elif strs[1] == 'visits':
+    #elif strs[1] == 'per':
+        #def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+            #return query_functions.QueryFirstN(query_cost, int(strs[0])*envv.nState * (1 + agent.reward_depends_on_action * (envv.nAction - 1)))
+    else:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
             return query_functions.QueryFirstNVisits(query_cost, int(strs[0]))
 elif query_fn_selector == 'fixed_always':
@@ -134,9 +149,12 @@ elif query_fn_selector.startswith('fixed_decay'):
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         return query_functions.DecayQueryProbability(query_cost, func=lambda e,t : max_query_prob * neps / num_episodes)
 elif query_fn_selector.startswith('fixed_ASQR'):
-    max_query_prob = float(query_fn_selector.split('fixed_decay')[1])
+    qfn = None
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
-        return query_functions.DecayQueryProbability(query_cost, func=lambda e,t : max_query_prob * neps / num_episodes)
+        if neps == num_episodes: # set the query function at the beginning of the experiment
+            global qfn
+            qfn = ASQR_query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count)
+        return qfn
 
 elif query_fn_selector == 'ASQR':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
@@ -156,7 +174,7 @@ elif query_fn_selector == 'ASQR':
         return query_functions.QueryFirstNVisits(query_cost, ns[np.argmax(perfs.mean(0))])
 
 # FIXME: need to use the agent's prior knowledge that reward only depends on state (when it does)
-elif query_fn_selector == 'OPSRL_greedy':
+elif query_fn_selector == 'VOI_PSRL_greedy':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
@@ -194,7 +212,7 @@ elif query_fn_selector == 'OPSRL_greedy':
             #import ipdb; ipdb.set_trace()
             return query_functions.QueryFixedFunction(query_cost, lambda s, a: num_queries[s])
 
-elif query_fn_selector == 'OPSRL_omni':
+elif query_fn_selector == 'VOI_PSRL_omni':
     def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
         assert len(sampled_envs) == 1
         sampled_env = sampled_envs[0]
