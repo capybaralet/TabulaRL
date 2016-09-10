@@ -55,7 +55,7 @@ def get_env(enviro):
 def qvals_array(qvals_dict, envv):
     rval = np.empty((envv.nState, envv.epLen, envv.nAction))
     for kk in qvals_dict:
-        print kk, len(qvals_dict[kk])
+        #print kk, len(qvals_dict[kk])
         rval[kk] = qvals_dict[kk]
     return rval
 
@@ -71,7 +71,7 @@ def moving_average(values,window):
     return np.hstack((smas[0]*np.ones(window-1), smas)) # as a numpy array
 
 
-enviros = ['grid3', 'det_chain3', 'multi_chain3', 'longY4']
+enviros = ['grid3', 'det_chain3', 'multi_chain4', 'longY4']
 
 # RUN TESTS
 for enviro in enviros:
@@ -117,7 +117,7 @@ for enviro in enviros:
     cumReward = 0
     cumQueryCost = 0 
     epRewards = []
-    for ep in xrange(1, 1001): 
+    for ep in xrange(1, 5001): 
         epReward = 0
         envv.reset() # return to tstep=state=0
         agent.update_policy(ep)
