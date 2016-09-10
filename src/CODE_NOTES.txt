@@ -31,5 +31,11 @@ Distribution object:
     expectation
 
 
+Complaints about current code-base:
+    rewards are awkward to handle (sometimes just the means, sometimes not)
+    no posterior variance
+    bad interfaces
+    too many dicts (qvals should be an array, for chrissake)
+
 
 

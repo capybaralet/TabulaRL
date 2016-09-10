@@ -1,0 +1,36 @@
+#
+ssh eos11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos15 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos18 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_always  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+#
+ssh eos11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first500  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first400  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first250  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first400  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh eos15 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first500  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first400  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first250  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh eos18 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first400  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+#
+ssh leto11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.25  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.2  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.125  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.2  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto15 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.25  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.2  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.125  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto50 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_decay.2  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+#
+ssh leto11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 --update_freq=20000 &
+ssh leto15 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
+ssh leto50 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=fixed_first25visits  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 --update_freq=20000 &
