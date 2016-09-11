@@ -34,34 +34,38 @@ parser.add_argument('--query_cost', type=float, default=1.)
 parser.add_argument('--reward_noise', type=float, default=1.)
 parser.add_argument('--enviro', type=str, default='det_chain6')
 parser.add_argument('--query_fn_selector', type=str, default='VOI_PSRL_greedy')
-# not included in save_str:
-parser.add_argument('--save', type=str, default=0)
-parser.add_argument('--printing', type=str, default=0)
+# not included in save_path:
+parser.add_argument('--save', type=int, default=0)
+parser.add_argument('--save_path', type=str, default=None)
+parser.add_argument('--printing', type=int, default=0)
 args = parser.parse_args()
 args_dict = vars(args)
 locals().update(args_dict) # add all args to local namespace
 
+num_episodes= 2**log_num_episodes
 normalize_rewards = False
+
+save = args_dict.pop('save')
 printing = args_dict.pop('printing')
 
-num_episodes= 2**log_num_episodes
+if save:
+    if save_path is None:
+        settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
 
-if args_dict.pop('save'):
-    settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
+        # TODO: save results in a single file / database
+        import os
+        filename = os.path.basename(__file__)
+        #save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
+        save_dir = os.path.join(os.environ['SAVE_PATH'], 'TabulaRL/' + filename)
 
-    # TODO: save results in a single file / database
-    import os
-    filename = os.path.basename(__file__)
-    #save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
-    save_dir = os.path.join(os.environ['SAVE_PATH'], 'TabulaRL/' + filename)
+        import datetime
+        timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+        save_path += '/' + timestamp + '___' + settings_str + '/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    print "\n save_path=", save_path, '\n'
 
-    import datetime
-    timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
-    save_dir += '/' + timestamp + '___' + settings_str
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    save_str = save_dir + '/'
-    print "\n save_str=", save_str, '\n'
+#assert False
 
 
 # ENVIRONMENT
@@ -345,10 +349,10 @@ for kk in range(num_exps): # run an entire exp
 
             # ---------------------------------------------------------------------
     if save and kk % 10 == 0:
-        np.save(save_str + 'num_queries', num_queries)
-        np.save(save_str + 'returns', returns)
-        pysave(save_str + 'exp_log', exp_log)
+        np.save(save_path + 'num_queries', num_queries)
+        np.save(save_path + 'returns', returns)
+        pysave(save_path + 'exp_log', exp_log)
 
 if save:
-    os.system('touch ' + save_str + 'FINISHED')
+    os.system('touch ' + save_path + 'FINISHED')
 

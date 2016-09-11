@@ -8,59 +8,62 @@ def pyload(filepath):
 
 # MODIFY HERE FOR DIFFERENT BATCHES OF EXPS!
 save_dir = '/Users/david/TabulaRL/src/results/results__dk_exp_in_the_loop.py/Sept9/'
-ns = 2**np.arange(13)
-query_costs = [10., 1.]
-query_costs = [1.]
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('save_dir', type=float, default=None)
+args = parser.parse_args()
+args_dict = vars(args)
+locals().update(args_dict) # add all args to local namespace
 
 dirs = [dd for dd in os.listdir(save_dir)]
 
-def state_visits(visit_count, nState):
-    return np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(nState)])
+envs = ['longY10', 'chain10', 'multi_chain4', 'grid4']
+algs = ['VOI_PSRL_greedy', 'VOI_PSRL_omni', 'ASQR', 'fixed_ASQR', 'fixed_first25', 'fixed_first25visits', 'fixed_always']
+query_costs = [10., 1.]
+log_num_eps = range(3,13,3)
+ns = 2**log_num_eps
 
-# per state, by ASQR
-avg_nqs_1 = []
-avg_nqs10 = []
-for envv in ['longY10', 'chain10', 'multi_chain4', 'grid4']:
+# plot performance as a function of num_episodes
+for envv in envs:
     for query_cost in query_costs:
         figure()
         suptitle('env=' + envv + '  query_cost=' + str(query_cost))
-        for alg in ['OPSRL_greedy', 'OPSRL_omni', 'ASQR']:
-            if 1:#try:
+        for alg in algs:
+            rets = []
+            nqs = []
+            avg_perf = []
+            for log_num_episodes in log_num_eps:
                 path = save_dir + [dd for dd in os.listdir(save_dir) if 
                                             alg in dd and 
                                             envv in dd and 
                                             str(query_cost) in dd and 
-                                            'update_freq=10' not in dd][0]
-                ret = np.load(path + '/returns.npy')
-                nq = np.load(path + '/num_queries.npy')
-                if alg == 'ASQR':
-                    if query_cost == 10:
-                        avg_nqs10.append(nq[:,-1].mean())
-                    else:
-                        avg_nqs_1.append(nq[:,-1].mean())
-                avg_perf = ret - query_cost * nq
-                subplot(131)
-                title('performance')
-                plot(np.zeros(len(ns)), 'k')
-                plot(avg_perf.mean(0) / ns, label=alg)
-                xticks(range(len(ns)), ns)
-                subplot(132)
-                title('num queries')
-                ylim(-1,5)
-                plot(nq.mean(0) / ns, label=alg)
-                xticks(range(len(ns)), ns)
-                #ylim(-10,3)
-                subplot(133)
-                title('returns')
-                plot(np.zeros(len(ns)), 'k')
-                plot(ret.mean(0) / ns, label=alg)
-                xticks(range(len(ns)), ns)
-                legend(loc=4)
-                # state_visits
-            else:#except:
-                assert False
-                print alg, envv, query_cost, "failed to load"
+                                            'log_num_episodes=' + str(log_num_episodes) in dd][0]
+                ret = np.load(path + '/returns.npy')[:,-1].mean()
+                nq = np.load(path + '/num_queries.npy')[:,-1].mean()
+                rets.append(ret)
+                nqs.append(nq)
+                avg_perf.append(ret - query_cost * nq)
 
+            # MAKE PLOTS:
+            subplot(131)
+            title('performance')
+            xticks(range(len(ns)), ns)
+            plot(np.zeros(len(ns)), 'k-')
+            plot(avg_perf / ns, label=alg)
+            subplot(132)
+            title('num queries')
+            xticks(range(len(ns)), ns)
+            plot(nq / ns, label=alg)
+            ubplot(133)
+            title('returns')
+            xticks(range(len(ns)), ns)
+            plot(np.zeros(len(ns)), 'k-')
+            plot(ret / ns, label=alg)
+            legend(loc=4)
+
+
+# TODO
+# look at visit counts throughout learning
 if 0:
     # TODO: does it make sense to average visit counts?
     for envv in ['longY10', 'chain10', 'multi_chain4', 'grid4']:

@@ -33,3 +33,7 @@ def update_gaussian_posterior_mean(prior, observations, tau=1):
     tau1 = tau0 + tau * len(observations)
     mu1 = (mu0 * tau0 + sum(observations) * tau) / tau1
     return mu1
+
+def state_visits(visit_count, nState):
+    return np.array([sum([visit_count[key] for key in visit_count if key[0] == nn]) for nn in range(nState)])
+

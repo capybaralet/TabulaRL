@@ -11,6 +11,7 @@ TODO:
                 saving, printing, debugging, testing, ...?
                     (build in analysis, as well???)
                     log github commits and stuff...? (that could go in the launcher)
+        More efficient way to MOVE RESULTS around
     
     launcher should take:
         info about where to save stuff

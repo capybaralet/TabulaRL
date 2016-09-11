@@ -2,6 +2,13 @@ import os
 import itertools
 import numpy as np
 
+"""
+TOD0:
+    1. Manage logging in here? (e.g. construct save_path and pass it as an arg to the script)
+    2. touch a file to say which machine I used
+"""
+
+
 exp_script = ' $HOME/TabulaRL/src/dk_exp_in_the_loop.py'
 
 mila_gpus = []
@@ -33,41 +40,10 @@ args_.append([" --log_num_episodes=" + str(n) for n in np.arange(3,13,3)])
 cmd_line_args = ["".join(ss) for ss in itertools.product(*args_)]
 jobs = [" python" + exp_script + cmd + " --num_exps=100 --save=1 &" for cmd in cmd_line_args]
 
-print jobs
-print len(jobs)
-#assert False
-
 machine_ind = 0
 for job in jobs:
     print "ssh " + mila_gpus[machine_ind] + job
     os.system("ssh " + mila_gpus[machine_ind] + job)
     machine_ind = (1 + machine_ind) % len(mila_gpus)
-
-
-
-launch_strs = [
-'ssh eos11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh eos12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh eos13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh eos14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh eos15 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh eos16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh eos17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=ASQR  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto01 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto02 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto03 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto04 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto05 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto06 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto07 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto08 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_greedy  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto11 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=grid4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto12 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=multi_chain4 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto13 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=longY10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto14 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=det_chain10 --num_exps=100 --query_cost=1. --save=1 ',
-'ssh leto51 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=grid4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto16 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=multi_chain4 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto17 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=longY10 --num_exps=100 --query_cost=10. --save=1 ',
-'ssh leto50 python $HOME/TabulaRL/src/dk_exp_in_the_loop.py --query_fn_selector=OPSRL_omni  --enviro=det_chain10 --num_exps=100 --query_cost=10. --save=1 ']
 
 
