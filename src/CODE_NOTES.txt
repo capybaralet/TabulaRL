@@ -30,6 +30,7 @@ Distribution object:
     update_obs
     MAP
     expectation
+    sample
 
 
 Complaints about current code-base:
@@ -37,6 +38,10 @@ Complaints about current code-base:
     no posterior variance
     bad interfaces
     too many dicts (qvals should be an array, for chrissake)
+
+    different numbers of actions for different states
+
+pymc distribution objects?
 
 
 
