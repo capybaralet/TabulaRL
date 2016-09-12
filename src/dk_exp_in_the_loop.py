@@ -48,6 +48,10 @@ normalize_rewards = False
 save = args_dict.pop('save')
 printing = args_dict.pop('printing')
 
+import datetime
+timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+print timestamp
+
 if save:
     if save_path is None:
         settings_str = '__'.join([arg + "=" + str(args_dict[arg]) for arg in sorted(args_dict.keys())])
@@ -56,10 +60,7 @@ if save:
         import os
         filename = os.path.basename(__file__)
         #save_dir = os.path.join(os.environ['HOME'], 'TabulaRL/src/results/results__' + filename)
-        save_dir = os.path.join(os.environ['SAVE_PATH'], 'TabulaRL/' + filename)
-
-        import datetime
-        timestamp = '{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+        save_path = os.path.join(os.environ['SAVE_PATH'], 'TabulaRL/' + filename)
         save_path += '/' + timestamp + '___' + settings_str + '/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
