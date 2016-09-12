@@ -134,7 +134,10 @@ def ASQR_query_function_selector(agent, sampled_envs, neps, query_cost, ns, visi
 # TODO: clean-up this stuff a lot (maybe move to separate script?)
 # for fixed ones, we'll use 25 / sa
 # query_function = query_function_selector(agent, sampled_envs, num_episodes - ep + 1, query_cost, ns, visit_count, query_count)
-if query_fn_selector.startswith('fixed_first'):
+if query_fn_selector == 'fixed_firstNvisits':
+    def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
+        return query_functions.QueryFixedFunction(query_cost, lambda s, a: 2*log_num_episodes)
+elif query_fn_selector.startswith('fixed_first'):
     strs = query_fn_selector.split('fixed_first')[1].split('visits')
     if len(strs) == 1:
         def query_function_selector(agent, sampled_envs, neps, query_cost, ns, visit_count, query_count):
