@@ -33,7 +33,6 @@ dirs = [dd for dd in os.listdir(save_dir)]
 
 envs = ['longY10', 'chain10', 'grid4'] #'multi_chain4',
 algs = ['VOI_PSRL_greedy', 'VOI_PSRL_omni', 'ASQR', 'fixed_ASQR']#, 'fixed_first25visits']#, 'fixed_first25', 'fixed_always']
-algs = ['ASQR', 'fixed_ASQR']
 algs_lookup = {'VOI_PSRL_greedy': 'Greedy VoI',
                'VOI_PSRL_omni': 'Omniscient VoI',
                'ASQR': 'dynamic ASQR',
@@ -46,15 +45,17 @@ log_num_eps = np.arange(3,h_max,3)
 all_ns = 2**np.arange(h_max)
 ns = 2**log_num_eps
 
-# plot with errorbars
-def my_plot(arr, **kwargs):
-    means = arr.mean(axis=1)
-    stds = arr.std(axis=1) / arr.shape[1]**.5
-    errorbar(range(len(arr)), means, stds, **kwargs) 
-
 
 # plot performance as a function of num_episodes
 if 1:
+    # plot with errorbars
+    def my_plot(arr, **kwargs):
+        means = arr.mean(axis=1)
+        stds = arr.std(axis=1) / arr.shape[1]**.5
+        errorbar(range(len(arr)), means, stds, **kwargs) 
+        xticks(range(len(ns)), ns)
+        xlim(-.5, len(ns) - .5)
+
         for envv in envs:
             figure(figsize=(10,9))
             suptitle('environment=' + envv + "    query_cost= 1 (left), 10 (right)", fontsize=16)
@@ -70,8 +71,8 @@ if 1:
                                                     envv in dd and 
                                                     str(query_cost) in dd and 
                                                     'log_num_episodes=' + str(log_num_episodes) in dd][0]
-                        ret = np.load(path + '/returns.npy')[:90,-1]
-                        nq = np.load(path + '/num_queries.npy')[:90,-1]
+                        ret = np.load(path + '/returns.npy')[:,-1]
+                        nq = np.load(path + '/num_queries.npy')[:,-1]
                         rets.append(ret)
                         nqs.append(nq)
                         avg_perfs.append(rets[-1].mean() - query_cost * nqs[-1].mean())
@@ -81,16 +82,12 @@ if 1:
                     # MAKE PLOTS:
                     subplot(3,2,column+1)
                     title('avg performance per episode')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     plot(np.zeros(len(ns)), 'k-', label="Don't Query")
                     #my_plot(avg_perfs / ns, label=alg)
                     my_plot(perfs / ns.reshape((-1,1)), label=algs_lookup[alg])
                     ###
                     subplot(3,2,column+3)
                     title('avg # of queries per episode')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     if not column:
                         nq_ylim = gca().get_ylim()
                     else:
@@ -100,8 +97,6 @@ if 1:
                     subplot(3,2,column+5)
                     title('avg returns per episode')
                     xlabel('horizon (number of episodes)')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     if envv == 'grid4':
                         ylim(-2, 2)
                     else:
@@ -116,10 +111,16 @@ if 1:
 # plot performance as a function of num_episodes FOR A SINGLE HORIZON!
 # TODO: title, etc.
 # TODO: seem to be missing some of the results here??
-#   same results for itl vs. not??
 ns = all_ns
 log_num_episodes = len(all_ns) - 1
 if 1:
+    def mplot(arr, **kwargs):
+        means = arr.mean(0)
+        stds = arr.mean(0) / arr.shape[0]**.5
+        errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
+        xticks(range(len(ns))[1::2], ns[1::2])
+        xlim(-.5, len(ns) - .5)
+
         for envv in envs:
             figure(figsize=(10,9))
             suptitle('environment=' + envv + "    query_cost= 1 (left), 10 (right)", fontsize=16)
@@ -135,27 +136,19 @@ if 1:
                                                 'log_num_episodes=' + str(log_num_episodes) in dd][0]
                     # everything is PER EPISODE!
                     # shape = (nexps, nsteps)
-                    rets = np.load(path + '/returns.npy')[:90] / ns.reshape((1, -1))
-                    nqs = np.load(path + '/num_queries.npy')[:90] / ns.reshape((1, -1))
+                    rets = np.load(path + '/returns.npy') / ns.reshape((1, -1))
+                    nqs = np.load(path + '/num_queries.npy') / ns.reshape((1, -1))
                     perfs = rets - query_cost * nqs
 
                     # MAKE PLOTS:
                     subplot(3,2,column+1)
                     title('avg performance per episode')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
+                    mplot(perfs, label=algs_lookup[alg])
                     plot(np.zeros(len(ns)), 'k-', label="Don't Query")
-                    means = perfs.mean(0)
-                    stds = perfs.mean(0) / len(perfs)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
                     ###
                     subplot(3,2,column+3)
                     title('avg # of queries per episode')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
-                    means = nqs.mean(0)
-                    stds = nqs.mean(0) / len(nqs)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
+                    mplot(nqs, label=algs_lookup[alg])
                     if not column:
                         nq_ylim = gca().get_ylim()
                     else:
@@ -164,19 +157,12 @@ if 1:
                     subplot(3,2,column+5)
                     title('avg returns per episode')
                     xlabel('horizon (number of episodes)')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
+                    mplot(rets, label=algs_lookup[alg])
                     if envv == 'grid4':
                         ylim(-2, 2)
                     else:
                         ylim(-1, 1)
                     plot(np.zeros(len(ns)), 'k-')
-                    means = rets.mean(0)
-                    stds = rets.mean(0) / len(rets)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
-
-                    if 0:#alg == 'ASQR':
-                        import ipdb; ipdb.set_trace()
 
             legend(loc=4)
             subplots_adjust(left=.05, bottom=.07, right=.99, top=.91, wspace=.11, hspace=.25)
