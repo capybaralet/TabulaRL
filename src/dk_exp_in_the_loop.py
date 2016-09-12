@@ -77,6 +77,7 @@ if enviro.startswith('grid'):
     envv = gridworld.make_gridworld(grid_width, epLen, gridworld.make_sa_rewards(reward_means, actions = range(5)),
                                      multi_chain=False, gotta_move=True, reward_noise=reward_noise)
 # TODO: leaving the extra states around messes with ASQR!
+# FIXME: the agent should have to dig!
 elif enviro.startswith('multi_chain'):
     grid_width = int(enviro.split('multi_chain')[1])
     epLen = 2 * grid_width - 1 # agent needs one extra move (only gets reward in a state if it acts in it!)
