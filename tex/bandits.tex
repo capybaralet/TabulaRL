@@ -25,11 +25,17 @@ Taking the derivative and solving for the optima we get
 \frac{dr}{dq} = 0 = c - \frac{d n}{2 q^{\nicefrac{3}{2}} } 
 \\c = \frac{d n}{2 q^{\nicefrac{3}{2}}} 
 \\q^{\nicefrac{3}{2}} = \frac{d n}{2 c} 
-\\ q = (\frac{d n}{2 c})^{\nicefrac{2}{3} }
+\\q = (\frac{d n}{2 c})^{\nicefrac{2}{3} }
 \end{align}
 
-Thus, the optimal regret for close-arms is at least $O(\frac{n}{c})^{2/3}$. Its a bit confusing that $c$ is in the denominator.
+Plugging back into regret
 
+\begin{align}
+r = c (\frac{d n}{2 c})^{2/3} + \frac{d n}{\sqrt{(\frac{d n}{2 c})^{2/3}} }
+\\ r \le_O c^{1/3} n^{2/3} + \frac{ n}{(\frac{n}{c})^{1/3}}
+\\ r \le_O c^{1/3} n^{2/3} + c^{1/3} n^{2/3} 
+\end{align}
 
+Thus, the optimal regret for close-arms is at least $O(n^{\nicefrac{2}{3}} c^{\nicefrac{1}{3}})$. 
 
 \end{document}
