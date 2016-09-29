@@ -21,8 +21,7 @@ def pyload(filepath):
 
 
 # MODIFY HERE FOR DIFFERENT BATCHES OF EXPS!
-save_dir = '/home/davidkrueger/results_Sept12/'
-#'/Users/david/TabulaRL/src/results/results__dk_exp_in_the_loop.py/Sept9/'
+save_dir = '/Users/david/TabulaRL/src/results/results__dk_exp_in_the_loop.py/Sept9/'
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('save_dir', type=str, default=None)
@@ -32,36 +31,34 @@ locals().update(args_dict) # add all args to local namespace
 
 dirs = [dd for dd in os.listdir(save_dir)]
 
-envs = ['longY10', 'det_chain10', 'grid4'] #'multi_chain4',
+envs = ['longY10', 'chain10', 'grid4'] #'multi_chain4',
 algs = ['VOI_PSRL_greedy', 'VOI_PSRL_omni', 'ASQR', 'fixed_ASQR']#, 'fixed_first25visits']#, 'fixed_first25', 'fixed_always']
-#algs = ['VOI_PSRL_greedy', 'VOI_PSRL_omni', 'ASQR', 'fixed_ASQR', 'fixed_firstNvisits']#, 'fixed_first25', 'fixed_always']
 algs_lookup = {'VOI_PSRL_greedy': 'Greedy VoI',
                'VOI_PSRL_omni': 'Omniscient VoI',
                'ASQR': 'dynamic ASQR',
-               'fixed_firstNvisits': 'fixed_firstNvisits',
                'fixed_ASQR': 'fixed ASQR'}
 #algs = ['ASQR', 'fixed_ASQR']
 #algs = ['VOI_PSRL_greedy', 'VOI_PSRL_omni']
 query_costs = [1., 10.]
-
-cutoff = 40
-h_max = 14
-log_num_eps = np.arange(3,h_max,2)
+h_max = 13
+log_num_eps = np.arange(3,h_max,3)
 all_ns = 2**np.arange(h_max)
 ns = 2**log_num_eps
-
-# plot with errorbars
-def my_plot(arr, **kwargs):
-    means = arr.mean(axis=1)
-    stds = arr.std(axis=1) / arr.shape[1]**.5
-    errorbar(range(len(arr)), means, stds, **kwargs) 
 
 
 # plot performance as a function of num_episodes
 if 1:
+    # plot with errorbars
+    def my_plot(arr, **kwargs):
+        means = arr.mean(axis=1)
+        stds = arr.std(axis=1) / arr.shape[1]**.5
+        errorbar(range(len(arr)), means, stds, **kwargs) 
+        xticks(range(len(ns)), ns)
+        xlim(-.5, len(ns) - .5)
+
         for envv in envs:
             figure(figsize=(10,9))
-            suptitle(' Performance for different horizons:  environment=' + envv + "  query_cost= 1 (left), 10 (right)", fontsize=14)
+            suptitle('environment=' + envv + "    query_cost= 1 (left), 10 (right)", fontsize=16)
             for alg in algs:
                 for column, query_cost in enumerate(query_costs):
                     rets = []
@@ -69,44 +66,28 @@ if 1:
                     avg_perfs = []
                     perfs = []
                     for log_num_episodes in log_num_eps:
-                        try:
-                            path = save_dir + [dd for dd in os.listdir(save_dir) if 
-                                                        alg in dd and 
-                                                        not "fixed_" + alg in dd and 
-                                                        envv in dd and 
-                                                        str(query_cost) in dd and 
-                                                        'log_num_episodes=' + str(log_num_episodes) in dd][0]
-                            #assert os.path.exists(path + '/FINISHED')
-                            
-                            ret = np.load(path + '/returns.npy')[:cutoff,-1]
-                            nq = np.load(path + '/num_queries.npy')[:cutoff,-1]
-                            rets.append(ret)
-                            nqs.append(nq)
-                            avg_perfs.append(rets[-1].mean() - query_cost * nqs[-1].mean())
-                            perfs.append(rets[-1] - query_cost * nqs[-1])
-                            #print "NUM_RETS", alg, envv, query_cost, log_num_episodes
-                            #print np.sum(ret == 0)
-                        except:
-                            print "failed to load", alg, envv, query_cost, log_num_episodes
-                            rets.append(10 * 2**log_num_episodes * np.ones(rets[-1].shape))
-                            nqs.append(10*2**log_num_episodes * np.ones(nqs[-1].shape))
-                            perfs.append(10*2**log_num_episodes * np.ones(perfs[-1].shape))
-                            #rets.append(-1*np.ones(rets[-1].shape))
+                        path = save_dir + [dd for dd in os.listdir(save_dir) if 
+                                                    alg in dd and 
+                                                    envv in dd and 
+                                                    str(query_cost) in dd and 
+                                                    'log_num_episodes=' + str(log_num_episodes) in dd][0]
+                        ret = np.load(path + '/returns.npy')[:,-1]
+                        nq = np.load(path + '/num_queries.npy')[:,-1]
+                        rets.append(ret)
+                        nqs.append(nq)
+                        avg_perfs.append(rets[-1].mean() - query_cost * nqs[-1].mean())
+                        perfs.append(rets[-1] - query_cost * nqs[-1])
                         #max(nqs[-1].mean())
 
                     # MAKE PLOTS:
                     subplot(3,2,column+1)
                     title('avg performance per episode')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     plot(np.zeros(len(ns)), 'k-', label="Don't Query")
                     #my_plot(avg_perfs / ns, label=alg)
                     my_plot(perfs / ns.reshape((-1,1)), label=algs_lookup[alg])
                     ###
                     subplot(3,2,column+3)
                     title('avg # of queries per episode')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     if not column:
                         nq_ylim = gca().get_ylim()
                     else:
@@ -116,37 +97,33 @@ if 1:
                     subplot(3,2,column+5)
                     title('avg returns per episode')
                     xlabel('horizon (number of episodes)')
-                    xticks(range(len(ns)), ns)
-                    xlim(-.5, len(ns) - .5)
                     if envv == 'grid4':
                         ylim(-2, 2)
                     else:
                         ylim(-1, 1)
-                    my_plot(rets / ns.reshape((-1,1)), label=algs_lookup[alg])
                     plot(np.zeros(len(ns)), 'k-')
-            plot(np.zeros(len(ns)), 'k-', label="Don't Query")
-            legend(loc=4, prop={'size':8})
+                    my_plot(rets / ns.reshape((-1,1)), label=algs_lookup[alg])
+            legend(loc=4)
             subplots_adjust(left=.05, bottom=.07, right=.99, top=.91, wspace=.11, hspace=.25)
-            savefig(envv + "_Sept13")
 
 
 # --------------------------------------------------------------------
 # plot performance as a function of num_episodes FOR A SINGLE HORIZON!
 # TODO: title, etc.
-
-def max_R(envv):
-    if envv == 'grid4':
-        return 2
-    elif envv in ['longY10', 'det_chain10']:
-        return 1
-
-rm_up_to = 4
+# TODO: seem to be missing some of the results here??
 ns = all_ns
 log_num_episodes = len(all_ns) - 1
 if 1:
+    def mplot(arr, **kwargs):
+        means = arr.mean(0)
+        stds = arr.mean(0) / arr.shape[0]**.5
+        errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
+        xticks(range(len(ns))[1::2], ns[1::2])
+        xlim(-.5, len(ns) - .5)
+
         for envv in envs:
             figure(figsize=(10,9))
-            suptitle('Regret throughout learning:  environment=' + envv + "  query_cost= 1 (left), 10 (right)", fontsize=16)
+            suptitle('environment=' + envv + "    query_cost= 1 (left), 10 (right)", fontsize=16)
             for alg in algs:
                 for column, query_cost in enumerate(query_costs):
                     rets = []
@@ -154,43 +131,24 @@ if 1:
                     perfs = []
                     path = save_dir + [dd for dd in os.listdir(save_dir) if 
                                                 alg in dd and 
-                                                not "fixed_" + alg in dd and 
                                                 envv in dd and 
                                                 str(query_cost) in dd and 
                                                 'log_num_episodes=' + str(log_num_episodes) in dd][0]
                     # everything is PER EPISODE!
                     # shape = (nexps, nsteps)
-                    if rm_up_to:
-                        ns = all_ns
-                    rets = np.load(path + '/returns.npy')[:cutoff] / ns.reshape((1, -1))
-                    nqs = np.load(path + '/num_queries.npy')[:cutoff] / ns.reshape((1, -1))
+                    rets = np.load(path + '/returns.npy') / ns.reshape((1, -1))
+                    nqs = np.load(path + '/num_queries.npy') / ns.reshape((1, -1))
                     perfs = rets - query_cost * nqs
-                    perfs = max_R(envv) - perfs
-                    if rm_up_to:
-                        rets = rets[:, rm_up_to:]
-                        nqs = nqs[:, rm_up_to:]
-                        perfs = perfs[:, rm_up_to:]
-                        ns = ns[rm_up_to:]
-
 
                     # MAKE PLOTS:
                     subplot(3,2,column+1)
-                    title('avg regret per episode')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
-                    plot(max_R(envv) * np.ones(len(ns)), 'k-', label="Don't Query")
-                    means = perfs.mean(0)
-                    stds = perfs.mean(0) / len(perfs)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
-                    ylim(-.2 * gca().get_ylim()[1], min(gca().get_ylim()[1], 10))
+                    title('avg performance per episode')
+                    mplot(perfs, label=algs_lookup[alg])
+                    plot(np.zeros(len(ns)), 'k-', label="Don't Query")
                     ###
                     subplot(3,2,column+3)
                     title('avg # of queries per episode')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
-                    means = nqs.mean(0)
-                    stds = nqs.mean(0) / len(nqs)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
+                    mplot(nqs, label=algs_lookup[alg])
                     if not column:
                         nq_ylim = gca().get_ylim()
                     else:
@@ -198,25 +156,16 @@ if 1:
                     ###
                     subplot(3,2,column+5)
                     title('avg returns per episode')
-                    xlabel('current episode')
-                    xticks(range(len(ns))[1::2], ns[1::2])
-                    xlim(-.5, len(ns) - .5)
+                    xlabel('horizon (number of episodes)')
+                    mplot(rets, label=algs_lookup[alg])
                     if envv == 'grid4':
                         ylim(-2, 2)
                     else:
                         ylim(-1, 1)
-                    means = rets.mean(0)
-                    stds = rets.mean(0) / len(rets)**.5
-                    errorbar(range(len(ns)), means, stds, label=algs_lookup[alg])
                     plot(np.zeros(len(ns)), 'k-')
 
-                    if 0:#alg == 'ASQR':
-                        import ipdb; ipdb.set_trace()
-
-            plot(np.zeros(len(ns)), 'k-', label="Don't Query")
-            legend(loc=4, prop={'size':8})
+            legend(loc=4)
             subplots_adjust(left=.05, bottom=.07, right=.99, top=.91, wspace=.11, hspace=.25)
-            savefig(envv + "_regret_Sept13")
 
 
 def average_state_visits(exp_log):

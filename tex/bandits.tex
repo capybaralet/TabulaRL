@@ -1,0 +1,43 @@
+\documentclass{article}
+\usepackage{units}
+\usepackage{amsmath}
+
+\begin{document}
+
+\title{Optimal close-arm regret for bandits with query cost is at least $O(n^{2/3})$ }
+\author{John Salvatier}
+\maketitle
+
+
+For a bandit with horizon $n$ and a strategy that queries $q$ times. If the arms are close, the main contributors to the regret are query cost and best arm misidentification. The query cost will be $c*q$. $q$ queries can distinguish arms that are about $1/\sqrt{q}$ apart. Thus the regret due to misidentifying the best arm will be
+
+$$
+\frac{ d n}{\sqrt{q}}
+$$
+
+Together we get 
+
+$$
+r = cq + \frac{ d n}{\sqrt{q}}
+$$
+
+Taking the derivative and solving for the optima we get 
+
+\begin{align}
+\frac{dr}{dq} = 0 = c - \frac{d n}{2 q^{\nicefrac{3}{2}} } 
+\\c = \frac{d n}{2 q^{\nicefrac{3}{2}}} 
+\\q^{\nicefrac{3}{2}} = \frac{d n}{2 c} 
+\\q = (\frac{d n}{2 c})^{\nicefrac{2}{3} }
+\end{align}
+
+Plugging back into regret
+
+\begin{align}
+r = c (\frac{d n}{2 c})^{2/3} + \frac{d n}{\sqrt{(\frac{d n}{2 c})^{2/3}} }
+\\ r \le_O c^{1/3} n^{2/3} + \frac{ n}{(\frac{n}{c})^{1/3}}
+\\ r \le_O c^{1/3} n^{2/3} + c^{1/3} n^{2/3} 
+\end{align}
+
+Thus, the optimal regret for close-arms is at least $O(n^{\nicefrac{2}{3}} c^{\nicefrac{1}{3}})$. 
+
+\end{document}

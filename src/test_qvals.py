@@ -13,8 +13,20 @@ from TabulaRL.environment import make_stochasticChain, make_deterministicChain
 
 from generic_functions import add_dicts, dict_argmax, is_power2, sample_gaussian, update_gaussian_posterior_mean, pysave
 
-reward_noise = .5
+reward_noise = 1
 query_cost = 1
+
+"""
+TODO: 
+    other tests:
+        visualize environment rewards / dynamics
+        asserts in various places
+        query_functions should have some characteristic behaviours
+        query_function_selectors should have some characteristic behaviours
+        tensor slice plots (from previous experiments)
+
+"""
+
 
 
 def get_env(enviro):

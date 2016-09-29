@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 
 # TODO: test that machines are online
+# TODO: print something when all of the jobs have been killed??
+
 mila_gpus = []
 mila_gpus += ['eos' + str(i) for i in range(1, 8)]
 mila_gpus += ['eos' + str(i) for i in range(11, 20)]
