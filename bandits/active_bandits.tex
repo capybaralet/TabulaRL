@@ -1,0 +1,181 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumerate}
+\usepackage{hyperref}
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+\bibpunct{(}{)}{;}{a}{,}{,}
+
+\usepackage{mythm}
+
+\DeclareMathOperator*{\argmax}{arg\,max} % argmax operator
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Active Bandits}
+\author{Jan Leike et al.}
+\date{\today}
+
+\maketitle
+
+
+\begin{abstract}
+Very abstract.
+% introduce active multi-armed bandit Problems
+% interesting sub-problem of the hard classes of partial monitoring
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Formulation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The \emph{active multi-armed bandit problem} is
+an online learning problem
+where the learner has to select from $K$ actions (`arms') in every round.
+Choosing action $i$ in round $t$ incurs a payoff
+$r_t$ of drawn from a time-independent distribution with mean $\mu_i$
+unknown to the learner.
+In contrast to the classical multi-armed bandit problem,
+the learner does not observe the payoff
+unless they pay a fixed \emph{query cost $c > 0$}.
+% TODO: cross-over between mutli-armed bandits and active learning
+
+Let $\mu^* := \max_i \mu_i$ denote the mean of the best arm.
+The goal of the learner is to maximize expected payoff up to a horizon $n$,
+or, equivalently, to minimize the \emph{expected regret}
+\[
+R_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - r_t - c q_t) \right]
+\]
+where $q_t$ is $1$ if the learner chooses to observe the reward in round $t$ and $0$ otherwise.
+In other words, the expected regret is the expected payoff
+that is lost
+because the learner did not blindly choose the best option in every round.
+% (note that $q_t$ is a random variable).
+
+\paragraph{Notation.}
+Let $i^* := \argmax_i \mu_i$ be an index of an optimal arm,
+let $\Delta_i := \mu^* - \mu_i$, and
+let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Properties}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The active multi-armed bandit problem is
+a subproblem of the partial monitoring problem~\citep{Piccolboni01}.
+People usually consider the adversarial setting,
+which incurs $0$, $O(\sqrt{n})$, $O(n^{2/3})$, or linear regret~\citep{Antos13}.
+Note: partial monitoring in finite!
+Our setting is stochastic~\citep{Komiyama15}.
+% TODO: partial monitoring with graph feedback, see "Online learning with feedback graphs: beyond bandits." COLT 2015.
+
+
+\begin{proposition}[Cost-Independent Regret Bound]
+The worse-case expected regret $R_n \in \Theta(n^{2/3})$
+and the problem-dependent regret bound is $R_n \in \Theta(1/\Delta_{\min}^2)$.
+\end{proposition}
+\begin{proof}[Proof sketch.]
+TODO
+\end{proof}
+
+Notably, to achieve optimal asymptotic regret, you can ignore the query cost since it is constant.
+We are particularly interested in optimizing
+the cost-dependent regret.
+Partial monitoring algorithms are designed for optimal asymptotic regret rate and hence do not take the magnitude of the this into account.
+
+TODO: what is the cost-dependent regret rate?
+
+To solve partial monitoring problems
+it is sometimes necessary to take actions that you strongly believe to be suboptimal to get relevant information.
+In our settings, paying to see the reward is always suboptimal
+by at least $c > 0$.
+Nevertheless, if we never pay the cost, we learn nothing about the problem.
+Therefore stategies like optimism or Thompson sampling will not work.
+Moreover, there can be no index strategy~\citep[Ex.~4]{Hay12}.
+% TODO: check!
+
+The optimal strategy is to query for the first $Q$ time steps and then stop querying.
+If you don't query, then in the next step you face the same information, except that the horizon is now shorter,
+so the value of information can only have diminished.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Algorithms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Bayes-optimal solution is cubic with dynamic programming.
+
+DMED seems to achieve the optimal cost-independent regret rate.
+
+We are looking for a (heuristic) algorithm that achieves optimal asymptotic regret rate, performs well in practice and has constant or linear time complexity.
+
+A natural choice would be to take an explore-then-exploit algorithm, such as for \emph{budgeted bandits}~\citep{...}.
+The crucial question is how to decide to stop querying.
+In other words, what is the value of information of an additional query?
+
+This problem does not have a greedy solution.
+If one additional data point does not change my opinion
+which arm I currently consider to be best,
+then a greedy strategy considers the value of information to be zero and stop querying prematurely.
+Therefore we have to take into account the long-range effects of querying for multiple time steps.
+% TODO: tricky because the posterior is nonstationary.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\iffalse
+Algorithms:
+* vanilla DMED (with commitment when 1 arm is selected?)
+* partial monitoring algorithm (?)
+* optimal stopping time (optimized problem-dependent)
+* heuristic (with optimized alpha)
+
+Problems:
+* medium query cost c = 2 (>> gap)
+  * horizon n = 10k vs gap 0.1 (< n^2/3)
+  * horizon n = 1k vs gap 0.1 (~ n^2/3)
+  * horizon n = 10k vs gap 0.01 (don't identify the arms)
+* high query cost c = 50
+  * horizon n = 10k vs gap 0.3 (pay to identify)
+  * horizon n = 10k vs gap 0.1 (borderline case)
+  * horizon n = 10k vs gap 0.05 (do not pay to identify)
+* low query cost c = 0.01 (c << gap)
+  * horizon n = 10k vs gap 0.1 (should almost always find the best arm)
+  * horizon n = 200 vs gap 0.1 (query all the way?)
+\fi
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Outlook}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Open questions:
+\begin{itemize}
+\item Is there a good parameter-free algorithm?
+\end{itemize}
+
+
+\paragraph{Acknowledgements.}
+Tor Lattimore, Reimar Leike, Ryan Lowe, Jessica Taylor, \dots
+% obviously: Owain + John + David
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliography{references}
+
+
+\end{document}
