@@ -6,7 +6,8 @@ global mus = [0.6 0.5 0.4 0.4]; % means of the arms
 global n = 10000; % horizon
 global cost = 2; % query cost
 global k = length(mus); % number of arms
-global policy = @ExpQueryPolicy;
+global policy = @parameterizedRegretQuery;
+global save_ep = false; % whether to compute the exploration potential (very slow!)
 N = 100; % number of repetitions
 
 assert(nargin >= 1);
@@ -39,12 +40,20 @@ function [cregret, ep] = playBernoulli(mu, n, policy, cost)
             T(j) += 1;
             s(j) += r;
             regret += cost;
+            regret += mu_best - mu(j);
+            cregret(t) = regret;
+        else
+            printf(" commited to arm %d", j);
+            for i = t:n
+                regret += mu_best - mu(j);
+                cregret(i) = regret;
+            end
+            break;
         end
-        if mod(t, 10) == 0
+        global save_ep;
+        if save_ep && mod(t, 10) == 0
             ep(t) = EP(T, s);
         end
-        regret += mu_best - mu(j);
-        cregret(t) = regret;
     end
     printf("\n");
 end
@@ -65,6 +74,8 @@ display(ctime(time()));
 fflush(stdout);
 [regret, ep] = runExperiment1(mus, N, n, policy, cost);
 save("-z", sprintf('experiment1/regret_%s.mat', savefile), 'regret');
-save("-z", sprintf('experiment1/ep_%s.mat', savefile), 'ep');
+if save_ep
+    save("-z", sprintf('experiment1/ep_%s.mat', savefile), 'ep');
+end
 printf("Finished.\n");
 display(ctime(time()));

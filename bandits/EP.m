@@ -6,9 +6,9 @@ function x = EP(T, s, tol = 1e-12)
     % 1e-5 is enough for horizon 100
     % 1e-9 is enough for horizon 10000
     % 1e-13 should be enough for horizon 1e6
+    k = length(T); % number of arms
     function y = f(theta, mu_hats, a, b, j)
         % function to integrate
-        k = length(a);
         y = abs(theta - mu_hats(j)) .* betapdf(theta, a(j), b(j));
         for i = 1:k
             if (i != j)
@@ -16,7 +16,6 @@ function x = EP(T, s, tol = 1e-12)
             end
         end
     end
-    k = length(T); % number of arms
     x = 0;
     mu_hats = (s + 1) ./ (T + 2);
     for j = 1:k
