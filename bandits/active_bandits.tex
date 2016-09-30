@@ -95,7 +95,7 @@ Note: partial monitoring in finite! (e.g. Bernoulli bandits)
 Our setting is stochastic~\citep{Komiyama15}.
 % TODO: partial monitoring with graph feedback, see "Online learning with feedback graphs: beyond bandits." COLT 2015.
 
-TODO: in active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them, whereas in (regular) bandits the regret grows proportionally to the gap size, which is $n^{1/2}$ in the worst case.
+TODO: in active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them, whereas in (regular) bandits the regret grows proportionally to the gap size, which is $n^{-1/2}$ in the worst case.
 In other words, in (regular) bandit problems it is much cheaper
 to distinguish very close arms.
 
@@ -180,9 +180,11 @@ and can be solved in $\mathcal{O}(n^{2K})$ time steps.
 This is polynomial for constant $K$,
 but completely prohibitive in practice.
 
-DMED seems to achieve the optimal cost-independent regret rate.
+DMED~\citep{Honda10} seems to achieve the optimal cost-independent regret rate.
 
 We are looking for a (heuristic) algorithm that achieves optimal asymptotic regret rate, performs well in practice and has constant or linear time complexity.
+
+TODO: \citet{Bubeck11}
 
 A natural choice would be to take an explore-then-exploit algorithm, such as for \emph{budgeted bandits}~\citep{Madani04}.
 The crucial question is how to decide to stop querying.
