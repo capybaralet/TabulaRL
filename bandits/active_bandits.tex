@@ -21,17 +21,30 @@
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\title{Active Bandits}
+\title{Active Multi-Armed Bandits}
 \author{Jan Leike et al.}
 \date{\today}
 
 \maketitle
 
 
-\begin{abstract}
-Very abstract.
-% introduce active multi-armed bandit Problems
-% interesting sub-problem of the hard classes of partial monitoring
+\begin{abstract}%
+We introduce the \emph{active multi-armed bandit problem},
+a cross-over between multi-armed bandits and active learning.
+% Despite being a slight variation on the simplest reinforcement learning problem,
+% active multi-armed bandits turn out to be quite challenging:
+As a sub-problem of the hard class of partial monitoring problems,
+the problem incurs $\Theta(n^{2/3})$ worst-case regret.
+Moreover,
+the quality of an arm is not independent of the other arms
+and greedy information-gathering strategies perform poorly.
+% Therefore good strategies need to think globally about the problem.
+We compare partial monitoring algorithms on the problem and
+introduce a new algorithm that outperforms them.
+However,
+the central question to solving active multi-armed bandits,
+how to efficiently quantify the long-term value of information,
+remains open.
 \end{abstract}
 
 
@@ -42,26 +55,26 @@ Very abstract.
 The \emph{active multi-armed bandit problem} is
 an online learning problem
 where the learner has to select from $K$ actions (`arms') in every round.
-Choosing action $i$ in round $t$ incurs a payoff
-$r_t$ of drawn from a time-independent distribution with mean $\mu_i$
+Choosing action $I_t$ in round $t$ incurs a payoff
+$X_t$ of drawn from a time-independent distribution $\nu_{I_t}$ with mean $\mu_i$
 unknown to the learner.
 In contrast to the classical multi-armed bandit problem,
 the learner does not observe the payoff
 unless they pay a fixed \emph{query cost $c > 0$}.
-This cost is constant: is the same for every arm and every round.
+This cost is the same for every arm and every round.
 % TODO: cross-over between multi-armed bandits and active learning
 
 Let $\mu^* := \max_i \mu_i$ denote the mean of the best arm.
 The goal of the learner is to maximize expected payoff up to a horizon $n$,
 or, equivalently, to minimize the \emph{expected regret}
 \[
-R_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - r_t - c q_t) \right]
+R_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - X_t - c Q_t) \right],
 \]
-where $q_t$ is $1$ if the learner chooses to observe the reward in round $t$ and $0$ otherwise.
+where $Q_t$ is $1$ if the learner chooses to observe the reward in round $t$ and $0$ otherwise.
 In other words, the expected regret is the expected payoff
 that is lost
 because the learner did not blindly choose the best option in every round.
-% (note that $q_t$ is a random variable).
+% (note that $Q_t$ is a random variable).
 
 \paragraph{Notation.}
 Let $i^* := \argmax_i \mu_i$ be an index of an optimal arm,
@@ -98,32 +111,40 @@ Partial monitoring algorithms are designed for optimal asymptotic regret rate an
 
 TODO: what is the cost-dependent regret rate?
 
-To solve partial monitoring problems
+It is well-known that to solve partial monitoring problems
 it is sometimes necessary to take actions that you strongly believe to be suboptimal to get information.
-In our setting, paying to see the reward is always suboptimal
+For active bandits, paying to see the reward is always suboptimal
 by at least $c > 0$.
 Nevertheless, if we never pay the cost, we learn nothing about the problem.
-Because of this, stategies like optimism or Thompson sampling cannot work for this setting.
+Because of this, stategies like optimism or Thompson sampling cannot work for this problem.
 
 Moreover, there can be no index strategy~\citep[Ex.~4]{Hay12}.
-An index strategy computes an index for each action
-and takes the action with highest index.
-Consider a 3-arm bandit with constant payoffs
-either 1.5 or 1.5 for arm 1 with equal probability,
-either 0.25 or 1.75 for arm 2 with equal probability,
-$\lambda$ for arm 3,
-a horizon of $n = 1000$,
-and a query cost of $c = 200$.
-Which arm is optimal to query first depends on the value of $\lambda$:
+An index strategy computes a number for each action
+and takes the action with highest number.
+This requires that
+the the quality of an action is independent of the alternatives.
+Consider the following 3-armed active bandit problem
+where the decision between arm 1 and arm 2 depends
+on the value of arm 3:
+The arms' payoffs are deterministic but unknown with
+either $-1.5$ or $1.5$ for arm 1 with equal probability,
+either $0.25$ or $1.75$ for arm 2 with equal probability, and
+$\lambda$ for arm 3.
+The horizon is $n = 1000$
+and the query cost is $c = 200$.
 % for $\lambda = 1.31$ observing arm 1 is not worth the investment, but observing arm 2 is worth $n (1.75 - \lambda) \cdot 0.5 - 200 = 40 > 0$.
 % For $\lambda = -10$, observing arm 1 and then blindly switching to arm 2 if the payoff is $-1.5$ yields expected value of $((n-1)1 - 1.5) \cdot 0.5 + n 1.5 \cdot 0.5) - 200 = 1047.5$.
 % Blindly commiting to the second arm has an expected value of $1000$. Observing the second arm and then observing the first arm if the second arm is $0.25$ has an expected value of
 % $(n1.75 - 200) \cdot 0.5 + (0.25 + (n-1)1.5 - 400) \cdot 0.25 + (-1.5 + (n-1)0.25 - 400) \cdot 0.25 = 1011.75$.
 % Hence observing arm 2 is optimal for $\lambda = 1.31$ and observing arm 1 is optimal for $\lambda = -10$.
 % In short:
-if $\lambda$ is high (e.g.\ $1.31$), we want to observe the arm with the high maximum since the other arm has to be suboptimal, and if $\lambda$ is low (e.g.\ $-10$), we want to observe the high variance arm first because in case that arm is bad, we are sure that the high mean arm is better and don't need to observe it.
-Since the decision between arm 1 and arm 2 depends on the value of arm 3,
-there can be no index strategy.
+If $\lambda$ is high (e.g.\ $1.31$),
+we want to observe the arm with the high maximum first
+since the other arm is known to be suboptimal, and
+if $\lambda$ is low (e.g.\ $-10$),
+we want to observe the arm with high variance first
+because in case that arm is bad, we are sure that
+the high mean arm is better and don't need to observe it.
 
 %then observing mu_1 is -0.2 in expectation, but in case the observation is -1.5, it's worth switching to arm 2 and we get an expectation of 1 - 0.2 = 0.8. If the payoff is 1.5, then it's not worth observing/switching to arm 2. So we get 0.8 * 0.5 + 1.3 * 0.5 = 1.05. Blindly commiting to arm 2 is 1. Observing mu_2 = 0.25 leads us to query mu_1 to get 1.5*0.5 + 0.25*0.5 - 2*0.2 = 0.475. Hence pull second first has 1.55*0.5 + 0.475*0.5 = 1.0125.
 % Need n = 1000 and rescale rewards by 0.001 so that the query steps don't matter.
@@ -131,7 +152,7 @@ there can be no index strategy.
 
 
 If we query in every time step, then regret is linear.
-The optimal strategy is to query for the first $Q$ time steps and then stop querying.
+The optimal strategy is to query for the first $q$ time steps and then stop querying.
 If you don't query, then in the next step you face the same information, except that the horizon is now shorter,
 so the value of information can only have diminished.
 
@@ -141,8 +162,11 @@ so the value of information can only have diminished.
 \section{Algorithms}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Bayes-optimal solution can be found with dynamic programming.
-For Bernoulli bandits, the belief MDP has $O(n^{2K})$ states.
+The Bayes-optimal solution to an active multi-armed Bernoulli bandit problem can be found with dynamic programming.
+The corresponding belief MDP has $\mathcal{O}(n^{2K})$ states
+and can be solved in $\mathcal{O}(n^{2K})$ time steps.
+This is polynomial for constant $K$,
+but completely prohibitive in practice.
 
 DMED seems to achieve the optimal cost-independent regret rate.
 
@@ -150,7 +174,7 @@ We are looking for a (heuristic) algorithm that achieves optimal asymptotic regr
 
 A natural choice would be to take an explore-then-exploit algorithm, such as for \emph{budgeted bandits}~\citep{...}.
 The crucial question is how to decide to stop querying.
-In other words, what is the value of information of an additional query?
+In other words, what is the (long-term) value of information of an additional query?
 
 This problem does not have a greedy solution.
 If one additional data point does not change my opinion
@@ -198,7 +222,7 @@ Open questions:
 
 \paragraph{Acknowledgements.}
 Tor Lattimore, Reimar Leike, Ryan Lowe, Jessica Taylor, \dots
-% obviously: Owain + John + David
+% obviously: Owain + John + David (co-authors?)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliography{references}
