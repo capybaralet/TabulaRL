@@ -90,18 +90,30 @@ let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
 The active multi-armed bandit problem is
 a subproblem of the partial monitoring problem~\citep{Piccolboni01}.
 People usually consider the adversarial setting,
-which incurs $0$, $O(\sqrt{n})$, $O(n^{2/3})$, or linear regret~\citep{Antos13}.
+which incurs $0$, $\mathcal{O}(\sqrt{n})$, $\mathcal{O}(n^{2/3})$, or linear regret~\citep{Antos13}.
 Note: partial monitoring in finite! (e.g. Bernoulli bandits)
 Our setting is stochastic~\citep{Komiyama15}.
 % TODO: partial monitoring with graph feedback, see "Online learning with feedback graphs: beyond bandits." COLT 2015.
 
+TODO: in active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them, whereas in (regular) bandits the regret grows proportionally to the gap size, which is $n^{1/2}$ in the worst case.
+In other words, in (regular) bandit problems it is much cheaper
+to distinguish very close arms.
 
 \begin{proposition}[Cost-Independent Regret Bound]
-The worse-case expected regret $R_n \in \Theta(n^{2/3})$
-and the problem-dependent regret bound is $R_n \in \Theta(1/\Delta_{\min}^2)$.
+The worse-case expected regret is $R_n \in \Theta(n^{2/3})$.
+% and the problem-dependent regret bound is $R_n \in \Theta(\sum_{i: \Delta_i > 0} \log(n)/\Delta_i)$.
 \end{proposition}
 \begin{proof}[Proof sketch.]
-TODO
+Consider an active two-armed bandit problem
+where the gap between the arms is $\Delta := n^{-1/3}$.
+Commiting blindly to one of the arms incurs a regret of
+$0.5n \cdot n^{-1/3} \in \Theta(n^{2/3})$.
+Alternatively, to distinguish the arms,
+we need about $\Theta(1/\Delta^2)$ steps.
+In every step we need to pay the cost $c$ to see the payoff,
+which incurs a regret of
+at least $c\Theta(1/\Delta^2) = \Theta(cn^{2/3})$.
+% This also leads to the problem-dependent regret bound of $\Theta(1/\Delta_{\min}^2)$.
 \end{proof}
 
 Notably, to achieve optimal asymptotic regret, you can ignore the query cost since it is constant.
