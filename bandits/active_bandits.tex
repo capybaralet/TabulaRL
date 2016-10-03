@@ -90,7 +90,7 @@ let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
 The active multi-armed bandit problem is
 a subproblem of the partial monitoring problem~\citep{Piccolboni01}.
 People usually consider the adversarial setting,
-which incurs $0$, $\mathcal{O}(\sqrt{n})$, $\mathcal{O}(n^{2/3})$, or linear regret~\citep{Antos13}.
+which incurs $0$, $\mathcal{O}(\sqrt{n})$, $\mathcal{O}(n^{2/3})$, or linear regret in case of two outcomes~\citep{Antos13}.
 Note: partial monitoring in finite! (e.g. Bernoulli bandits)
 Our setting is stochastic~\citep{Komiyama15}.
 % TODO: partial monitoring with graph feedback, see "Online learning with feedback graphs: beyond bandits." COLT 2015.
@@ -122,6 +122,8 @@ the cost-dependent regret.
 Partial monitoring algorithms are designed for optimal asymptotic regret rate and hence do not take the magnitude of the query cost into account.
 
 TODO: what is the cost-dependent regret rate?
+
+TODO: there is a trade-off between simple regret and cumulative regret~\citep[Thm.~1]{Bubeck11}. In the limit case where $c = 0$ we care about the cumulative regret, and in the other extreme where $c >> X_t$ we care (mostly) about the simple regret.
 
 It is well-known that to solve partial monitoring problems
 it is sometimes necessary to take actions that you strongly believe to be suboptimal to get information.
@@ -196,6 +198,9 @@ which arm I currently consider to be best,
 then a greedy strategy considers the value of information to be zero and stop querying prematurely.
 Therefore we have to take into account the long-range effects of querying for multiple time steps.
 % TODO: tricky because the posterior is nonstationary.
+
+TODO: knowledge gradient
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
