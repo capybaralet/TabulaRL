@@ -106,6 +106,11 @@ function [j query] = Arm1Policy(T, s, n, t)
     query = false;
 end
 
+function j = RoundRobinPolicy(T, s, n, t)
+    % policy that alternates between all arms
+    j = mod(t, length(T)) + 1;
+end
+
 function [j query] = activeBanditPolicy1(T, s, n, t, cost, c = 1/2)
 	% shitty heuristic
 	k = length(T); % number of arms
@@ -359,7 +364,7 @@ function s = querySteps3(T, s)
     % explicit calculation
     % note: this code is horribly inefficient, but that should't matter ^_^
     k = length(T);
-    mu_hats = (s + 1) ./ (T + 2)
+    mu_hats = (s + 1) ./ (T + 2);
     [m j] = max(mu_hats);
     [_ i] = min((m - mu_hats)([(1:(j-1)) ((j+1):k)]));
     i += (i >= j);
@@ -370,7 +375,7 @@ function s = querySteps3(T, s)
     xj = repmat(0:z, z+1, 1)';
     xj2 = xj .^ 2;
     % compute the full matrix of possibilities
-    M = (s(i) + xi + 2*xi2*mu_hats(i) + 1) ./ (T(i) + 2*xi2 + 2) - (s(j) - xj + 2*xj2*mu_hats(j) + 1) ./ (T(j) + 2*xj2 + 2)
+    M = (s(i) + xi + 2*xi2*mu_hats(i) + 1) ./ (T(i) + 2*xi2 + 2) - (s(j) - xj + 2*xj2*mu_hats(j) + 1) ./ (T(j) + 2*xj2 + 2);
     for x = 1:z+1
         if any(M(x, 1:x) > 0)
             y = find(M(x, 1:x) > 0)(1);
@@ -381,7 +386,7 @@ function s = querySteps3(T, s)
     s = inf;
 end
 
-function [j query] = parameterizedRegretQuery(T, s, n, t, cost, alpha = 0.45)
+function [j query] = parameterizedRegretQuery(T, s, n, t, cost, alpha = 0.35)
     % variant on DMEDPolicy that stops when
     % cost to move posterior < alpha * expected regret
     % with parameter alpha \in (0, 1)
@@ -397,11 +402,12 @@ function [j query] = parameterizedRegretQuery(T, s, n, t, cost, alpha = 0.45)
     %[t query_steps minExpectedRegret(T, s, n, t)]
     query = cost * query_steps < alpha * minExpectedRegret(T, s, n, t);
     if query
-        % Run DMED
-        Jprime = (T .* (m - mu_hats) <= log(n) - log(T));
-        arms = (1:k)(Jprime);
-        %j = arms(mod(t, length(arms)) + 1);
-        j = arms(1 + floor(length(arms) * rand()));
+        j = OCUCBPolicy(T, s, n, t);
+        % % Run DMED
+        % Jprime = (T .* (m - mu_hats) <= log(n) - log(T));
+        % arms = (1:k)(Jprime);
+        % %j = arms(mod(t, length(arms)) + 1);
+        % j = arms(1 + floor(length(arms) * rand()));
     else
         j = best_arm;
     end
@@ -446,9 +452,9 @@ function cregret = playBernoulli(mu, n, policy, cost)
     query = true;
     for t = 1:n
         old_query = query;
-        mu_hats = (s + 1) ./ (T + 2);
-        [m j] = max(mu_hats);
-        if mod(t, 5) == 0
+#        mu_hats = (s + 1) ./ (T + 2);
+#        [m j] = max(mu_hats);
+#        if mod(t, 5) == 0
 #		    [m best_arm] = max(mu_hats);
 #		    mu_hats
 #			[min_gap_steps i] = min((T .* (m - mu_hats))([(1:(j-1)) ((j+1):k)]));
@@ -461,12 +467,12 @@ function cregret = playBernoulli(mu, n, policy, cost)
 #			end
 #			regret_after = minExpectedRegret(T + min_gap_steps^2 * e_i, s + need_successes * e_i, n, t + min_gap_steps^2);
 #            display([t (2*(cost * min_gap_steps^2) + regret_after) minExpectedRegret(T, s, n, t)]);
-            fflush(stdout);
-        end
-        if t == 70
-            [T s]
-            break;
-        end
+#            fflush(stdout);
+#        end
+#        if t == 70
+#            [T s]
+#            break;
+#        end
 #        if mod(t, 10) == 0
 #            display([t (EP(T, s) - minNextEP(T, s))*(n - t)]);
 #            fflush(stdout);

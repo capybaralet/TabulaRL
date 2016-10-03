@@ -21,6 +21,10 @@ load('regret_dmedstop.mat');
 regret_dmed = regret;
 load('regret_paramRegret35.mat');
 regret_paramRegret = regret;
+load('regret_paramRegretRR35.mat');
+regret_paramRegretRR = regret;
+load('regret_paramRegretOCUCB35.mat');
+regret_paramRegretOCUCB = regret;
 
 
 plot(0:n, [0 mean(regret_policy1)], '-',
@@ -31,7 +35,9 @@ plot(0:n, [0 mean(regret_policy1)], '-',
      0:n, [0 mean(regret_expquery)], '-',
      0:n, [0 mean(regret_ocucb)], '-',
 %     0:n, [0 mean(regret_dmed)], '-',
-     0:n, [0 mean(regret_paramRegret)], '-');
+     0:n, [0 mean(regret_paramRegret)], '-',
+     0:n, [0 mean(regret_paramRegretRR)], '-',
+     0:n, [0 mean(regret_paramRegretOCUCB)], '-');
 %ylim([0 200]);
 legend(sprintf('Policy1, N=%d', size(regret_policy1)(1)),
        sprintf('Policy2, N=%d', size(regret_policy2)(1)),
@@ -42,6 +48,8 @@ legend(sprintf('Policy1, N=%d', size(regret_policy1)(1)),
        sprintf('OCUCB (cost=0), N=%d', size(regret_ocucb)(1)),
 %       sprintf('DMED with cost, N=%d', size(regret_dmed)(1)),
        sprintf('parameterized Regret, alpha=0.35, N=%d', size(regret_paramRegret)(1)),
+       sprintf('parameterized Regret + RR, alpha=0.35, N=%d', size(regret_paramRegretRR)(1)),
+       sprintf('parameterized Regret + OCUCB, alpha=0.35, N=%d', size(regret_paramRegretOCUCB)(1)),
        'location', 'north');
 xlabel('time step');
 ylabel('average cumulative regret');
