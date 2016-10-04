@@ -18,6 +18,34 @@ import numpy as np
 from scipy.stats import beta
 
 
+class Bandit(object):
+    """
+    Bernoulli bandit problem
+
+    mus: list of Bernoulli parameters
+    n: horizon
+    policy: the policy to use
+    cost: the query cost
+    """
+
+    def __init__(self, mus, n, cost):
+        self.mus = mus
+        self.n = n
+        self.cost = cost
+
+    def num_arms(self):
+        return len(self.mus)
+
+    def best_mu(self):
+        return max(self.mus)
+
+    def best_arm(self):
+        return np.argmax(self.mus)
+
+    def pull_arm(self, j):
+        return int(self.mus[j] > random.random())
+
+
 def bestArm(T, s):
     """Return the best arm (greedy policy)"""
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
@@ -137,7 +165,7 @@ def expectedRegret(T, s, n, t, arm, tol=1e-3):
         """integrant for E [ theta_j - theta_arm | j is best arm ]"""
         assert j != arm
         y = x * beta.cdf(x, a[arm], b[arm])
-        y -= beta.expect(lambda z: z, (a[arm], b[arm]), lb=0, ub=x)
+        y -= beta.expect(lambda z: z, (a[arm], b[arm]), lb=0, ub=x, epsabs=tol)
         for s in range(k):
             if s != arm and s != j:
                 y *= beta.cdf(x, a[s], b[s])
@@ -146,7 +174,7 @@ def expectedRegret(T, s, n, t, arm, tol=1e-3):
     x = 0
     for j in range(k):
         if j != arm:
-            x += beta.expect(lambda z: f(z, j), (a[j], b[j]))
+            x += beta.expect(lambda z: f(z, j), (a[j], b[j]), epsabs=tol)
     return x * (n - t)
 
 
@@ -161,7 +189,7 @@ def probBestArm(T, s, arm, tol=1e-3):
         for i in range(k):
             if s != arm:
                 y *= beta.cdf(x, a[i], b[i])
-    return beta.expect(f, (a[arm], b[arm]))
+    return beta.expect(f, (a[arm], b[arm]), epsabs=tol)
 
 
 def minExpectedRegret(T, s, n, t, tol=1e-3):
@@ -248,14 +276,15 @@ def querySteps3(T, s):
     j = np.argmax(mu_hats_)
     del mu_hats_[j]
     i = np.argmax(mu_hats_)
+    mu_hats_ = mu_hats(T, s)
     i += 1 if i >= j else 0
     assert i != j
     z = int(ceil(sqrt(2*(min(T[i], T[j]) + 2))))  # upper bound
     l = [(xi, xj) for xi in range(z + 1) for xj in range(z + 1)]
     l.sort(key=lambda (xi, xj): xi**2 + xj**2)
     for (xi, xj) in l:
-        if mu_hats(T[i] + 2*xi**2, s[i] + xi + 2*xi**2*mu_hats[i]) >= \
-           mu_hats(T[j] + 2*xj**2, s[j] - xj + 2*xj**2*mu_hats[j]):
+        if mu_hats(T[i] + 2*xi**2, s[i] + xi + 2*xi**2*mu_hats_[i]) >= \
+           mu_hats(T[j] + 2*xj**2, s[j] - xj + 2*xj**2*mu_hats_[j]):
             return 2*(xi**2 + xj**2)
     return float('inf')
 
@@ -295,41 +324,44 @@ def parameterizedRegretQuery(T, s, n, t, cost, banditpolicy=DMED, alpha=0.35):
         return best_arm, False
 
 
-def playBernoulli(mu, n, cost, policy, args):
-    """Play a game of bernoulli arms
-
-    mu: list of Bernoulli parameters
-    n: horizon
-    policy: the policy to use
-    cost: the query cost
-    """
-    k = len(mu)  # number of arms
+def playBernoulli(bandit, policy, assume_commitment=True, **kwargs):
+    """Play a game of bernoulli arms"""
+    k = bandit.num_arms()
     T = [0]*k  # number of times pulled each arm
     s = [0]*k  # number of successes on each arm
     regret = 0  # cumulative undiscounted regret
     cregret = [0]
-    mu_best = max(mu)
     query = True
-    for t in range(n):
+    last_query_step = 0
+    for t in range(bandit.n):
         old_query = query
-        j, query = policy(T, s, n, t, cost, *args)
-
-        # Pull arm j
-        r = int(mu[j] > random.random())  # reward = 0 or 1
+        j, query = policy(T, s, bandit.n, t, bandit.cost, **kwargs)
+        r = bandit.pull_arm(j)
         if query:
             T[j] += 1
             s[j] += r
-            regret += cost
+            regret += bandit.cost
+            last_query_step = t
         elif old_query:
             print('stopping at t = %d. Commited to arm %d' % (t, j + 1))
-        regret += mu_best - mu[j]
+            if assume_commitment:
+                d = bandit.best_mu() - bandit.mus[j]
+                cregret.extend([regret + d*i
+                                for i in range(1, bandit.n - t + 1)])
+                regret += d*(bandit.n - t)
+                break
+        regret += bandit.best_mu() - bandit.mus[j]
         cregret.append(regret)
     print('regret = %.2f' % regret)
-    return cregret
+    return {'cregret': cregret, 'last query step': last_query_step}
 
 
-def runExperiment(mu, n, cost, policy, N, args):
-    cregrets = []
+def runExperiment(mus, n, cost, policy, N, **kwargs):
+    bandit = Bandit(mus, n, cost)
+    results = []
     for i in range(N):
-        cregrets.append(playBernoulli(mu, n, cost, policy, args))
-    return cregrets
+        results.append(playBernoulli(bandit, policy, True, **kwargs))
+    return bandit, results
+
+
+example = Bandit([0.6, 0.5, 0.4, 0.4], 10000, 2)
