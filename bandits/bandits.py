@@ -275,7 +275,7 @@ def querySteps4(T, s):
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
     m = max(mu_hats)
     j = np.argmax(mu_hats)
-    gap_steps = np.add(T, 1) * (m - mu_hats)
+    gap_steps = np.add(T, 1) * np.subtract(m, mu_hats)
     del list(gap_steps)[j]
     return max(1, ceil(2*min(gap_steps)**2))
 
@@ -366,7 +366,7 @@ def knowledgeGradient(T, s, n, t, queries, arm):
         return x*norm.cdf(x) + norm.pdf(x)
 
     return (std_cond_change(queries, arm) *
-            f((mu_hats[arm] - m) / std_cond_change(queries, arm)) * (n - t))
+            f((mu_hats[arm] - m) / std_cond_change(queries, arm)))
 
 
 def knowledgeGradientPolicy(T, s, n, t, cost):
@@ -378,7 +378,7 @@ def knowledgeGradientPolicy(T, s, n, t, cost):
     j = None
     for i in range(k):
         if i != np.argmax(mu_hats):
-            m_ = max([knowledgeGradient(T, s, n, t, l, i) - cost*l
+            m_ = max([knowledgeGradient(T, s, n, t, l, i) * (n - t) - cost*l
                       for l in range(floor(sqrt(n)))])
             if m_ > m:
                 m = m_
