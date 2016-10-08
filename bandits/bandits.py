@@ -13,9 +13,9 @@ t: current time step
 """
 
 import random
-from math import sqrt, ceil
+from math import sqrt, ceil, floor
 import numpy as np
-from scipy.stats import beta
+from scipy.stats import beta, norm
 
 
 class Bandit(object):
@@ -44,6 +44,15 @@ class Bandit(object):
 
     def pull_arm(self, j):
         return int(self.mus[j] > random.random())
+
+    def __str__(self):
+        return ("{1}-armed active Bernoulli bandit " +
+                "with means {0.mus}, horizon {0.n}, and cost {0.cost}").format(
+                    self, self.num_arms())
+
+    def __eq__(self, other):
+        return self.mus == other.mus and self.n == other.n and \
+               self.cost == other.cost
 
 
 def bestArm(T, s):
@@ -109,6 +118,8 @@ def Arm1Policy(T, s, n, t, cost=0):
 def RoundRobinPolicy(T, s, n, t, cost=0):
     """policy that alternates between all arms"""
     return t % len(T)
+
+# The following two policies are both shit
 
 # function [j query] = activeBanditPolicy1(T, s, n, t, cost, c = 1/2)
 # 	% shitty heuristic
@@ -216,16 +227,6 @@ def DMEDPolicy(T, s, n, t, cost):
     return random.choice(arms), len(arms) > 1
 
 
-# def nonlinearSequentialElim(T, s, n, t, cost, p = 1.5):
-#     # From https://arxiv.org/abs/1609.02606
-#     assert p > 0
-#     k = len(T)
-#     budget = n**(2/3.)
-#     C_p = sum([float(x)**(-p) for x in [2] + range(2, k + 1)])
-#     n = ceil((budget - k) / C_p * (k - (0:(k-2))) .^ (-p));
-#     # ...
-
-
 def FixedQueryPolicy(T, s, n, t, cost, query_for=float('inf'),
                      alg=OCUCBPolicy):
     """use standard bandit algorithm and query the query_for steps"""
@@ -252,16 +253,31 @@ def ExpQueryPolicy(T, s, n, t, cost, alg=OCUCBPolicy):
     else:
         return j, True
 
-# function s = querySteps(T, s)
-#     % the number of steps you expect to need to
-#     % bring the two arms with the highest means together
-#     % (crude heuristic)
-#     k = length(T);
-#     mu_hats = (s + 1) ./ (T + 2);
-#     [m j] = max(mu_hats);
-#     min_gap_steps = min(((T + 1) .* (m - mu_hats))([(1:(j-1)) ((j+1):k)]));
-#     s = 2*ceil(min_gap_steps + 0.01)^2;
-# end
+
+def querySteps(T, s):
+    """
+    the number of steps you expect to need to
+    bring the two arms with the highest means together
+    """
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = max(mu_hats)
+    j = np.argmax(mu_hats)
+    gap_steps = np.add(T, 1).multiply(m - mu_hats)
+    del list(gap_steps)[j]
+    return 2*ceil(min(gap_steps) + 0.01)**2
+
+
+def querySteps4(T, s):
+    """
+    the number of steps you expect to need to
+    bring the two arms with the highest means together
+    """
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = max(mu_hats)
+    j = np.argmax(mu_hats)
+    gap_steps = np.add(T, 1) * (m - mu_hats)
+    del list(gap_steps)[j]
+    return max(1, ceil(2*min(gap_steps)**2))
 
 
 def querySteps3(T, s):
@@ -281,7 +297,7 @@ def querySteps3(T, s):
     assert i != j
     z = int(ceil(sqrt(2*(min(T[i], T[j]) + 2))))  # upper bound
     l = [(xi, xj) for xi in range(z + 1) for xj in range(z + 1)]
-    l.sort(key=lambda (xi, xj): xi**2 + xj**2)
+    l.sort(key=lambda x: x[1]**2 + x[2]**2)
     for (xi, xj) in l:
         if mu_hats(T[i] + 2*xi**2, s[i] + xi + 2*xi**2*mu_hats_[i]) >= \
            mu_hats(T[j] + 2*xj**2, s[j] - xj + 2*xj**2*mu_hats_[j]):
@@ -313,7 +329,7 @@ def parameterizedRegretQuery(T, s, n, t, cost, banditpolicy=DMED, alpha=0.35):
     """
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
     best_arm = np.argmax(mu_hats)
-    query_steps = querySteps3(T, s)
+    query_steps = querySteps4(T, s)
     if t + query_steps >= n:
         # instant commitment because the time frame is too long
         return best_arm, False
@@ -322,6 +338,55 @@ def parameterizedRegretQuery(T, s, n, t, cost, banditpolicy=DMED, alpha=0.35):
         return banditpolicy(T, s, n, t), True
     else:
         return best_arm, False
+
+
+def minGap(T, s):
+    """Return the minimal gap between two distince arms"""
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = max(mu_hats)
+    j = np.argmax(mu_hats)
+    del mu_hats[j]
+    return m - max(mu_hats)
+
+
+def knowledgeGradient(T, s, n, t, queries, arm):
+    """Estimate the knowledge gradient"""
+    if queries == 0:
+        return 0
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = max(mu_hats)
+    var_post = (np.add(s, 1) * np.add(np.subtract(T, s), 1)) / \
+               (np.add(T, 2)**2 * np.add(T, 3))
+    var_data = mu_hats * np.subtract(1, mu_hats)
+
+    def std_cond_change(l, i):
+        return sqrt(var_post[i] - 1/(1/var_post[i] + l/var_data[i]))
+
+    def f(x):
+        return x*norm.cdf(x) + norm.pdf(x)
+
+    return (std_cond_change(queries, arm) *
+            f((mu_hats[arm] - m) / std_cond_change(queries, arm)) * (n - t))
+
+
+def knowledgeGradientPolicy(T, s, n, t, cost):
+    """See Section 5.2 in Warren Powell and Ilya Ryzhov.
+    Optimal Learning. John Wiley & Sons, 2012."""
+    k = len(T)
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = 0
+    j = None
+    for i in range(k):
+        if i != np.argmax(mu_hats):
+            m_ = max([knowledgeGradient(T, s, n, t, l, i) - cost*l
+                      for l in range(floor(sqrt(n)))])
+            if m_ > m:
+                m = m_
+                j = i
+    if m > 0 and j is not None:
+        return j, True
+    else:
+        return bestArm(T, s), False
 
 
 def playBernoulli(bandit, policy, assume_commitment=True, **kwargs):
@@ -361,7 +426,7 @@ def runExperiment(mus, n, cost, policy, N, **kwargs):
     results = []
     for i in range(N):
         results.append(playBernoulli(bandit, policy, True, **kwargs))
-    return bandit, results
+    return bandit, policy, results
 
 
 example = Bandit([0.6, 0.5, 0.4, 0.4], 10000, 2)
