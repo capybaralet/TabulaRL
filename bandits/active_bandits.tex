@@ -23,6 +23,7 @@
 
 \title{Active Multi-Armed Bandits}
 \author{Jan Leike et al.}
+% + Owain Evans + David Kruger + John Salvatier
 \date{\today}
 
 \maketitle
@@ -31,6 +32,7 @@
 \begin{abstract}%
 We introduce the \emph{active multi-armed bandit problem},
 a cross-over between multi-armed bandits and active learning.
+%~\citep{Settles:2010}.
 % Despite being a slight variation on the simplest reinforcement learning problem,
 % active multi-armed bandits turn out to be quite challenging:
 As a sub-problem of the hard class of partial monitoring problems,
@@ -48,24 +50,27 @@ remains open.
 \end{abstract}
 
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Problem Formulation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%\paragraph{Setup.}
 The \emph{active multi-armed bandit problem} is
 an online learning problem
 where the learner has to select from $K$ actions (`arms') in every round.
-Choosing action $I_t$ in round $t$ incurs a payoff
-$X_t$ of drawn from a time-independent distribution $\nu_{I_t}$ with mean $\mu_i$
-unknown to the learner.
+Choosing action $I_t \in \{ 1, \ldots, K \}$ in round $t$
+incurs a payoff $X_t$ of
+drawn from a time-independent distribution $\nu_{I_t}$
+with mean $\mu_i$ unknown to the learner.
 In contrast to the classical multi-armed bandit problem,
 the learner does not observe the payoff
 unless they pay a fixed \emph{query cost $c > 0$}.
 This cost is the same for every arm and every round.
-% TODO: cross-over between multi-armed bandits and active learning
 
+%\paragraph{Objective.}
 Let $\mu^* := \max_i \mu_i$ denote the mean of the best arm.
-The goal of the learner is to maximize expected payoff up to a horizon $n$,
+The goal of the learner is to maximize expected payoff up to a known horizon $n$,
 or, equivalently, to minimize the \emph{expected regret}
 \[
 R_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - X_t - c Q_t) \right],
@@ -76,10 +81,10 @@ that is lost
 because the learner did not blindly choose the best option in every round.
 % (note that $Q_t$ is a random variable).
 
-\paragraph{Notation.}
-Let $i^* := \argmax_i \mu_i$ be an index of an optimal arm,
-let $\Delta_i := \mu^* - \mu_i$, and
-let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
+% \paragraph{Notation.}
+% Let $i^* := \argmax_i \mu_i$ be an index of an optimal arm,
+% let $\Delta_i := \mu^* - \mu_i$, and
+% let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
 
 
 
@@ -87,20 +92,28 @@ let $\Delta_{\min} := \min_{i \neq i^*} \Delta_i$.
 \section{Properties}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%\paragraph{Partial monitoring.}
 The active multi-armed bandit problem is
 a subproblem of the partial monitoring problem~\citep{Piccolboni01}.
-People usually consider the adversarial setting,
-which incurs $0$, $\mathcal{O}(\sqrt{n})$, $\mathcal{O}(n^{2/3})$, or linear regret in case of two outcomes~\citep{Antos13}.
-Note: partial monitoring in finite! (e.g. Bernoulli bandits)
-Our setting is stochastic~\citep{Komiyama15}.
+In contrast to most of the literature on partial monitoring,
+we consider the environment to be stochastic (not adversarial).
+For distributions with finitely many payoffs (such as Bernoulli distributions),
+active multi-armed bandits are
+stochastic finite partial monitoring problems~\citep{Komiyama15}.
+In case of two outcomes,
+(adversarial) partial monitoring problems can be classified in four different
+categories: $0$, $\Theta(n^{1/2})$, $\Theta(n^{2/3})$, or $\Theta(n)$ regret~\citep{Antos13}.
+These categories are called trivial, easy, hard, and hopeless respectively.
+While multi-armed bandits fall into the easy category,
+\emph{active} multi-armed bandits fall into the hard category:
+
 % TODO: partial monitoring with graph feedback, see "Online learning with feedback graphs: beyond bandits." COLT 2015.
 
-TODO: in active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them, whereas in (regular) bandits the regret grows proportionally to the gap size, which is $n^{-1/2}$ in the worst case.
-In other words, in (regular) bandit problems it is much cheaper
-to distinguish very close arms.
-
 \begin{proposition}[Cost-Independent Regret Bound]
-The worse-case expected regret is $R_n \in \Theta(n^{2/3})$.
+The worse-case expected regret is
+\[
+\inf_\pi \sup_{\mu_1, \ldots, \mu_K} R_n \in \Theta(n^{2/3}).
+\]
 % and the problem-dependent regret bound is $R_n \in \Theta(\sum_{i: \Delta_i > 0} \log(n)/\Delta_i)$.
 \end{proposition}
 \begin{proof}[Proof sketch.]
@@ -109,34 +122,73 @@ where the gap between the arms is $\Delta := n^{-1/3}$.
 Commiting blindly to one of the arms incurs a regret of
 $0.5n \cdot n^{-1/3} \in \Theta(n^{2/3})$.
 Alternatively, to distinguish the arms,
-we need about $\Theta(1/\Delta^2)$ steps.
+we need $\Theta(1/\Delta^2)$ steps.
 In every step we need to pay the cost $c$ to see the payoff,
 which incurs a regret of
 at least $c\Theta(1/\Delta^2) = \Theta(cn^{2/3})$.
 % This also leads to the problem-dependent regret bound of $\Theta(1/\Delta_{\min}^2)$.
 \end{proof}
 
-Notably, to achieve optimal asymptotic regret, you can ignore the query cost since it is constant.
-We are particularly interested in optimizing
+%\paragraph{Active bandits vs.\ regular bandits.}
+Intuitively, the fundamental difference to (regular) multi-armed bandit problems is in the cost of distinguishing two very close arms.
+In active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them ($n^{2/3}$ in the worst case), whereas in (regular) bandits the regret grows proportionally to the gap size ($n^{1/2}$ in the worst case).
+
+%\paragraph{Cost-dependent regret.}
+To achieve optimal asymptotic regret, we can ignore the magnitude of the query cost, since it is constant.
+Partial monitoring algorithms are designed for optimal asymptotic regret rate and do not take the magnitude of the query cost into account.
+Here we are particularly interested in optimizing
 the cost-dependent regret.
-Partial monitoring algorithms are designed for optimal asymptotic regret rate and hence do not take the magnitude of the query cost into account.
 
-TODO: what is the cost-dependent regret rate?
+%\paragraph{Regular bandits as edge cases.}
+Active multi-armed bandit problems degenerate into two familiar problems in the edge cases.
+If $c = 0$ we face a regular bandit problem and the regret $R_n$ corresponds to the cumulative regret.
+If $c \gg X_t$,
+then $R_n$ is dominated by the simple regret
+(the gap of the chosen arm) and
+we have a best arm identification problem.
+But there is a trade-off between
+simple regret and cumulative regret~\citep[Thm.~1]{Bubeck11}:
+if the cumulative regret is small,
+then there is a lower bound on the simple regret.
+Any algorithm for a moderate cost setting therefore
+has to manage the balancing act between cumulative and simple regret.
 
-TODO: there is a trade-off between simple regret and cumulative regret~\citep[Thm.~1]{Bubeck11}. In the limit case where $c = 0$ we care about the cumulative regret, and in the other extreme where $c >> X_t$ we care (mostly) about the simple regret.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Algorithms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\paragraph{Our goal.}
+For finite sets of payoffs,
+PM-DMED achieves the optimal cost-independent regret rate~\citep{Komiyama15}.
+We are looking for a (heuristic) algorithm that achieves optimal asymptotic (cost-dependent) regret rate,
+performs well in practice and has constant or linear time complexity.
+Ideally the algorithm's performance does not degrade at the edge cases with $c = 0$ and $c \gg X_t$.
+
+%\paragraph{Bayes-optimal solution for Bernoullis.}
+If $\nu_1, \ldots \nu_K$ are Bernoulli distributions,
+then the Bayes-optimal solution
+can be found with dynamic programming:
+The corresponding belief MDP has $\mathcal{O}(n^{2K})$ states
+and can be solved in $\mathcal{O}(n^{2K})$ time steps.
+This is polynomial for constant $K$,
+but completely prohibitive in practice.
+
+%\paragraph{Optimism cannot work.}
 It is well-known that to solve partial monitoring problems
 it is sometimes necessary to take actions that you strongly believe to be suboptimal to get information.
 For active bandits, paying to see the reward is always suboptimal
 by at least $c > 0$.
 Nevertheless, if we never pay the cost, we learn nothing about the problem.
-Because of this, stategies like optimism or Thompson sampling cannot work for this problem.
+Because of this, stategies like optimism or Thompson sampling cannot work here.
 
+%\paragraph{No index strategy.}
 Moreover, there can be no index strategy~\citep[Ex.~4]{Hay12}.
-An index strategy computes a number for each action
+An index strategy computes for each arm
+a number that is independent of the other arms
 and takes the action with highest number.
-This requires that
-the the quality of an action is independent of the alternatives.
+% This requires that
+% the the quality of an action is independent of the alternatives.
 Consider the following 3-armed active bandit problem
 where the decision between arm 1 and arm 2 depends
 on the value of arm 3:
@@ -164,42 +216,42 @@ the high mean arm is better and don't need to observe it.
 % Need n = 1000 and rescale rewards by 0.001 so that the query steps don't matter.
 % In short: if lambda is high, observe the high max arm, and if lambda is low, observe the high variance arm first (because if it's bad, you don't need to observe the other one, just commit to it).
 
-
+%\paragraph{Query and then stop.}
 If we query in every time step, then regret is linear.
-The optimal strategy is to query for the first $q$ time steps and then stop querying.
+The optimal strategy is to query for a number of time steps and then stop querying altogether.
 If you don't query, then in the next step you face the same information, except that the horizon is now shorter,
 so the value of information can only have diminished.
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Algorithms}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-The Bayes-optimal solution to an active multi-armed Bernoulli bandit problem can be found with dynamic programming.
-The corresponding belief MDP has $\mathcal{O}(n^{2K})$ states
-and can be solved in $\mathcal{O}(n^{2K})$ time steps.
-This is polynomial for constant $K$,
-but completely prohibitive in practice.
-
-DMED~\citep{Honda10} seems to achieve the optimal cost-independent regret rate.
-
-We are looking for a (heuristic) algorithm that achieves optimal asymptotic regret rate, performs well in practice and has constant or linear time complexity.
-
-TODO: \citet{Bubeck11}
-
-A natural choice would be to take an explore-then-exploit algorithm, such as for \emph{budgeted bandits}~\citep{Madani04}.
+Therefore
+a natural choice is an explore-then-exploit algorithm,
+like for \emph{budgeted bandits}~\citep{Madani04}.
 The crucial question is how to decide to stop querying.
 In other words, what is the (long-term) value of information of an additional query?
 
-This problem does not have a greedy solution.
-If one additional data point does not change my opinion
-which arm I currently consider to be best,
-then a greedy strategy considers the value of information to be zero and stop querying prematurely.
-Therefore we have to take into account the long-range effects of querying for multiple time steps.
-% TODO: tricky because the posterior is nonstationary.
+%\paragraph{Knowledge gradients}
+If $\nu_1, \ldots \nu_K$ are Gaussian distributions,
+then we can estimate the value of paying the query cost using
+a knowledge gradient~\citep[Ch.~5]{PowellRyzhov12}.
+Also \citet{Frazier08}.
 
-TODO: knowledge gradient
+% KG is optimal when N = 1. We will show that KG
+% is optimal in two other special cases: first, when there are only two alternatives to
+% measure; second, when the measurements are free from noise, (σ ε ) 2 = 0, and when
+% the parameters of the time 0 prior can be ordered by μ 01 ≥ μ 02 ≥ . . . ≥ μ 0 M and
+% 0 ≥ σ 0 ≥ . . . ≥ σ 0
+% σ 11
+% 22
+% M M
+
+% Wang et al.: The Knowledge Gradient for Sequential Decision Making with Stochastic Binary Feedbacks. Does knowledge gradient for sorta-linear bandits but with binary feedback
+
+%\paragraph{Bernoulli has no greedy solution.}
+In Bernoulli bandits, this problem does not have a greedy solution:
+Usually one additional data point does not change our opinion
+which arm we currently consider to be best.
+So a greedy strategy considers the value of information to be zero and stops querying prematurely.
+Therefore we have to take into account the long-range effects of querying for multiple time steps.
+As far as we know, how to efficiently compute the knowledge gradient in this setting is still an open question.
+% TODO: tricky because the posterior is nonstationary.
 
 
 
@@ -207,13 +259,16 @@ TODO: knowledge gradient
 \section{Experiments}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\iffalse
-Algorithms:
-* vanilla DMED (with commitment when 1 arm is selected?)
-* partial monitoring algorithm (?)
-* optimal stopping time (optimized problem-dependent)
-* heuristic (with optimized alpha)
+Our algorithms:
+\begin{itemize}
+\item DMED~\citep{Honda10} with commitment when 1 arm is selected
+\item PM-DMED~\citep{Komiyama15}
+\item optimal fixed query stopping time (optimized problem-dependent)
+\item parameterized regret query (optimized $\alpha$ problem-dependent)
+\item knowledge gradient
+\end{itemize}
 
+\iffalse
 Problems:
 * medium query cost c = 2 (>> gap)
   * horizon n = 10k vs gap 0.1 (< n^2/3)
@@ -226,7 +281,48 @@ Problems:
 * low query cost c = 0.01 (c << gap)
   * horizon n = 10k vs gap 0.1 (should almost always find the best arm)
   * horizon n = 200 vs gap 0.1 (query all the way?)
+
+Also: plot regret vs different query stopping times and different alpha
 \fi
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Parameterized Regret Query}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Let $\hat{n}$ be an estimate of the expected number of time steps
+we need to query in succession to move the posterior mean of the second best arm to the posterior mean of the best arm
+(we use $\hat{n} := \max\{ 1, \lceil 2\min_i \hat{\Delta}_i^2 \rceil \}$).
+Let $\hat{R}_n(i)$ denote the Bayes-expected regret
+when commiting to arm $i$ now (never querying again) and
+let $\hat{i}$ denote the current estimate of the best arm.
+
+The algorithm pays the query cost iff
+\begin{equation}\label{eq:PRQ-criterion}
+c\hat{n} < \alpha \hat{R}_n(\hat{i})
+\end{equation}
+where $\alpha \in (0, 1)$ is a hyperparameter.
+If \eqref{eq:PRQ-criterion} holds,
+then the action is selected by some standard bandit algorithm,
+such as DMED~\citep{Honda10}.
+If \eqref{eq:PRQ-criterion} does not hold,
+then the algorithm commits to the current best arm for the remaining time steps without paying the query cost.
+
+After moving the posterior,
+the expected regret is still nonzero.
+therefore $c\hat{n}$ underestimates the regret
+of querying for $\hat{n}$ steps,
+therefore $\alpha \leq 1$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Knowledge Gradient}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+See \citet[Sec.~5.2]{PowellRyzhov12}.
+
+% Conditional change 
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -245,7 +341,6 @@ Open questions/problems:
 
 \paragraph{Acknowledgements.}
 Tor Lattimore, Reimar Leike, Ryan Lowe, Jessica Taylor, \dots
-% obviously: Owain + John + David (co-authors?)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliography{references}
