@@ -25,7 +25,7 @@ import argparse
 parser = argparse.ArgumentParser()
 #parser.add_argument('--log_n_max', type=int, default=10)
 log_n_max=10
-parser.add_argument('--log_num_episodes', type=int, default=4)
+parser.add_argument('--log_num_episodes', type=int, default=6)
 num_env_samples=1
 parser.add_argument('--num_exps', type=int, default=1)
 parser.add_argument('--update_freq', type=int, default=1)
@@ -99,6 +99,16 @@ elif enviro.startswith('longY'):
     reward_means[-1] = 1
     envv = gridworld.make_longY(nState, epLen, 
                                  rewards=gridworld.make_sa_rewards(reward_means, actions=range(2)), reward_noise=reward_noise)
+elif enviro.startswith('random'): # TODO
+    nState = int(enviro.split('_')[1])
+    num_next_states = int(enviro.split('_')[2])
+    epLen = nState - 1
+    reward_means = np.random.randn(nState)
+    R = gridworld.make_sa_rewards(reward_means, actions=range(2))
+    R = { k: (v, reward_noise) for k,v in R.iteritems() }
+    P = gridworld.make_random_P(nState, num_next_states)
+    envv = gridworld.make_mdp(nState, nAction=2, epLen=epLen, 
+                              R=R, P=P)#, reward_noise=reward_noise)
 else:
     assert False
 f_ext = FeatureTrueState(envv.epLen, envv.nState, envv.nAction, envv.nState)

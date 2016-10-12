@@ -123,6 +123,27 @@ def make_longY(nState, epLen, rewards, reward_noise=1):
     mdp.transition = transition
     return mdp
 
+def make_random_P(num_states, num_next_states, num_actions=2):
+    next_states = [np.random.choice(num_states, num_next_states, replace=False) for ss in range(num_states * num_actions)]
+    transition_probs = np.random.uniform(size=(num_states * num_actions, num_next_states))
+    transition_probs = transition_probs / transition_probs.sum(axis=1, keepdims=1) 
+    print transition_probs
+
+    def make_P(transition_probs, next_states):
+        rval = np.zeros(num_states)
+        for ind, state in enumerate(next_states):
+            rval[state] = transition_probs[ind]
+        return rval
+
+    P = {}
+    for state in range(num_states):
+        for action in range(num_actions):
+            ind = state * num_actions + action
+            P[state, action] = make_P(transition_probs[ind], next_states[ind])
+
+    return P
+
+
 def make_mdp(nState, nAction, epLen, R, P, reward_noise=None, gotta_move=False):
     assert reward_noise is None
     if gotta_move: # add death state

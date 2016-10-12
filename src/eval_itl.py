@@ -116,7 +116,7 @@ if 1:
 # plot performance as a function of num_episodes FOR A SINGLE HORIZON!
 # TODO: title, etc.
 # TODO: seem to be missing some of the results here??
-#   same results for itl vs. not??
+#   same results for ASQR itl and ASQR??
 ns = all_ns
 log_num_episodes = len(all_ns) - 1
 if 1:
