@@ -7,6 +7,8 @@
 \usepackage{amssymb}
 \usepackage{enumerate}
 \usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{subcaption}
 
 \usepackage{natbib}
 \bibliographystyle{plainnat}
@@ -15,6 +17,8 @@
 \usepackage{mythm}
 
 \DeclareMathOperator*{\argmax}{arg\,max} % argmax operator
+\def\regret{R}
+\def\regretHAT{\hat{R}}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +77,7 @@ Let $\mu^* := \max_i \mu_i$ denote the mean of the best arm.
 The goal of the learner is to maximize expected payoff up to a known horizon $n$,
 or, equivalently, to minimize the \emph{expected regret}
 \[
-R_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - X_t - c Q_t) \right],
+\regret_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - X_t - c Q_t) \right],
 \]
 where $Q_t$ is $1$ if the learner chooses to observe the reward in round $t$ and $0$ otherwise.
 In other words, the expected regret is the expected payoff
@@ -94,9 +98,11 @@ because the learner did not blindly choose the best option in every round.
 
 %\paragraph{Partial monitoring.}
 The active multi-armed bandit problem is
-a subproblem of the partial monitoring problem~\citep{Piccolboni01}.
+a subproblem of the partial monitoring problem~\citep{Piccolboni01}:
+the action space consists of the $2K$ actions (the $K$ arms with and without querying) and
+the feedback is the observed payoff or a blank symbol.
 In contrast to most of the literature on partial monitoring,
-we consider the environment to be stochastic (not adversarial).
+we consider the environment to be stochastic instead of adversarial.
 For distributions with finitely many payoffs (such as Bernoulli distributions),
 active multi-armed bandits are
 stochastic finite partial monitoring problems~\citep{Komiyama15}.
@@ -112,9 +118,9 @@ While multi-armed bandits fall into the easy category,
 \begin{proposition}[Cost-Independent Regret Bound]
 The worse-case expected regret is
 \[
-\inf_\pi \sup_{\mu_1, \ldots, \mu_K} R_n \in \Theta(n^{2/3}).
+\inf_\pi \sup_{\mu_1, \ldots, \mu_K} \regret_n \in \Theta(n^{2/3}).
 \]
-% and the problem-dependent regret bound is $R_n \in \Theta(\sum_{i: \Delta_i > 0} \log(n)/\Delta_i)$.
+% and the problem-dependent regret bound is $\regret_n \in \Theta(\sum_{i: \Delta_i > 0} \log(n)/\Delta_i)$.
 \end{proposition}
 \begin{proof}[Proof sketch.]
 Consider an active two-armed bandit problem
@@ -139,11 +145,18 @@ Partial monitoring algorithms are designed for optimal asymptotic regret rate an
 Here we are particularly interested in optimizing
 the cost-dependent regret.
 
+%\paragraph{Query and then stop.}
+The optimal strategy is to query for a number of time steps
+and then stop querying altogether.
+If you don't query, then in the next step you face the same information,
+except that the horizon is now shorter,
+so the value of information can only have diminished.
+
 %\paragraph{Regular bandits as edge cases.}
 Active multi-armed bandit problems degenerate into two familiar problems in the edge cases.
-If $c = 0$ we face a regular bandit problem and the regret $R_n$ corresponds to the cumulative regret.
+If $c = 0$ we face a regular bandit problem and the regret $\regret_n$ corresponds to the cumulative regret.
 If $c \gg X_t$,
-then $R_n$ is dominated by the simple regret
+then $\regret_n$ is dominated by the simple regret
 (the gap of the chosen arm) and
 we have a best arm identification problem.
 But there is a trade-off between
@@ -163,7 +176,7 @@ For finite sets of payoffs,
 PM-DMED achieves the optimal cost-independent regret rate~\citep{Komiyama15}.
 We are looking for a (heuristic) algorithm that achieves optimal asymptotic (cost-dependent) regret rate,
 performs well in practice and has constant or linear time complexity.
-Ideally the algorithm's performance does not degrade at the edge cases with $c = 0$ and $c \gg X_t$.
+Ideally, the algorithm's performance does not degrade at the edge cases with $c = 0$ and $c \gg \max_i \Delta_i$.
 
 %\paragraph{Bayes-optimal solution for Bernoullis.}
 If $\nu_1, \ldots \nu_K$ are Bernoulli distributions,
@@ -180,7 +193,7 @@ it is sometimes necessary to take actions that you strongly believe to be subopt
 For active bandits, paying to see the reward is always suboptimal
 by at least $c > 0$.
 Nevertheless, if we never pay the cost, we learn nothing about the problem.
-Because of this, stategies like optimism or Thompson sampling cannot work here.
+Because of this, strategies like optimism or Thompson sampling cannot work here.
 
 %\paragraph{No index strategy.}
 Moreover, there can be no index strategy~\citep[Ex.~4]{Hay12}.
@@ -216,22 +229,11 @@ the high mean arm is better and don't need to observe it.
 % Need n = 1000 and rescale rewards by 0.001 so that the query steps don't matter.
 % In short: if lambda is high, observe the high max arm, and if lambda is low, observe the high variance arm first (because if it's bad, you don't need to observe the other one, just commit to it).
 
-%\paragraph{Query and then stop.}
-If we query in every time step, then regret is linear.
-The optimal strategy is to query for a number of time steps and then stop querying altogether.
-If you don't query, then in the next step you face the same information, except that the horizon is now shorter,
-so the value of information can only have diminished.
-Therefore
-a natural choice is an explore-then-exploit algorithm,
-like for \emph{budgeted bandits}~\citep{Madani04}.
-The crucial question is how to decide to stop querying.
-In other words, what is the (long-term) value of information of an additional query?
-
 %\paragraph{Knowledge gradients}
 If $\nu_1, \ldots \nu_K$ are Gaussian distributions,
-then we can estimate the value of paying the query cost using
+then we can estimate the value of paying the query cost for multiple time steps using
 a knowledge gradient~\citep[Ch.~5]{PowellRyzhov12}.
-Also \citet{Frazier08}.
+As far as we know, how to efficiently compute the multi-step knowledge gradient for Bernoulli bandits is still an open question.
 
 % KG is optimal when N = 1. We will show that KG
 % is optimal in two other special cases: first, when there are only two alternatives to
@@ -264,9 +266,11 @@ Our algorithms:
 \item DMED~\citep{Honda10} with commitment when 1 arm is selected
 \item PM-DMED~\citep{Komiyama15}
 \item optimal fixed query stopping time (optimized problem-dependent)
-\item parameterized regret query (optimized $\alpha$ problem-dependent)
+\item mind-changing-cost heuristic (optimized $\alpha$ problem-dependent)
 \item knowledge gradient
 \end{itemize}
+
+Neither MCCH nor the knowledge gradient are index strategies.
 
 \iffalse
 Problems:
@@ -287,24 +291,25 @@ Also: plot regret vs different query stopping times and different alpha
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Parameterized Regret Query}
+\subsection{Mind-Changing Cost Heuristic}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Let $\hat{n}$ be an estimate of the expected number of time steps
+We introduce a new algorithm called \emph{mind-changing cost heuristic}~(\texttt{MCCH}).
+Let $\hat{m}$ be an estimate of the expected number of time steps
 we need to query in succession to move the posterior mean of the second best arm to the posterior mean of the best arm
-(we use $\hat{n} := \max\{ 1, \lceil 2\min_i \hat{\Delta}_i^2 \rceil \}$).
-Let $\hat{R}_n(i)$ denote the Bayes-expected regret
-when commiting to arm $i$ now (never querying again) and
+(we use $\hat{m} := \max\{ 1, \lceil 2\min_i ((T_i + 1) \hat{\Delta}_i)^2 \rceil \}$).
+Let $\regretHAT_n(i)$ denote the Bayes-expected regret
+when committing to arm $i$ now (never querying again) and
 let $\hat{i}$ denote the current estimate of the best arm.
-
-The algorithm pays the query cost iff
+%
+The algorithm pays the query cost if and only if
 \begin{equation}\label{eq:PRQ-criterion}
-c\hat{n} < \alpha \hat{R}_n(\hat{i})
+c\hat{m} < \alpha \regretHAT_n(\hat{i})
 \end{equation}
-where $\alpha \in (0, 1)$ is a hyperparameter.
+where $\alpha > 0$ is a hyperparameter.
 If \eqref{eq:PRQ-criterion} holds,
 then the action is selected by some standard bandit algorithm,
-such as DMED~\citep{Honda10}.
+such as \texttt{DMED}~\citep{Honda10}.
 If \eqref{eq:PRQ-criterion} does not hold,
 then the algorithm commits to the current best arm for the remaining time steps without paying the query cost.
 
@@ -320,8 +325,81 @@ therefore $\alpha \leq 1$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 See \citet[Sec.~5.2]{PowellRyzhov12}.
+We can readily use a knowledge gradient policy that queries iff
+$\min_m V^{KG}_m > cm$.
 
-% Conditional change 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[t]
+%\begin{center}
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{regret50.pdf}
+\caption{Means 0.8 and 0.5, cost $c = 50$.}
+\label{fig:regret50}
+\end{subfigure}%
+~
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{regret2.pdf}
+\caption{Means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, cost $c = 2$.}
+\label{fig:regret2}
+\end{subfigure}
+%\end{center}
+\caption{
+Average cumulative regret for different active bandit algorithms
+for Bernoulli arms with horizon $10^4$.
+We compare our algorithm \texttt{MCCH} with
+knowledge gradient~\citep[Ch.~5]{PowellRyzhov12},
+querying with probability $1/t$, and
+a \texttt{DMED}~\citep{Honda10} variant that stops querying when
+the algorithm selects only one arm.
+The latter two algorithms do not take the query cost into account
+and this is why they sometimes perform poorly.
+}
+\label{fig:regret}
+\end{figure}
+
+\begin{figure}[t]
+%\begin{center}
+\centering
+\includegraphics[width=0.48\textwidth]{query-stop.pdf}%
+~
+\includegraphics[width=0.48\textwidth]{mcch.pdf}
+%\end{center}
+\caption{Active 6-armed Bernoulli bandit with means
+$0.7, 0.5, 0.4, 0.4, 0.4, 0.4$,
+horizon $n = 10^4$, and cost $c = 2$.
+We compare two policies:
+\texttt{DMED} with a prespecified query stopping time (left)
+and \texttt{MCCH}
+for different values of the hyperparameter $\alpha$ (right).
+The shaded area corresponds to one standard deviation.
+\texttt{MCCH} achieves slightly better mean regret,
+but also is much more robust to the choice of the hyperparameter.
+}
+\label{fig:alpha}
+\end{figure}
+
+
+\autoref{fig:regret} shows the average cumulative regret
+of different active bandit algorithms for high ($c = 50$) and
+moderate ($c = 2$) query costs.
+All of these algorithms use \texttt{DMED}~\citep{Honda10}
+to select actions.
+To be able compute the non-greedy knowledge gradient policy,
+we approximate prior, posterior, and likelihood with Gaussian distributions.
+While \texttt{MCCH} never quite beats the other algorithms,
+it performs more robustly for different query costs.
+\autoref{fig:alpha} shows that the choice of its hyperparameter $\alpha$
+is not very sensitive,
+which makes it better suited than
+an optimized fixed (problem-dependent) query stopping time.
 
 
 
@@ -339,8 +417,11 @@ Open questions/problems:
 \end{itemize}
 
 
-\paragraph{Acknowledgements.}
+\paragraph{Acknowledgments.}
 Tor Lattimore, Reimar Leike, Ryan Lowe, Jessica Taylor, \dots
+% The authors would like to acknowledge the use of the University of Oxford Advanced Research Computing (ARC) facility in carrying out this work. \url{http://dx.doi.org/10.5281/zenodo.22558}
+% TODO: Following publication please notify ARC by emailing details to 'publications@arc.ox.ac.uk'
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliography{references}
