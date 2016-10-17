@@ -24,7 +24,6 @@ class Bandit(object):
 
     mus: list of Bernoulli parameters
     n: horizon
-    policy: the policy to use
     cost: the query cost
     """
 
@@ -57,13 +56,15 @@ class Bandit(object):
 
 def bestArm(T, s):
     """Return the best arm (greedy policy)"""
+    k = len(T)
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
-    return np.argmax(mu_hats)
+    m = max(mu_hats)
+    return random.choice([i for i in range(k) if mu_hats[i] == m])
 
 
 def EpsGreedyPolicy(T, s, n, t, d=0.1, c=0.05):
     k = len(T)  # number of arms
-    eps_t = c*k / d**2 / t  # from the theory, d is the minimum gap in the arms
+    eps_t = c*k / float(d**2 * t)  # from the theory, d is the minimum gap in the arms
 #    eps_t = 1/t
     if random.random() > eps_t:
         # greedy policy
@@ -176,7 +177,7 @@ def expectedRegret(T, s, n, t, arm, tol=1e-3):
         """integrant for E [ theta_j - theta_arm | j is best arm ]"""
         assert j != arm
         y = x * beta.cdf(x, a[arm], b[arm])
-        y -= beta.expect(lambda z: z, (a[arm], b[arm]), lb=0, ub=x, epsabs=tol)
+        y -= beta.expect(lambda z: z, (a[arm], b[arm]), lb=0, ub=x, epsrel=tol)
         for s in range(k):
             if s != arm and s != j:
                 y *= beta.cdf(x, a[s], b[s])
@@ -208,25 +209,6 @@ def minExpectedRegret(T, s, n, t, tol=1e-3):
     return expectedRegret(T, s, n, t, bestArm(T, s), tol)
 
 
-def DMEDPolicy(T, s, n, t, cost):
-    # Honda, Junya, and Akimichi Takemura.
-    # An Asymptotically Optimal Bandit Algorithm for Bounded Support Models.
-    # COLT 2010.
-    # here we use (theta - theta^*) instead of KL(B(theta), B(theta^*))
-    k = len(T)
-    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
-    m = max(mu_hats)
-    if 0 in T:
-        arms = range(k)  # prevent log(0) errors
-    else:
-        Jp = np.multiply(T, np.subtract(m, mu_hats)) - np.log(n) + np.log(T)
-        arms = []
-        for i in range(k):
-            if Jp[i] <= 0:
-                arms.append(i)
-    return random.choice(arms), len(arms) > 1
-
-
 def FixedQueryPolicy(T, s, n, t, cost, query_for=float('inf'),
                      alg=OCUCBPolicy):
     """use standard bandit algorithm and query the query_for steps"""
@@ -238,7 +220,7 @@ def FixedQueryPolicy(T, s, n, t, cost, query_for=float('inf'),
 
 def EpsQueryPolicy(T, s, n, t, cost, alg=OCUCBPolicy):
     """use OCUCB and query with probability 1/t"""
-    if random.random() < 1/t:
+    if random.random() < 1/float(t+1):
         return alg(T, s, n, t), True
     else:
         return bestArm(T, s), False
@@ -262,7 +244,7 @@ def querySteps(T, s):
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
     m = max(mu_hats)
     j = np.argmax(mu_hats)
-    gap_steps = np.add(T, 1).multiply(m - mu_hats)
+    gap_steps = np.add(T, 1) * np.subtract(m, mu_hats)
     del list(gap_steps)[j]
     return 2*ceil(min(gap_steps) + 0.01)**2
 
@@ -321,6 +303,25 @@ def DMED(T, s, n, t):
     return random.choice(arms)
 
 
+def DMEDPolicy(T, s, n, t, cost):
+    # Honda, Junya, and Akimichi Takemura.
+    # An Asymptotically Optimal Bandit Algorithm for Bounded Support Models.
+    # COLT 2010.
+    # here we use (theta - theta^*) instead of KL(B(theta), B(theta^*))
+    k = len(T)
+    mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
+    m = max(mu_hats)
+    if 0 in T:
+        arms = range(k)  # prevent log(0) errors
+    else:
+        Jp = np.multiply(T, np.subtract(m, mu_hats)) - np.log(n) + np.log(T)
+        arms = []
+        for i in range(k):
+            if Jp[i] <= 0:
+                arms.append(i)
+    return random.choice(arms), len(arms) > 1
+
+
 def parameterizedRegretQuery(T, s, n, t, cost, banditpolicy=DMED, alpha=0.35):
     """
     execute bandit policy until
@@ -356,7 +357,7 @@ def knowledgeGradient(T, s, n, t, queries, arm):
     mu_hats = np.add(s, 1) / np.add(T, 2).astype(float)
     m = max(mu_hats)
     var_post = (np.add(s, 1) * np.add(np.subtract(T, s), 1)) / \
-               (np.add(T, 2)**2 * np.add(T, 3))
+               (np.add(T, 2)**2 * np.add(T, 3)).astype(float)
     var_data = mu_hats * np.subtract(1, mu_hats)
 
     def std_cond_change(l, i):
@@ -379,7 +380,7 @@ def knowledgeGradientPolicy(T, s, n, t, cost):
     for i in range(k):
         if i != np.argmax(mu_hats):
             m_ = max([knowledgeGradient(T, s, n, t, l, i) * (n - t) - cost*l
-                      for l in range(floor(sqrt(n)))])
+                      for l in range(int(sqrt(n)))])
             if m_ > m:
                 m = m_
                 j = i
@@ -408,7 +409,7 @@ def playBernoulli(bandit, policy, assume_commitment=True, **kwargs):
             regret += bandit.cost
             last_query_step = t
         elif old_query:
-            print('stopping at t = %d. Commited to arm %d' % (t, j + 1))
+#            print('stopping at t = %d. Commited to arm %d' % (t, j + 1))
             if assume_commitment:
                 d = bandit.best_mu() - bandit.mus[j]
                 cregret.extend([regret + d*i
@@ -417,15 +418,22 @@ def playBernoulli(bandit, policy, assume_commitment=True, **kwargs):
                 break
         regret += bandit.best_mu() - bandit.mus[j]
         cregret.append(regret)
-    print('regret = %.2f' % regret)
+#    print('regret = %.2f' % regret)
     return {'cregret': cregret, 'last query step': last_query_step}
 
 
-def runExperiment(mus, n, cost, policy, N, **kwargs):
+def runExperiment(mus, n, cost, policy, N, progressbar=False, **kwargs):
+    if progressbar:
+        from IPython.html.widgets import FloatProgressWidget
+        from IPython.display import display
+        f = FloatProgressWidget(min=0, max=N)
+        display(f)
     bandit = Bandit(mus, n, cost)
     results = []
     for i in range(N):
         results.append(playBernoulli(bandit, policy, True, **kwargs))
+        if progressbar:
+            f.value = i
     return bandit, policy, results
 
 
