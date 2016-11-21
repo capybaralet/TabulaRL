@@ -1,0 +1,66 @@
+%%% FOR MOAT %%%
+%\usepackage{mathpazo}
+%\PreviewEnvironment{tikzpicture}
+%\newcounter{row}
+%\newcounter{col}
+%\newcommand\setrow[9]{
+%  \setcounter{col}{1}
+%  \foreach \n in {#1, #2, #3, #4, #5, #6, #7, #8, #9} {
+%    \edef\x{\value{col} - 0.5}
+%%    \edef\y{9.5 - \value{row}}
+%    \node[anchor=center] at (\x, \y) {\n};
+%    \stepcounter{col}
+%  }
+%  \stepcounter{row}
+%}
+%%% FOR MOAT %%%
+
+
+
+% adapted from: http://www.texample.net/tikz/examples/sudoku/
+%\documentclass{article}
+%\usepackage[pdftex,active,tightpage]{preview}
+%\usepackage{tikz}
+%\usepackage{mathpazo}
+%\PreviewEnvironment{tikzpicture}
+%\newcounter{row}
+%\newcounter{col}
+
+%\newcommand\setrow[9]{
+%  \setcounter{col}{1}
+%  \foreach \n in {#1, #2, #3, #4, #5, #6, #7, #8, #9} {
+%    \edef\x{\value{col} - 0.5}
+%%    \edef\y{9.5 - \value{row}}
+%    \node[anchor=center] at (\x, \y) {\n};
+%    \stepcounter{col}
+%  }
+%  \stepcounter{row}
+%}
+
+
+
+
+\newcommand\setrow[4]{
+  \setcounter{col}{1}
+  \foreach \n in {#1, #2, #3, #4} {
+    \edef\x{\value{col} - 0.5}
+    \edef\y{9.5 - \value{row}}
+    \node[anchor=center] at (\x, \y) {\n};
+    \stepcounter{col}
+  }
+  \stepcounter{row}
+}
+
+
+%\begin{document}
+\begin{tikzpicture}[scale=.5]
+  \begin{scope}
+    %\draw (0, 0) grid (1,4);
+    \draw (0, 0) grid (4,1);
+    %\draw[very thick, scale=3] (0, 0) grid (4, 1);
+    \setcounter{row}{1}
+    \setrow {0}{-10 or 0}{-10 or 0}{1}
+    %\node[anchor=center] at (4.5, -0.5) {Unsolved Sudoku};
+  \end{scope}
+\end{tikzpicture}
+%\end{document}

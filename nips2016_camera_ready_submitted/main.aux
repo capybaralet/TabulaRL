@@ -1,0 +1,97 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\bibstyle{plainnat}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}}
+\citation{ng2000algorithms,evans2015learning}
+\citation{wirth2013preference}
+\citation{knox2009interactively}
+\citation{DanielVMKP2014}
+\citation{DanielVMKP2014}
+\citation{weng2013interactive,lopes2014active,regan2011robust}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Related work}{2}{subsection.1.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Active Bandits}{2}{section.2}}
+\citation{Piccolboni01}
+\citation{Komiyama15}
+\citation{Antos13}
+\citation{Bubeck11}
+\citation{Komiyama15}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Problem Formulation}{3}{subsection.2.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Properties}{3}{subsection.2.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Algorithms}{3}{subsection.2.3}}
+\citation{Madani04}
+\citation{Hay12}
+\citation{PowellRyzhov12}
+\citation{PowellRyzhov12}
+\citation{Honda10}
+\citation{PowellRyzhov12}
+\citation{Honda10}
+\citation{PowellRyzhov12}
+\citation{Honda10}
+\citation{Honda10}
+\citation{MDPNv1}
+\newlabel{eq:PRQ-criterion}{{1}{4}{Algorithms}{equation.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Experiments}{4}{subsection.2.4}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Active RL in MDPs}{4}{section.3}}
+\citation{EVSI}
+\citation{Strens00}
+\citation{osband2016posterior}
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:regret50}{{1a}{5}{Means 0.8 and 0.5, cost $c = 50$.\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:regret50}{{a}{5}{Means 0.8 and 0.5, cost $c = 50$.\relax }{figure.caption.2}{}}
+\newlabel{fig:regret2}{{1b}{5}{Means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, cost $c = 2$.\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:regret2}{{b}{5}{Means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, cost $c = 2$.\relax }{figure.caption.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces  Average cumulative regret for different active bandit algorithms for Bernoulli arms with horizon $10^4$. We compare our algorithm \texttt  {MCCH} with knowledge gradient\nobreakspace  {}\citep  [Ch.\nobreakspace  {}5]{PowellRyzhov12}, querying with probability $1/t$, and a \texttt  {DMED}\nobreakspace  {}\citep  {Honda10} variant that stops querying when the algorithm selects only one arm. The latter two algorithms do not take the query cost into account and this is why they sometimes perform poorly. \relax }}{5}{figure.caption.2}}
+\newlabel{fig:regret}{{1}{5}{Average cumulative regret for different active bandit algorithms for Bernoulli arms with horizon $10^4$. We compare our algorithm \texttt {MCCH} with knowledge gradient~\citep [Ch.~5]{PowellRyzhov12}, querying with probability $1/t$, and a \texttt {DMED}~\citep {Honda10} variant that stops querying when the algorithm selects only one arm. The latter two algorithms do not take the query cost into account and this is why they sometimes perform poorly. \relax }{figure.caption.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Active 6-armed Bernoulli bandit with means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, horizon $n = 10^4$, and cost $c = 2$. We compare two policies: \texttt  {DMED} with a prespecified query stopping time (left) and \texttt  {MCCH} for different values of the hyperparameter $\alpha $ (right). The shaded area corresponds to one standard deviation. \texttt  {MCCH} achieves slightly better mean regret, but also is much more robust to the choice of the hyperparameter. \relax }}{5}{figure.caption.3}}
+\newlabel{fig:alpha}{{2}{5}{Active 6-armed Bernoulli bandit with means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, horizon $n = 10^4$, and cost $c = 2$. We compare two policies: \texttt {DMED} with a prespecified query stopping time (left) and \texttt {MCCH} for different values of the hyperparameter $\alpha $ (right). The shaded area corresponds to one standard deviation. \texttt {MCCH} achieves slightly better mean regret, but also is much more robust to the choice of the hyperparameter. \relax }{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Algorithms}{6}{subsection.3.1}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}Simulating Query Strategies with Monte Carlo Rollouts}{6}{subsubsection.3.1.1}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.2}Estimating the Value of Information}{6}{subsubsection.3.1.2}}
+\citation{osband2016posterior}
+\citation{osband2016posterior}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces The chain environment used in \citet  {osband2016posterior}; our version has deterministic transitions.\relax }}{7}{figure.caption.4}}
+\newlabel{fig:chain_env}{{3}{7}{The chain environment used in \citet {osband2016posterior}; our version has deterministic transitions.\relax }{figure.caption.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces The long-Y environment. Ideally, the agent should only query the two rightmost states, since the other states are unavoidable.\relax }}{7}{figure.caption.5}}
+\newlabel{fig:y_env}{{4}{7}{The long-Y environment. Ideally, the agent should only query the two rightmost states, since the other states are unavoidable.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Experiments}{7}{subsection.3.2}}
+\bibdata{references}
+\bibcite{Antos13}{{1}{2013}{{Antos et~al.}}{{Antos, Bart\IeC {\'o}k, P\IeC {\'a}l, and Szepesv\IeC {\'a}ri}}}
+\bibcite{Bubeck11}{{2}{2011}{{Bubeck et~al.}}{{Bubeck, Munos, and Stoltz}}}
+\bibcite{DanielVMKP2014}{{3}{2014}{{Daniel et~al.}}{{Daniel, Viering, Metz, Kroemer, and Peters}}}
+\bibcite{evans2015learning}{{4}{2015}{{Evans et~al.}}{{Evans, Stuhlm{\"u}ller, and Goodman}}}
+\bibcite{Hay12}{{5}{2012}{{Hay et~al.}}{{Hay, Russell, Tolpin, and Shimony}}}
+\bibcite{Honda10}{{6}{2010}{{Honda and Takemura}}{{}}}
+\bibcite{knox2009interactively}{{7}{2009}{{Knox and Stone}}{{}}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces  Average cumulative regret per episode (top), average number of queries per episode (middle), and average returns per episode (bottom) for different ARL algorithms in chain (left columns) and long-y (right columns) environments, with standard error bars. \relax }}{8}{figure.caption.6}}
+\newlabel{fig:MDPs}{{5}{8}{Average cumulative regret per episode (top), average number of queries per episode (middle), and average returns per episode (bottom) for different ARL algorithms in chain (left columns) and long-y (right columns) environments, with standard error bars. \relax }{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Conclusion}{8}{section.4}}
+\@writefile{toc}{\contentsline {paragraph}{Acknowledgments.}{8}{section*.7}}
+\bibcite{Komiyama15}{{8}{2015}{{Komiyama et~al.}}{{Komiyama, Honda, and Nakagawa}}}
+\bibcite{lopes2014active}{{9}{2014}{{Lopes and Montesano}}{{}}}
+\bibcite{Madani04}{{10}{2004}{{Madani et~al.}}{{Madani, Lizotte, and Greiner}}}
+\bibcite{ng2000algorithms}{{11}{2000}{{Ng and Russell}}{{}}}
+\bibcite{osband2016posterior}{{12}{2016}{{Osband and Van~Roy}}{{}}}
+\bibcite{MDPNv1}{{13}{2015}{{Philip S.~Thomas}}{{}}}
+\bibcite{Piccolboni01}{{14}{2001}{{Piccolboni and Schindelhauer}}{{}}}
+\bibcite{PowellRyzhov12}{{15}{2012}{{Powell and Ryzhov}}{{}}}
+\bibcite{EVSI}{{16}{1961}{{Raiffa and Schlaifer}}{{}}}
+\bibcite{regan2011robust}{{17}{2011}{{Regan and Boutilier}}{{}}}
+\bibcite{Strens00}{{18}{2000}{{Strens}}{{}}}
+\bibcite{weng2013interactive}{{19}{2013}{{Weng et~al.}}{{Weng, Busa-Fekete, and H{\"u}llermeier}}}
+\bibcite{wirth2013preference}{{20}{2013}{{Wirth and F{\"u}rnkranz}}{{}}}

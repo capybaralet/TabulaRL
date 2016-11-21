@@ -1,0 +1,120 @@
+\begin{thebibliography}{20}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Antos et~al.(2013)Antos, Bartók, Pál, and Szepesvári]{Antos13}
+András Antos, Gábor Bartók, Dávid Pál, and Csaba Szepesvári.
+\newblock Toward a classification of finite partial-monitoring games.
+\newblock \emph{Theoretical Computer Science}, 473:\penalty0 77--99, 2013.
+
+\bibitem[Bubeck et~al.(2011)Bubeck, Munos, and Stoltz]{Bubeck11}
+Sébastien Bubeck, Rémi Munos, and Gilles Stoltz.
+\newblock Pure exploration in finitely-armed and continuous-armed bandits.
+\newblock \emph{Theoretical Computer Science}, 412\penalty0 (19):\penalty0
+  1832--1852, 2011.
+
+\bibitem[Daniel et~al.(2014)Daniel, Viering, Metz, Kroemer, and
+  Peters]{DanielVMKP2014}
+C.~Daniel, M.~Viering, J.~Metz, O.~Kroemer, and J.~Peters.
+\newblock Active reward learning.
+\newblock In \emph{Robotics: Science \& Systems}, 2014.
+
+\bibitem[Evans et~al.(2015)Evans, Stuhlm{\"u}ller, and
+  Goodman]{evans2015learning}
+Owain Evans, Andreas Stuhlm{\"u}ller, and Noah~D Goodman.
+\newblock Learning the preferences of ignorant, inconsistent agents.
+\newblock \emph{arXiv preprint arXiv:1512.05832}, 2015.
+
+\bibitem[Hay et~al.(2012)Hay, Russell, Tolpin, and Shimony]{Hay12}
+Nicholas Hay, Stuart Russell, David Tolpin, and Solomon~Eyal Shimony.
+\newblock Selecting computations: Theory and applications.
+\newblock In \emph{Uncertainty in Artificial Intelligence}, 2012.
+
+\bibitem[Honda and Takemura(2010)]{Honda10}
+Junya Honda and Akimichi Takemura.
+\newblock An asymptotically optimal bandit algorithm for bounded support
+  models.
+\newblock In \emph{Conference on Learning Theory}, 2010.
+
+\bibitem[Knox and Stone(2009)]{knox2009interactively}
+W~Bradley Knox and Peter Stone.
+\newblock Interactively shaping agents via human reinforcement: The {TAMER}
+  framework.
+\newblock In \emph{International Conference on Knowledge Capture}. ACM, 2009.
+
+\bibitem[Komiyama et~al.(2015)Komiyama, Honda, and Nakagawa]{Komiyama15}
+Junpei Komiyama, Junya Honda, and Hiroshi Nakagawa.
+\newblock Regret lower bound and optimal algorithm in finite stochastic partial
+  monitoring.
+\newblock In \emph{Neural Information Processing Systems}, 2015.
+
+\bibitem[Lopes and Montesano(2014)]{lopes2014active}
+Manuel Lopes and Luis Montesano.
+\newblock Active learning for autonomous intelligent agents: Exploration,
+  curiosity, and interaction.
+\newblock \emph{arXiv preprint arXiv:1403.1497}, 2014.
+
+\bibitem[Madani et~al.(2004)Madani, Lizotte, and Greiner]{Madani04}
+Omid Madani, Daniel~J Lizotte, and Russell Greiner.
+\newblock The budgeted multi-armed bandit problem.
+\newblock In \emph{Computational Learning Theory}, 2004.
+
+\bibitem[Ng and Russell(2000)]{ng2000algorithms}
+Andrew~Y Ng and Stuart~J Russell.
+\newblock Algorithms for inverse reinforcement learning.
+\newblock In \emph{International Conference on Machine Learning}, 2000.
+
+\bibitem[Osband and Van~Roy(2016)]{osband2016posterior}
+Ian Osband and Benjamin Van~Roy.
+\newblock Why is posterior sampling better than optimism for reinforcement
+  learning.
+\newblock \emph{arXiv preprint arXiv:1607.00215}, 2016.
+
+\bibitem[Philip S.~Thomas(2015)]{MDPNv1}
+Billy~Okal Philip S.~Thomas.
+\newblock A notation for {M}arkov decision processes.
+\newblock \emph{CoRR}, abs/1512.09075, 2015.
+
+\bibitem[Piccolboni and Schindelhauer(2001)]{Piccolboni01}
+Antonio Piccolboni and Christian Schindelhauer.
+\newblock Discrete prediction games with arbitrary feedback and loss.
+\newblock In \emph{Computational Learning Theory}, 2001.
+
+\bibitem[Powell and Ryzhov(2012)]{PowellRyzhov12}
+Warren Powell and Ilya Ryzhov.
+\newblock \emph{Optimal Learning}.
+\newblock John Wiley \& Sons, 2012.
+
+\bibitem[Raiffa and Schlaifer(1961)]{EVSI}
+Howard Raiffa and Robert Schlaifer.
+\newblock Applied statistical decision theory, 1961.
+\newblock URL \url{http://opac.inria.fr/record=b1082847}.
+
+\bibitem[Regan and Boutilier(2011)]{regan2011robust}
+Kevin Regan and Craig Boutilier.
+\newblock Robust online optimization of reward-uncertain {MDP}s.
+\newblock In \emph{International Joint Conference on Artificial Intelligence},
+  2011.
+
+\bibitem[Strens(2000)]{Strens00}
+Malcolm Strens.
+\newblock A {B}ayesian framework for reinforcement learning.
+\newblock In \emph{International Conference on Machine Learning}, 2000.
+
+\bibitem[Weng et~al.(2013)Weng, Busa-Fekete, and
+  H{\"u}llermeier]{weng2013interactive}
+Paul Weng, Robert Busa-Fekete, and Eyke H{\"u}llermeier.
+\newblock Interactive {Q}-learning with ordinal rewards and unreliable tutor.
+\newblock In \emph{The ECML/PKDD-13 Workshop on Reinforcement Learning from
+  Generalized Feedback: Beyond Numeric Rewards}, 2013.
+
+\bibitem[Wirth and F{\"u}rnkranz(2013)]{wirth2013preference}
+Christian Wirth and Johannes F{\"u}rnkranz.
+\newblock Preference-based reinforcement learning: A preliminary survey.
+\newblock In \emph{The ECML/PKDD-13 Workshop on Reinforcement Learning from
+  Generalized Feedback: Beyond Numeric Rewards}, 2013.
+
+\end{thebibliography}

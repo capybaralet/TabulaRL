@@ -1,0 +1,826 @@
+\documentclass{article}
+%\usepackage[]{nips_2016}      % NIPS 2016 style file
+\usepackage[final]{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{todonotes}
+\usepackage{amsmath}
+\usepackage{subcaption}
+
+% DK tikz stuff
+\usepackage{placeins}
+\usepackage{tikz}
+\usepackage{tikzscale}
+\usetikzlibrary{arrows}
+
+
+% TODO: 
+% 	abstract
+%	Expand related work a bit?
+%
+%	in-line TODOs / todos
+
+
+
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+\bibpunct{(}{)}{;}{a}{,}{,}
+
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\St}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\regret}{\mathrm{Regret}}
+\newcommand{\regretHAT}{\hat{\mathrm{Regret}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Active Reinforcement Learning: \\ Observing Rewards at a Cost}
+% Alternative Titles:
+% Active Reinforcement Learning with partially observed rewards}
+% Active RL: efficient use of costly human supervision
+% Active Learning for RL: efficient use of costly human supervision
+% Active learning of rewards in Reinforcement Learning
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\author{
+  David Krueger \\
+  Montreal Institute for Learning Algorithms \\
+  University of Montreal \\
+  \texttt{david.krueger@umontreal.ca} \\
+  \And
+  Jan Leike \\
+  Future of Humanity Institute \\
+  University of Oxford \\
+  \texttt{jan.leike@philosophy.ox.ac.uk} \\
+  \And
+  Owain Evans \\
+  Future of Humanity Institute \\
+  University of Oxford \\
+  \texttt{owain.evans@philosophy.ox.ac.uk } \\
+  \And
+  John Salvatier \\
+  AI Impacts \\
+  \texttt{jsalvatier@gmail.com} \\
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+% FLIM at NIPS http://www.filmnips.com/
+% page limit: 8 + 1 for references
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+%\todo{Jan's try}
+Active reinforcement learning (ARL) is a variant on reinforcement learning
+where the agent does not observe the reward unless it chooses to pay
+a \emph{query cost} $c > 0$.
+The central question of ARL is
+how to quantify the long-term value of reward information.
+Even in multi-armed bandits, computing the value of this information
+is intractable and we have to rely on heuristics.
+We propose and evaluate several heuristic approaches for ARL
+in multi-armed bandits and (tabular) Markov decision processes,
+and discuss and illustrate some challenging aspects of the ARL problem.
+\end{abstract}
+
+
+\iffalse
+
+\begin{abstract}
+\todo{David's try (is it fair to say we introduce ARL?)}
+We introduce active reinforcement learning (ARL), a variant of the reinforcement learning problem.
+In ARL, the agent must pay a \emph{query cost}, $c > 0$, in order to observe the reward.
+The goal is to maximize total rewards minus the total cost of all queries.
+Doing so requires computing the long-term value of reward information as well as intelligently choosing when and how to gather this information without paying too much query cost or opportunity cost.
+%Doing so requires computing the long-term value of reward information as well as intelligently choosing when to gather this information and how to do so without paying too much query cost or opportunity cost.
+% TODO: mention partial monitoring, fix sentence below?
+%This is reminiscent of the exploration-exploitation trade-off, but standard bandit algorithms fail in 
+We propose and evaluate several heuristic approaches for ARL in bandits and tabular MDPs, and discuss and illustrate some challenging aspects of the ARL problem.
+% ^ TODO: without saying WHY we need heuristics, this sounds bad...
+% ^ Also, we don't actually discuss that that much atm...
+\end{abstract}
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OUTLINE:
+%	online vs. offline rewards
+%	motivation for online rewards (also challenges / problems?)
+%	why are online rewards costly?
+%	ARL
+%	assumptions and limitations of ARL
+%	why it's still a good framework
+%		applications with(/out) human feedback (TODO: should these go earlier in the paper??)
+%%	(dis)-analogies with active learning
+%%	Conclusion
+
+Translating human objectives into rewards for a reinforcement learning~(RL) agent is often challenging and time-consuming.
+Tasks such as driving in a busy city or engaging in a conversation have complex reward structures which humans understand via high-level concepts such as ``safety'' and ``enjoyment''.
+For such tasks, it may be prohibitively expensive to design a reward function by hand for an agent that does not already understand such concepts. %... and we need a way to communicate with them...
+% specify rewards on a case-by-case basis.
+%Without specifying or learning such concepts robustly, designing appropriate reward functions for such tasks may not be feasible.
+%
+%Reinforcement learning (RL) agents aim to maximize expected reward~\citep{puterman2014markov, sutton1998reinforcement}. When RL agents are applied to a practical task, their reward signals are designed to capture {\em human} objectives such as driving safely to a destination or providing technical support for a customer. The problem of translating objectives into a scalar reward function for an RL agent is often challenging and time-consuming. As RL scales up to richer real world domains, designing such functions by hand becomes less feasible. Consider computer vision by analogy. No one has hand-coded rules that capture human object classification from images. So it seems unlikely that hand-coded rules will capture human objectives in rich environments. A task like driving in a busy city, with frequent interaction with human pedestrians and drivers, has a complex, heterogeneous reward structure.
+
+Instead of specifying a reward function in advance, a human can evaluate state-actions as they occur and provide reward to the agent \emph{online}. % I like mentioning learning algos, but we don't cash in on it ATM... the point would be that a learned reward function can change during the agent's learning.
+In this case, it's not necessary to assign rewards to all possible state-actions, only to those which are visited.
+%Just as specifying a reward function can be difficult and labor-intensive, providing reward information online can be costly.
+%Even when making reward judgments is easy, it may take a non-trivial amount of labor to provide an agent with enough reward information to learn a good policy.
+Manually providing these rewards may still be labor intensive and costly, however.
+%And observing rewards may also incur costs related to collecting data.
+For instance, in a clinical trial the rewards for an RL agent are patient outcomes, measured by expensive medical tests.
+%For instance, observing patient outcomes resulting from a chosen medical treatment may require expensive monitoring or testing.
+Likewise, it may be expensive to obtain high quality feedback from users of a web application.
+
+
+%This difficulty of encoding human objectives in reward functions has been articulated and addressed in a substantial literature. 
+%This includes work in inverse reinforcement learning \citep{ng2000algorithms, evans2015learning} and preference-based reinforcement learning \citep{wirth2013preference}. 
+%One approach to the difficulty of designing a reward function is for a human to provide reward information \textit{online} (rather than offline and prior to learning). 
+%The human evaluates state-actions as they occur and provides a scalar reward to the agent. 
+%% We can also motivate our problem by thinking of queries as involving running some real-world test (e.g. of the effectiveness of a medical treatment) (thx Ackram) DK  [good point: might be worth developing this idea a bit more---OE]
+%
+% Providing rewards online has two main advantages:
+% \begin{enumerate}
+% \item To hand-code the reward function offline, a human engineer needs to assign rewards accurately to every state-action that has non-trivial probability of occurring. In giving rewards online, the human evaluates only the states that actually occur. In complex environments (where the agent may only visit a small part of the state space), this could significantly reduce the burden on the human. 
+% \todo{ALSO: humans may not anticipate every situations or consequences of a given reward function}
+% \todo{shorter items}
+% \item The agent's reward function takes as input a formal representation of a real-world outcome --- rather the outcome itself. Interpreting and understanding this formal representation typically requires technical knowledge. So the task of hand-coding rewards functions depends heavily on technical experts. By contrast, when providing rewards online, a human can directly perceive the real-world outcome. For example, a human without technical expertise can simply watch a robot performing a household chore and evaluate its performance.
+% \end{enumerate}
+%While providing reward online has advantages, it does come with some challenges. 
+%Firstly, humans may find it difficult to evaluate individual state-actions in isolation.
+%Secondly, RL agents commonly take many actions per second, whereas humans may take several seconds to evaluate a single state-action.
+%While providing reward online has certain advantages, it does come with some challenges. First, individual actions can still be hard to evaluate. A second problem is that RL agents typically act on shorter time scales than humans. If an agent take thousands of actions per second, there is no way a human can evaluate each of its actions without drastically slowing down its learning process.
+%This paper addresses the problem that online evaluation of actions by humans is slow and costly. Our approach is to explicitly model these costs as part of the reinforcement learning problem. The RL agent {\em chooses} whether to observe the rewards for a given action. Observing the reward incurs a negative cost and so the agent must trade off the value of information with its cost.
+
+To account for the cost of collecting reward feedback, we consider a simple modification to traditional RL called \emph{active reinforcement learning} (ARL).
+In analogy with active learning, an ARL agent {\em chooses} when to observe the reward signal. 
+%It's important to note that the precise costs (in time and resources) of human evaluations of an RL agent are highly variable and difficult to model. We consider a simple model of these costs that (a) yields a formal learning problem close to traditional RL and (b) allows the costs to be very large relative to the agent's immediate rewards. We call the problem \emph{active reinforcement learning} (ARL), drawing an analogy with active learning:%\todo{I defined (and prefer to define) the problem more generally - DK}
+\begin{quote}
+ \textbf{Informal problem statement for ARL}: \newline
+At each time-step, the agent chooses both an action and whether to observe the reward in the next time-step. 
+If the agent chooses to observe the reward, then it pays the ``query cost'' c > 0.
+The agent's objective is to maximize total reward minus total query cost.
+\end{quote}
+%
+
+%The ARL problem involves three important simplifying assumptions: (1) that there is never any delay in receiving rewards, (2) that rewards are constant within an environment, and (3) that the agent only ever observes the {\em current} state (not past states). Relaxing these assumptions would be valuable but is beyond the scope of this paper. 
+
+
+By intelligently choosing which rewards to observe, ARL agents can learn more efficiently about the reward function. 
+As in active learning, the agent can exploit statistical dependencies between the rewards of different state-actions, observing rewards that are expected to be most informative about other rewards. 
+Unlike in active learning, the goal in ARL is not to learn the reward function, but rather to take actions that maximize the discounted sum of rewards. %\todo{contrast with Daniels et al}.
+Towards this end, ARL agents can also exploit knowledge of the environment's dynamics to query the state-actions most relevant to improving their policy.  
+%Allowing the agent to choose when to observe rewards makes more efficient learning possible. The agent can exploit statistical dependencies between the rewards of different actions, observing rewards that are expected to be most informative about other rewards. An ARL agent can also exploit knowledge of the environment's dynamics (and their own visit frequencies) to query actions that are most relevant to improving their policy.  It's important to note that the agent's objective is not to learn the reward function but to take actions that maximize the discounted sum of rewards. The rewards of states that are either \textit{unreachable} or \textit{unavoidable} are irrelevant to this objective (since all policies visit these states equally often). 
+
+The ARL problem involves two important simplifying assumptions: 
+\begin{enumerate}
+\item Rewards are observed immediately (i.e. without any delay)
+\item The agent only ever observes rewards for the {\em current} state-action (not past state-actions)
+\end{enumerate}
+Relaxing these assumptions would be valuable but is beyond the scope of this paper. % could remove this
+
+For many problems, requiring a human to be ``on-call'', i.e.\ ready to provide rewards without delay, is itself costly.
+This could be addressed by using a query cost which is situation dependent, e.g.\ determined online by a human.
+However, when the agent acts on time-scales much shorter than the human, it's not possible to provide it instantaneous rewards. 
+Further work could explore the consequences of reward signals being delayed.
+%Alternatively, the human could determine when to provide reward \emph{interactively}, i.e.\ in concert with the agent.
+%\todo{want to mention interactive RL}
+
+%Restricting queries to state-actions that have been visited makes sense because the state-action space may contain many unrealizable elements, e.g. an agent playing a video game doesn't know {\it a priori} which subset of possible images may appear on the screen.
+%Restricting queries to the \emph{current} state-action makes sense if the agent's representation of state is missing reward-relevant features of the environment which the human can observe, in which case the agent's memory of the past state-action would not be sufficient for assigning a sensible reward value.
+Restricting queries to the current state-action is natural
+if the agent's representation of state is missing some important features of the environment which the human can observe,
+for example in partially observable problems.
+In this setting, the human can make use of their additional information when providing rewards.
+% Restricting queries to the current state-action makes sense if the agent's representation of state is missing reward-relevant features of the environment which the human can observe, in which case the agent's memory of the past state-action would not be sufficient for assigning a sensible reward value.
+% This is also one reason that a human might provide different rewards for the same state-action at different time-steps; the state of the \emph{universe} may in fact be different in an important way (unbeknownst to the agent).
+If the agent's state-representation captures all important features, then it could query the human about past or hypothetical state-actions. Future work will explore this case.
+%When the agent knows which states are possible, a state need not have been visited in order to be queried, but this is not .
+
+
+This paper presents preliminary work on active reinforcement learning~(ARL). 
+We propose and evaluate several heuristic algorithms for ARL in multi-armed bandits and tabular MDPs. 
+We present examples, theoretical observations and empirical comparisons that shed light on the character of the ARL problem. 
+The central question of ARL is how to quantify the long-term value of reward information. 
+As the cost of observing rewards gets high~(relative to possible discounted future rewards) the problem may become quite different from the traditional RL problem with fully-observed reward. 
+%This paper presents work-in-progress on Active Reinforcement Learning (ARL). As the cost of observing rewards gets high (relative to possible discounted future rewards) the problem may become quite different from the traditional RL problem with fully-observed reward. The central question of ARL is how to quantify the long-term value of reward information. We propose and evaluate several heuristic algorithms for ARL in multi-armed bandits and tabular MDPs. We present examples, theoretical observations and empirical comparisons that shed light on the character of the ARL problem. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Related work}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\todo{previous work on interactive learning / RL?} % JL: this is fine :)
+
+The difficulty of encoding human objectives in reward functions has been articulated and addressed in a substantial literature. 
+This includes work in inverse reinforcement learning \citep{ng2000algorithms, evans2015learning} and preference-based reinforcement learning~\citep{wirth2013preference}. 
+
+The TAMER framework~\citep{knox2009interactively} has a similar motivation to ARL.
+The authors consider the setting where rewards are provided online by a human ``teacher'' and explicitly take into account the time delays and noise in the human's responses. TAMER typically assumes that the human provides signals about the {\em value} of actions (e.g. $Q^*(s,a)$), rather than their rewards (as in ARL).
+
+Recent work on ``Active Reward Learning''~\citep{DanielVMKP2014} also shares its motivation with ARL.
+\citeauthor{DanielVMKP2014}\ test RL with online human feedback empirically, with humans evaluating how well a robot grasps objects.
+%These evaluations enabled good performance on challenging tasks. % JL: too vague
+Their algorithm is designed for continuous control tasks, where the reward function is defined on entire trajectories rather than individual actions.
+They employ an active learning approach based on Gaussian Process regression and Bayesian Optimization.
+However, their techniques are not readily applicable to the discrete problems we study here. 
+
+Finally, there is a wide range of work in which an RL agent performs some kind of active learning of reward information in a setting that is less similar to ARL~\citep{weng2013interactive, lopes2014active, regan2011robust}. 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Active Bandits}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This section formally introduces and discusses
+the active reinforcement learning problem
+in the context of multi-armed bandits.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Problem Formulation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The \emph{active multi-armed bandit problem} is
+an online learning problem
+where the learner has to select from $K$ actions (`arms') in every round.
+Choosing action $A_t \in \{ 1, \ldots, K \}$ in round $t$
+yields a reward $R_t$ of
+drawn from a time-independent distribution $\nu_{I_t}$
+with mean $\mu_i$ unknown to the learner.
+In contrast to the classical multi-armed bandit problem,
+the learner does not observe the reward
+unless they pay a fixed \emph{query cost $c > 0$}.
+This cost is the same for every arm and every round.
+
+Let $\mu^* := \max_i \mu_i$ denote the mean of the best arm.
+The goal of the learner is to maximize expected reward up to a known horizon $n$,
+or, equivalently, to minimize the \emph{expected regret}
+\[
+\regret_n = \mathbb{E} \left[ \sum_{t=1}^n (\mu^* - R_t - c Q_t) \right],
+\]
+where $Q_t$ is $1$ if the learner chooses to observe the reward in round $t$ and $0$ otherwise.
+In other words, the expected regret is the expected reward
+that is lost
+because the learner did not blindly choose the best option in every round.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Properties}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The active multi-armed bandit problem is
+a subproblem of the partial monitoring problem~\citep{Piccolboni01}:
+the action space consists of the $2K$ actions (the $K$ arms with and without querying) and
+the feedback is the observed payoff or a blank symbol.
+In contrast to most of the literature on partial monitoring,
+we consider the environment to be stochastic instead of adversarial.
+For distributions with finitely many possible rewards (such as Bernoulli distributions),
+active multi-armed bandits are
+stochastic finite partial monitoring problems~\citep{Komiyama15}.
+In case of two outcomes,
+(adversarial) partial monitoring problems can be classified in four different
+categories: $0$, $\Theta(n^{1/2})$, $\Theta(n^{2/3})$, or $\Theta(n)$ regret~\citep{Antos13}.
+These categories are called trivial, easy, hard, and hopeless respectively.
+While multi-armed bandits fall into the easy category,
+\emph{active} multi-armed bandits fall into the hard category:
+their worse-case expected regret is
+$\inf_\pi \sup_{\mu_1, \ldots, \mu_K} \regret_n \in \Theta(n^{2/3})$.
+
+%\paragraph{Active bandits vs.\ regular bandits.}
+Intuitively, the fundamental difference to (regular) multi-armed bandit problems is in the cost of distinguishing two very close arms.
+In active bandits, distinguishing two close arms incurs regret linear in the number of time steps needed to distinguish them ($n^{2/3}$ in the worst case), whereas in (regular) bandits the regret grows proportionally to the gap size ($n^{1/2}$ in the worst case).
+
+%\paragraph{Cost-dependent regret.}
+To achieve optimal asymptotic regret, we can ignore the magnitude of the query cost, since it is constant.
+Partial monitoring algorithms are designed for optimal asymptotic regret rate and do not take the magnitude of the query cost into account.
+Here we are particularly interested in optimizing
+the cost-dependent regret.
+
+%\paragraph{Query and then stop.}
+The optimal strategy is to query for a number of time steps
+and then stop querying altogether.
+If you don't query, then in the next step you face the same information,
+except that the horizon is now shorter,
+so the value of information can only have diminished.
+
+%\paragraph{Regular bandits as edge cases.}
+Active multi-armed bandit problems degenerate into two familiar problems in the edge cases.
+If $c = 0$ we face a regular bandit problem and the regret $\regret_n$ corresponds to the cumulative regret.
+If $c \gg \max_i \Delta_i$ where $\Delta_i := \max_j \mu_j - \mu_i$ is the gap size,
+then $\regret_n$ is dominated by the simple regret
+(the gap of the chosen arm), and
+so we have a best arm identification problem \footnote{For $c \gg 0$, it may be optimal to never query and simply chose the best arm according to the prior}.
+But there is a trade-off between
+simple regret and cumulative regret~\citep[Thm.~1]{Bubeck11}:
+if the cumulative regret is small,
+then there is a lower bound on the simple regret.
+Any algorithm for a moderate cost setting therefore
+has to manage the balancing act between cumulative and simple regret.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Algorithms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\paragraph{Our goal.}
+For finite sets of rewards,
+\texttt{PM-DMED} achieves the optimal cost-independent regret rate~\citep{Komiyama15}.
+We are looking for a (heuristic) algorithm that
+\begin{itemize}
+\item achieves optimal asymptotic (cost-dependent) regret rate,
+\item performs well in practice, and
+\item has constant or linear time complexity.
+\end{itemize}
+Ideally, the algorithm's performance does not degrade at the edge cases with $c = 0$ and $c \gg \max_i \Delta_i$.
+
+%\paragraph{The central question.}
+A natural choice is an explore-then-exploit algorithm,
+like for \emph{budgeted bandits}~\citep{Madani04}.
+The central question is how to decide to stop querying.
+In other words, what is the (long-term) value of information of an additional query?
+
+%\paragraph{Bayes-optimal solution for Bernoullis.}
+If $\nu_1, \ldots \nu_K$ are Bernoulli distributions,
+then the Bayes-optimal solution
+can be found with dynamic programming:
+The corresponding belief MDP has $\mathcal{O}(n^{2K})$ states
+and can be solved in $\mathcal{O}(n^{2K})$ time steps.
+This is polynomial for constant $K$,
+but completely prohibitive in practice.
+
+%\paragraph{Optimism cannot work.}
+It is well-known that to solve partial monitoring problems
+it is sometimes necessary to take actions that you strongly believe to be suboptimal to get information.
+For active bandits, paying to see the reward is always suboptimal
+by at least $c > 0$.
+Nevertheless, if we never pay the cost, we learn nothing about the problem.
+Because of this, strategies like optimism or Thompson sampling cannot tell us when to query. %\todo{I still don't get it - DK}
+Moreover, there can be no index strategy%
+\footnote{%
+An index strategy computes for each arm
+a number that is independent of the other arms
+and takes the action with highest number.}
+because the decision between two arms can depend
+on the value of a third arm~\citep[Ex.~4]{Hay12}.
+Lastly, active multi-armed bandits do not allow greedy solutions:
+Usually one additional data point does not change our opinion
+which arm we currently consider to be best.
+A greedy strategy considers the value of information to be too low (or even zero) and stops querying prematurely~\citep[Sec.~5.2]{PowellRyzhov12}.
+Therefore we have to take into account the long-range effects of querying for multiple time steps.
+
+%\paragraph{Knowledge gradients}
+If $\nu_1, \ldots \nu_K$ are Gaussian distributions,
+then we can estimate the value of paying the query cost for multiple time steps using
+a knowledge gradient~\citep[Ch.~5]{PowellRyzhov12}.
+As far as we know, how to efficiently compute the multi-step knowledge gradient for Bernoulli bandits is still an open question.
+
+%\paragraph{Mind-changing cost heuristic.}
+We introduce a new algorithm called \emph{mind-changing cost heuristic}~(\texttt{MCCH}).
+Let $\hat{m}$ be an estimate of the expected number of time steps
+we need to query in succession to move the posterior mean of the second best arm to the posterior mean of the best arm
+(we use $\hat{m} := \max\{ 1, \lceil 2\min_i ((T_i + 1) \hat{\Delta}_i)^2 \rceil \}$).
+Let $\regretHAT_n(i)$ denote the Bayes-expected regret
+when committing to arm $i$ now (never querying again) and
+let $\hat{i}$ denote the current estimate of the best arm.
+%
+The algorithm pays the query cost if and only if
+\begin{equation}\label{eq:PRQ-criterion}
+c\hat{m} < \alpha \regretHAT_n(\hat{i})
+\end{equation}
+where $\alpha > 0$ is a hyperparameter.
+If \eqref{eq:PRQ-criterion} holds,
+then the action is selected by some standard bandit algorithm,
+such as \texttt{DMED}~\citep{Honda10}.
+If \eqref{eq:PRQ-criterion} does not hold,
+then the algorithm commits to the current best arm for the remaining time steps without paying the query cost.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiments}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[t]
+%\begin{center}
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{regret50.pdf}
+\caption{Means 0.8 and 0.5, cost $c = 50$.}
+\label{fig:regret50}
+\end{subfigure}%
+~ 
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{regret2.pdf}
+\caption{Means $0.7, 0.5, 0.4, 0.4, 0.4, 0.4$, cost $c = 2$.}
+\label{fig:regret2}
+\end{subfigure}
+%\end{center}
+\caption{
+Average cumulative regret for different active bandit algorithms
+for Bernoulli arms with horizon $10^4$.
+We compare our algorithm \texttt{MCCH} with
+knowledge gradient~\citep[Ch.~5]{PowellRyzhov12},
+querying with probability $1/t$, and
+a \texttt{DMED}~\citep{Honda10} variant that stops querying when
+the algorithm selects only one arm.
+The latter two algorithms do not take the query cost into account
+and this is why they sometimes perform poorly.
+}
+\label{fig:regret}
+\end{figure}
+
+\begin{figure}[t]
+%\begin{center}
+\centering
+\includegraphics[width=0.48\textwidth]{query-stop.pdf}%
+~
+\includegraphics[width=0.48\textwidth]{param-regret.pdf}
+%\end{center}
+\caption{Active 6-armed Bernoulli bandit with means
+$0.7, 0.5, 0.4, 0.4, 0.4, 0.4$,
+horizon $n = 10^4$, and cost $c = 2$.
+We compare two policies:
+\texttt{DMED} with a prespecified query stopping time (left)
+and \texttt{MCCH}
+for different values of the hyperparameter $\alpha$ (right).
+The shaded area corresponds to one standard deviation.
+\texttt{MCCH} achieves slightly better mean regret,
+but also is much more robust to the choice of the hyperparameter.
+}
+\label{fig:alpha}
+\end{figure}
+
+\autoref{fig:regret} shows the average cumulative regret
+of different active bandit algorithms for high ($c = 50$) and
+moderate ($c = 2$) query costs.
+All of these algorithms use \texttt{DMED}~\citep{Honda10}
+to select actions.
+To be able compute the non-greedy knowledge gradient policy,
+we approximate prior, posterior, and likelihood with Gaussian distributions.
+While \texttt{MCCH} never quite beats the other algorithms,
+it performs more robustly for different query costs.
+\autoref{fig:alpha} shows that the choice of its hyperparameter $\alpha$
+is not very sensitive,
+which makes it better suited than
+an optimized fixed (problem-dependent) query stopping time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection{Active RL in MDPs}
+\section{Active RL in MDPs}
+
+% MDPs
+This section studies Active Reinforcement Learning in tabular MDPs\footnote{
+We use the notational standard MDPNv1 \citep{MDPNv1}
+}. We begin by reviewing the problem. At every timestep $t$, the agent chooses an action $A_t \in \A$ and chooses whether to observe, or {\it query}, the reward sample $R_t$.
+This decision is made after choosing the action but before seeing the next state.
+Choosing to query incurs a cost, which we assume to be a constant $c>0$ that is known to the agent.
+An ARL agent seeks to maximize the (discounted) sum of rewards (including unobserved rewards), minus the (discounted) sum of the query costs.
+
+
+%We now consider ARL in tabular MDPs\footnote{
+%We use the notational standard MDPNv1 \citep{MDPNv1}
+%}, starting with a more general framing of the active RL problem.
+%In addition to choosing an action, $A_t \in \A$ at every time-step, $t$, an ARL agent also decides whether or not to observe, or {\it query}, the reward sample $R_t$.
+%This decision (indicated by $Q_t$) is made after choosing the action but before seeing the next state.
+%Choosing to query incurs a cost, $c_t(s,a)$; 
+%in our work, the query cost is a known constant, $c$. %OE: could leave out variable cost.
+%An ARL agent seeks to maximize the sum of rewards (including unobserved rewards), minus total query costs.
+
+An optimal agent for ARL would query a state-action if the Expected Value of Sample Information (EVSI) \citep{EVSI} from the reward observation is larger than the query cost $c$. This is similar to the standard RL problem, where possibly sub-optimal actions are taken if their EVSI is high enough. However, ARL has some features that distinguish it from standard RL:
+
+\begin{enumerate}
+\item
+In multi-armed bandits, the agent should only explore arms believed to be sub-optimal if they will query them. 
+% TODO: why unavoidable / unreachable is not enough...
+\item 
+In MDPs, an agent with knowledge of the transition function can avoid querying certain state-actions all together. Some state-actions are \emph{unavoidable} on any policy. For example, the starting board in Chess is visited exactly once per game.
+
+\item The agent can learn about the transition function $P$ without paying any query cost. This distinguishes model-learning from reward-learning. There are situations where the optimal agent learns about $P$ first (before learning anything about $R$) in order to direct subsequent queries more intelligently.
+\end{enumerate}
+
+%An ARL agent should more readily make queries which have the potential to improve the agent’s expected returns.
+%An optimal agent would query a $(s,a)$ iff the Expected Value of Sample Information (EVSI) \citep{EVSI} for $R(s,a)$ is larger than the query cost.
+%Besides making the current query decision optimally, an ARL agent should also plan based on its potential future queries, since the value of an action depends on which queries an agent would make.
+%For instance in a bandit, choosing an apparently sub-optimal arm only makes sense if the agent will query it.
+
+%Active RL in MDPs introduces some additional considerations not present in the bandit case or standard RL in MDPs:
+%\begin{enumerate}
+% TODO: why unavoidable / unreachable is not enough...
+%\item 
+%The expected visit count for some state-actions may not depend on the agent's policy at all; 
+%for instance, the starting board in Chess is visited exactly once per game.
+%These \emph{unconditional}\todo{please change - JL A: will do} 
+%These \emph{unavoidable}
+%state-actions are not worth querying, since this information is not actionable.
+%\item It is possible to learn about the environment without querying; there are cases where it makes sense to learn about $P$ first in order to direct subsequent queries more intelligently.
+%\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Algorithms}
+% TODO: link to previous section
+
+We consider model-based algorithms for ARL with episodic, tabular MDPs. Our models are based on \emph{Posterior Sampling for Reinforcement Learning} ~\citep{Strens00}, an algorithm for episodic MDPs that is state-of-the-art in its empirical performance and its known regret bounds~\citep{osband2016posterior}. As with PSRL, our algorithms assume the agent has a Bayesian probability distribution on the reward function which is updated every episode. % important to mention Bayesian because theres lots of nonBayesian algorithms and people in RL
+We follow PSRL in planning according to a reward function sampled from the posterior distribution (i.e.\ Thomson-sampling). The posterior distribution will also be used to estimate the value of querying. 
+
+An obvious baseline is simply to use PSRL and query each state-action the first $N$ times it is visited. The question is how to choose the hyperparameter $N$. Our first algorithm provides one approach. 
+
+%We devise model-based algorithms for episodic tabular MDPs based on PSRL~\citep{Strens00}.
+%Our algorithms exploit posterior distributions over MDPs and tractable planning to compare the performance of agents with different query strategies or different levels of knowledge about the environment. 
+%Optimal planning in ARL would anticipate all possible results of an agents actions and queries, entangling action selection and query decisions.
+%Instead, we plan actions given a fixed query strategy, which may be updated "in-the-loop" (i.e.\ throughout learning) based on, e.g., the agent's updated posterior and the number of remaining episodes.
+%We assume that $P$ is known, so agents should only explore to learn about $R$.
+%...should only take actions it believes are optimal, actions it intends to query, or actions which lead to areas it would like to explore (via querying) or exploit.
+%Thus our algorithms (described below) select actions as in PSRL, except that we use the expected reward for state-actions the agent does not anticipate querying, since we would not gain information from exploring them.
+%This leaves the question of how to decide whether to query.
+%We start by considering two simple baselines:
+
+%\begin{enumerate}
+%\item Query on the first $N$ time-steps.
+%\item Query each state-action the first $N$ times it is visited.
+%\end{enumerate}
+
+%These baselines use the insight that querying earlier is generally better, since the value of information diminishes over time as the episode draws to a close, and perform well in some environments when $N$ is tuned appropriately. But it is not clear how to tune $N$, especially as more information is acquired throughout learning.
+%Our next algorithm provides one approach.
+
+%%%%%%%%%%%%%%%%
+\subsubsection{Simulating Query Strategies with Monte Carlo Rollouts}
+The \emph{Simulated Query Rollout (SQR)} algorithm computes the average performance of a given query strategy~(e.g.\ a value for hyperparameter $N$) in environments sampled from the agent's posterior. This involves simulating the agent's performance across all the episodes for many different environments. This limits its use to choosing between a small set of possible query strategies. In our experiments, we use SQR to tune $N$, the number of times to query each state-action. We also consider an approximate version of SQR (\emph{ASQR}), which assumes the agent learns about queried rewards directly (rather than having to actually visit states to query them). By running ASQR at the start of every episode (\emph{ASQR in the loop}), the agent picks an $N$ tuned to the remaining time (rather than a fixed $N$ for the whole run). 
+
+
+%As we argue and demonstrate, it is often desirable to query different state-actions more or less readily.
+%For instance, we might specify a \emph{desired query set}, i.e.\ the number of queries, $N(s,a)$, that we'd be willing to make for each $(s,a)$.
+%In fact, all of our subsequent algorithms are based on this idea.
+%Unfortunately, there are exponentially many such strategies for a finite horizon, so we cannot tractably compare them using SQR.
+
+%While SQR can compare arbitrary query strategies, using a desired query set permits a cheaper \emph{Approximate SQR (ASQR)}, which simply:
+% TODO: make this an algorithm, reference it above
+%\begin{enumerate}
+%\item Observes $N$ reward samples for each state-action
+%\item Updates the reward posterior
+%\item Selects a policy via planning using the posterior expected reward
+%\item Estimates performance as the expected returns of this policy in the sampled environment, minus the cost of all $N |\St||\A|$ queries.
+%\end{enumerate}
+
+%For SQR to be tractable, only a small number of query strategies can be evaluated.
+%While SQR can search over strategies whose query decisions are arbitrary functions of the history, ASQR requires a desired set of queries to be specified in advance.
+%This can be ameliorated by running ASQR "in-the-loop", i.e.\ throughout learning.
+
+%%%%%%%%%%%%%%%%
+\subsubsection{Estimating the Value of Information}
+
+The algorithms above were based on the idea of picking an $N$ and querying each state-action $N$ times. Yet some state-actions are unavoidable (or hard-to-avoid on any policy) and these should never be queried. 
+
+%Instead of evaluating an entire query strategy holistically as in (A)SQR, we now consider algorithms that estimate the value of learning about specific state-actions' rewards.
+%This is a natural and tractable way of determining which states are more worthwhile to query, e.g.\ avoiding querying unavoidable states.
+% TODO: introduce OmniVOI as a SOLUTION to the problems of greedyVOI.
+
+%It does have problematic behavior, however, since sometimes knowing a state-action's reward is only valuable if you know about other rewards.
+
+% For instance, suppose an agent can either stay put achieving a (known) reward of 0, or pass through two unknown reward states in order to reach a state of (known) reward 1.  
+%If the agent knows that the intermediate states either have reward -10 or 0, and currently assigning equal probability to these possibilities, then the best apparent strategy at the moment is to stay put.
+%Then learning that both of the intermediate states has reward 0 has high value, but learning about either state independently has no value.\todo{This is a reason in addition to the bandit case that greedy strategies don't work well. - JL A: elaborate?}
+%\begin{figure}[h!]
+%\label{fig:moat_env}
+%\centering
+%\resizebox{.5\textwidth}{!}{\input{moat.tikz}}
+%\caption{MOAT.}
+%\end{figure}
+
+Motivated by this observation about unavoidable states, we present algorithms based on approximating the Value of Information of each state-action $(s,a)$ independently. To estimate the value of knowing the reward $R(s,a)$, we compare the performance of ignorant vs. informed agents.  
+%As in (A)SQR, we use Monte Carlo to estimate expected performance as the average performance in environments sampled from the current agent's posterior.
+The ignorant and informed agents may be, respectively:
+\begin{enumerate}
+\item The current agent, and the current agent with additional knowledge of $R(s,a)$ (``Greedy VOI'').
+\item The agent which knows the value of $R$ everywhere except at $(s,a)$ (where it uses the current agent's beliefs), and the fully omniscient agent ("Omniscient VOI").
+\end{enumerate}
+
+% OE: this would benefit from proper algorithm notation
+
+We use the following greedy estimate of the value of information ($\mathit{VOI}$) which does not account for the possibility of further information gathering:
+\begin{align}
+\mathit{VOI} = \mathbb{E}_{P(\M)} [
+    V_{\M} (\pi_{inf} )
+  - V_{\M} (\pi_{ign} )
+  ]
+\end{align}
+where $P(\M)$ is the agent's prior over environments, $V_{\M}(\pi)$ is the expected returns of policy $\pi$ in environment $\M$, and $\pi_{inf}, \pi_{ign}$ are the informed and ignorant agents' policies, respectively (in our case, the optimal policies in the informed / ignorant agents' expected environments).
+%We compare the query cost to the value of knowing the expected reward for a given state-action in a sampled environment, and 
+
+% OE say what N(s,a) is before mentioning it
+Our algorithm computes $N(s,a)$ as a function of the $\mathit{VOI}$ of $R(s,a)$, estimated using Greedy VOI or Omniscient VOI, as well as 
+the number of episodes remaining, $E$, the query cost, $c$, and a hyper-parameter, $k$, which controls the agent's eagerness to query:
+\begin{align}
+N(s,a) = \frac {k \cdot E \cdot \mathit{VOI}[R(s,a)] } {c} 
+\end{align}
+
+Note that we use the value of {\it perfect} information (EVPI), i.e.\ knowing $R(s,a)$, not of {\it sample} information (EVSI), i.e.\ observing some finite number of rewards sampled from $R(s,a)$, which we plan to explore next.
+Besides using EVSI, these algorithms should also be extended to account for the opportunity cost of seeking to query a given state, which may be high if that state is hard to access, e.g.\ due to stochasticity in the environment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiments}
+% TODO:
+%	mention observations from other experiments, e.g. relative performance of VOI things improves as experiments get longer
+
+We benchmark our proposed algorithms in the following 3 environments:
+\begin{enumerate}
+\item A chain of length 10, with reward only at the end  (see \autoref{fig:chain_env}).
+\item A novel "long-Y" environment, also of length 10 (see \autoref{fig:y_env}). This environment has many unavoidable states not worth querying.
+\item A 4x4 gridworld with rewards of $0$, $1/3$, $2/3$, $1$ along the diagonal and $0$ everywhere else.
+\end{enumerate}
+
+We compare for small ($c=1$) and large ($c=10$) query costs, and run for 4096 episodes \footnote{
+Recall that the agent knows the number of episodes and uses this information to inform its query strategy.
+}.
+The agent has an independent standard normal prior for the reward of each state (or state-action, in the case of the chain) and learns only the mean (the variance is fixed to 1).
+This prior is somewhat optimistic given the true reward structure.
+
+
+We resample environments each episode for PSRL and to update our query strategy.
+We use a single sampled environment for the Monte Carlo estimate of performance, although using more samples can significantly increase performance. %, see \autoref{fig:more_samples}.
+For VOI algorithms, we set $k=1$. 
+For the baseline algorithms, we either query each state-action up to 25 times (baseline 2), or query up to a total of $25 |\St| |\A|$ times (baseline 1); 
+these numbers were tuned by hand based on previous experiments, which would not generally be possible in real applications.
+
+Our results are presented in \autoref{fig:MDPs}.
+
+%We also omit Omniscient VOI, which behaved similarly to Greedy VOI, but queried somewhat more and performed worse.
+As expected, the VOI algorithms perform better in the long-Y environment, as a result of not querying unavoidable states.
+In the chain environment, however, the ASQR-based algorithms perform better; results in gridworld (not pictured) were similar.
+Although the VOI algorithms have higher returns, they also query more, and hence perform worse overall; using smaller values of $k$ might improve their performance.
+The VOI algorithms also query relatively less often on earlier episodes, which is undesirable.
+This is because even when knowing $R(s,a)$ is valuable, in many sampled environments, it will not be.
+Sampling more environments, or using an algorithm based on confidence-bounds would encourage earlier querying.
+% OE: isn't the environment known? (difficulty in learning the environment)
+Not querying at all performs remarkably well in the chain environment when the query cost is high, likely due to the difficulty of the task and the optimism of the agent's reward prior.
+Overall, these results demonstrate the value of updating query strategies online, and of differentially querying different state-actions, but should not be taken as a rigorous evaluation of the strength of the proposed algorithms.
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIGURES
+
+%%%%%%%%%%%%%%%%%%%%
+% COMMENT
+\iffalse
+\begin{figure}[ht!]
+\label{fig:more_samples}
+\centering
+\includegraphics[width=.5\textwidth]{performance_SQR_ASQR.png}
+\caption{Performance of (A)SQR for different numbers of Monte Carlo samples in the stochastic chain environment from \citet{osband2016posterior}.  
+We search over query strategies which query the first $N$ visits, with $N$ a power of 2, and compare with the performance of the actual best value (blue curve).}
+\end{figure}
+\fi
+% END COMMENT
+%%%%%%%%%%%%%%%%%%%%
+
+
+% pictures of environments
+\begin{figure}[t]
+\setlength{\belowcaptionskip}{-20pt}
+\centering
+\includegraphics[width=.75\textwidth]{chain_figure.png}
+\caption{The chain environment used in \citet{osband2016posterior}; our version has deterministic transitions.}
+\label{fig:chain_env}
+\end{figure}
+%%%%%%%%%%
+\begin{figure}[t]
+\centering
+\resizebox{.55\textwidth}{!}{\input{long-y.tikz}}
+\caption{The long-Y environment. Ideally, the agent should only query the two rightmost states, since the other states are unavoidable.}
+\label{fig:y_env}
+\end{figure}
+% END pictures of environments
+
+
+%\FloatBarrier
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.48\textwidth]{FILM_chain.png}%
+~
+\includegraphics[width=0.48\textwidth]{FILM_Y.png}
+\caption{
+Average cumulative regret per episode (top), average number of queries per episode (middle), and average returns per episode (bottom) for different ARL algorithms in chain (left columns) and long-y (right columns) environments, with standard error bars.
+}
+\label{fig:MDPs}
+\end{figure}
+
+
+%%%%%%%%%
+% END FIGURES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\FloatBarrier
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We motivated and described Active Reinforcement Learning (ARL), in which an agent must pay to observe its reward signal. We demonstrated important properties that differentiate ARL from standard RL in both the multi-armed bandit and MDP cases. We explored a range of heuristic algorithms for these problems, some of which obtained promising empirical results (although our experiments were limited in scope).
+
+Although we focused on the model-based case, where estimating performance of different query strategies is straightforward, we intend in future work to examine model-free approaches to ARL. 
+Estimating the value of information or learning not to query unavoidable states seems challenging without a model, although visit counts could provide some relevant information.
+Our current work focuses on multi-armed bandits and tabular MDPs with known dynamics.
+Future work will investigate MDPs with unknown dynamics and large state spaces (for which function approximate is necessary). 
+%When the dynamics ($P$) are unknown, there is an additional challenge of scheduling learning about $P$ vs. $R$.
+%Delaying queries in order to first learn $P$ may reduce query cost, since the agent can avoiding querying any unconditional states, but learning about $R$ may reduce opportunity cost, since the agent can start exploiting its knowledge of the rewards earlier.
+%There is also likely significant room for improvement to the algorithms we propose here.
+
+% For final version:
+\paragraph{Acknowledgments.}
+This work was supported by Future of Life Institute grant 2015-144846 (JS, DK, OE). 
+We thank Andreas Stuhlm\"uller, Tor Lattimore, Reimar Leike, Ryan Lowe, Akram Erraqabi, and Jessica Taylor for helpful discussions.
+The authors acknowledge the use of the University of Oxford Advanced Research Computing (ARC) facility in carrying out this work. %\url{http://dx.doi.org/10.5281/zenodo.22558}
+% TODO: Following publication please notify ARC by emailing details to 'publications@arc.ox.ac.uk'
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\FloatBarrier
+\bibliography{references}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
