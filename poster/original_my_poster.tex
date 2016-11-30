@@ -1,0 +1,288 @@
+%\documentclass[a0,portrait]{a0poster}
+\documentclass[a0,landscape]{a0poster}
+\pagestyle{empty}
+\setcounter{secnumdepth}{0}
+\usepackage[absolute]{textpos}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{fancybox}
+\usepackage{color}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{esint}
+\usepackage{sidecap}
+%\usepackage{algorithmic}
+\usepackage{tabularx}
+\usepackage{pifont}
+\usepackage{natbib}
+
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+% \usepackage{pdfpages}  # causes an error, and we don't even generate a multi-page document
+\usepackage{amsmath, amsthm, amssymb}
+\DeclareMathOperator{\Tr}{Tr}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{textcomp}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{theorem}{Theorem}
+
+
+
+\definecolor{DarkBlue}{rgb}{0.4,0.4,1}
+\definecolor{Red}{rgb}{0.9,0.0,0.1}
+\definecolor{Black}{rgb}{0.0,0.0,0.0}
+\definecolor{Green}{rgb}{0.0,0.9,0.1}
+%\definecolor{Gray}{rgb}{0.9,0.9,0.9}
+%\definecolor{mycolor}{RGB}{220,220,240}
+
+
+\definecolor{MilaBlue}{RGB}{78,179,225} % lighter, PMS 306
+%\definecolor{MilaBlue}{RGB}{35,154,204} % darker, PMS 639
+\definecolor{OppositeOrange1}{RGB}{255,129,0}
+
+\def\CRed#1{{\color{Red}{#1}}}
+\def\CBlue#1{{\color{DarkBlue}{#1}}}
+\def\CGreen#1{{\color{Green}{#1}}}
+
+
+\let\Textsize\normalsize
+\def\Head#1{\begin{center}\noindent{\LARGE\bf\color{MilaBlue}#1}\end{center}\bigskip}
+\def\LHead#1{\noindent{\LARGE\color{MilaBlue} #1}\smallskip}
+\def\Subhead#1{\begin{center}\noindent{\large\color{Black}#1}\end{center}\smallskip}
+%\def\Title#1{\noindent{\Huge\bf\color{OppositeOrange1} #1}}
+\def\Title#1{\noindent{\Huge\bf\color{Black} #1}}
+
+\TPGrid[25mm,20mm]{114}{80}  % 1 unit ~ 1 cm
+%\TPGrid[25mm,20mm]{79}{115}  % 1 unit ~ 1 cm
+\parindent=0pt
+%\parskip=2.0\baselineskip
+
+
+% try to have more space between lines by
+% calling \onehalfspacing after the heading
+% of the poster
+\usepackage{setspace}
+
+
+\makeatother
+
+
+
+\begin{document}
+
+
+\begin{textblock}{114}(-1,-1)
+  \begin{center}
+    \hspace{2cm}
+    \begin{minipage}{114cm}
+      \baselineskip=3\baselineskip
+      \Title{\begin{center}Variance Reduction in SGD by Distributed Importance Sampling\end{center}}
+      \vspace{-1cm}
+      \LHead{\begin{center}
+          Guillaume Alain \hspace{2cm} Alex Lamb \hspace{2cm} Chinnadhurai Sankar \hspace{2cm} Aaron Courville \hspace{2cm} Yoshua Bengio
+      \end{center}}
+      \vspace{-2cm}
+    \end{minipage}
+    \hspace{2cm}
+  \end{center}
+\end{textblock}
+
+\onehalfspacing
+
+%\begin{textblock}{10}(0,1)
+%\scalebox{0.5}{\includegraphics{../../../UdeM.pdf}}
+%\end{textblock}
+
+% with a rough white border [trim = 100mm 95mm 100mm 80mm, clip, width=40cm]
+% as tight as possible [trim = 106mm 97mm 113mm 81mm, clip, width=40cm]
+\begin{textblock}{10}(3,-0.5)
+\scalebox{0.5}{\includegraphics[trim = 106mm 97mm 113mm 81mm, clip, width=30cm]{../../MILA_umontreal_20160314.pdf}}
+\end{textblock}
+
+\begin{textblock}{120}(-4,9)
+{\color{MilaBlue}{\vrule depth 0pt height 0.5cm width 125cm}}
+\end{textblock}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Block prototype
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\begin{textblock}{0}(x,y)
+%% x, y are in approximate centimeters, x should be one of {-1, 40}
+%\Ovalbox{\hspace{0.5cm}
+%\begin{minipage}{38cm} %\vspace{0.5cm}
+%\Head{Title}
+%
+%Text
+%
+%\vspace{0.5cm}
+%\end{minipage}
+%\hspace{0.5cm}}
+%\end{textblock}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% FIRST COLUMN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{textblock}{0}(-1,12)
+
+\begin{minipage}{35cm}
+\Head{Motivation}
+
+ Domitio Ap. Claudio consulibus, discedens ab hibernis Caesar in Italiam, ut quotannis facere consuerat, legatis imperat quos legionibus praefecerat uti quam plurimas possent hieme naves aedificandas veteresque reficiendas curarent. Earum modum formamque demonstrat. Ad celeritatem onerandi subductionesque paulo facit humiliores quam quibus in nostro mari uti consuevimus, atque id eo magis, quod propter crebras commutationes aestuum minus magnos ibi fluctus fieri cognoverat; ad onera, ad multitudinem iumentorum transportandam paulo latiores quam quibus in reliquis utimur maribus.
+
+ Has omnes actuarias imperat fieri, quam ad rem multum humilitas adiuvat. Ea quae sunt usui ad armandas naves ex Hispania apportari iubet. Ipse conventibus Galliae citerioris peractis in Illyricum proficiscitur, quod a Pirustis finitimam partem provinciae incursionibus vastari audiebat. Eo cum venisset, civitatibus milites imperat certumque in locum convenire iubet.
+
+\end{minipage}
+\end{textblock}
+
+
+\begin{textblock}{0}(-1,34)
+\begin{minipage}{35cm}
+\Head{Importance Sampling}
+
+Eo cum venisset, circumitis omnibus hibernis, singulari militum studio in summa omnium rerum inopia circiter sescentas eius generis cuius supra demonstravimus naves et longas XXVIII invenit instructas neque multum abesse ab eo quin paucis diebus deduci possint.
+
+Collaudatis militibus atque eis qui negotio praefuerant, quid fieri velit ostendit atque omnes ad portum Itium convenire iubet, quo ex portu commodissimum in Britanniam traiectum esse cognoverat, circiter milium passuum XXX transmissum a continenti: huic rei quod satis esse visum est militum reliquit;
+
+ipse cum legionibus expeditis IIII et equitibus DCCC in fines Treverorum proficiscitur, quod hi neque ad concilia veniebant neque imperio parebant Germanosque Transrhenanos sollicitare dicebantur.
+
+\end{minipage}
+\end{textblock}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% SECOND COLUMN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{textblock}{0}(38,12)
+\begin{minipage}{35cm}
+\Head{Distributed Computation}
+
+\vspace{-1.0em}
+
+\begin{center}
+   \begin{minipage}{0.8\textwidth}
+     \center
+     \includegraphics[width=\textwidth]{xkcd-primer.png}
+   \end{minipage}
+\end{center}
+
+\end{minipage}
+\end{textblock}
+
+\begin{textblock}{0}(38,38)
+\begin{minipage}{35cm}
+\Head{Comparing with regular SGD on SVHN}
+\begin{center}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    train loss, learning rate $0.01$
+  \end{minipage}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    train loss, learning rate $0.001$
+  \end{minipage}
+\end{center}
+\begin{center}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    train pred error, learning rate $0.01$
+  \end{minipage}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    train pred error, learning rate $0.001$
+  \end{minipage}
+\end{center}
+\begin{center}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    test pred error, learning rate $0.01$
+  \end{minipage}
+  \begin{minipage}{0.4\textwidth}
+    \center
+    \includegraphics[width=\textwidth]{USGD_ISSGD_120_170_loss_train.pdf}
+    test pred error, learning rate $0.001$
+  \end{minipage}
+\end{center}
+\end{minipage}
+\end{textblock}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% THIRD COLUMN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{textblock}{0}(77,12)
+
+\begin{minipage}{35cm}
+\Head{Stale importance weights}
+
+Atque de Caesaris legionumque adventu cognitum est, ad eum venit, se suosque omnes in officio futuros neque ab amicitia populi Romani defecturos confirmavit quaeque in Treveris gererentur ostendit.
+
+At Indutiomarus equitatum peditatumque cogere, eisque qui per aetatem in armis esse non poterant in silvam Arduennam abditis, quae ingenti magnitudine per medios fines Treverorum a flumine Rheno ad initium Remorum pertinet, bellum parare instituit. Sed posteaquam nonnulli principes ex ea civitate et familiaritate Cingetorigis adducti et adventu nostri exercitus perterriti ad Caesarem venerunt et de suis privatim rebus ab eo petere coeperunt, quoniam civitati consulere non possent, veritus ne ab omnibus desereretur Indutiomarus legatos ad Caesarem mittit: sese idcirco ab suis discedere atque ad eum venire noluisse, quo facilius civitatem in officio contineret, ne omnis nobilitatis discessu plebs propter imprudentiam laberetur: itaque esse civitatem in sua potestate, seseque, si Caesar permitteret, ad eum in castra venturum, suas
+
+\end{minipage}
+\end{textblock}
+
+\begin{textblock}{0}(77,32.5)
+\begin{minipage}{35cm}
+\Head{Comparing the variance of the estimators}
+
+\vspace{-1em}
+
+Erat una cum ceteris Dumnorix Aeduus, de quo ante ab nobis dictum est. Hunc secum habere in primis constituerat, quod eum cupidum rerum novarum, cupidum imperi, magri animi, magnae inter Gallos auctoritatis cognoverat. Accedebat huc quod in concilio Aeduorum Dumnorix dixerat sibi a Caesare regnum civitatis deferri; quod dictum Aedui graviter ferebant, neque recusandi aut deprecandi causa legatos ad Caesarem mittere audebant.
+
+\end{minipage}
+\end{textblock}
+
+\begin{textblock}{0}(77,53)
+\begin{minipage}{35cm}
+\Head{Extra}
+
+\vspace{-1em}
+
+This is a paper \citet{zhao2014stochastic}.
+
+Then we have that
+\begin{eqnarray*}
+%\left\Vert \frac{\partial \mathcal{L}_n}{\partial W} \right\Vert_\textrm{F}^2 & = & \left\Vert X[n,:] \vspace{1em} \right\Vert_2^2 \hspace{1em} \left\Vert \frac{\partial \mathcal{L}}{\partial Y}[n,:] \right\Vert_2^2 \\
+\left\Vert \frac{\partial \mathcal{L}_n}{\partial W} \right\Vert_\textrm{F}^2 & = & \Vert X[n,:] \Vert_2^2  \hspace{0.5em} \cdot \hspace{0.5em} \left\Vert \frac{\partial \mathcal{L}}{\partial Y}[n,:] \right\Vert_2^2 \\
+\left\Vert \frac{\partial \mathcal{L}_n}{\partial b} \right\Vert_2^2 & = & \left\Vert \frac{\partial \mathcal{L}}{\partial Y}[n,:] \right\Vert_2^2 \\
+\end{eqnarray*}
+
+\end{minipage}
+\end{textblock}
+
+\begin{textblock}{0}(77,68)
+
+
+\begin{minipage}{35cm}
+\vspace{0.5cm}
+\small{%tiny
+\bibliography{strings,strings-short,aigaion-short,ml}
+\bibliographystyle{natbib}
+}
+\vspace{2em}
+
+The authors would like to acknowledge the support of the following agencies for
+research funding and computing support: NSERC, Calcul Qu\'{e}bec,
+Compute Canada, the Canada Research Chairs and CIFAR.
+\end{minipage}
+\vspace{0.5cm}
+\hspace{0.5cm}
+\end{textblock}
+\end{document}
