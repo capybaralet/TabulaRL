@@ -1,0 +1,254 @@
+"""
+WIP
+
+
+BASIC SETUP
+------------
+We look at n-step TD control, using the Q(sigma) algorithm from Sutton and Barto.
+
+The environment is a deterministic gridworld with -1 reward everywhere.
+The agent starts in the top-left corner, and the bottom-right is terminal, so we don't need any reward discounting.
+
+We use epsilon greedy; our target policy has epsilon=0.
+
+
+IMPLEMENTATION
+--------------
+We record each episode and update between episodes, based on the last trajectory, using ALL of the partial trajectories.
+
+
+DETAILS
+--------------
+rollout: [states, actions]
+    we don't need to track rewards; they are all the same!
+
+Q: 2d array of shape (s, a)
+
+policy: the BEHAVIOUR policy (TARGET is greedy!)
+
+
+"""
+
+import numpy
+np = numpy
+import numpy.random
+
+def onehot(x, length):
+    rval = np.zeros(length)
+    rval[x] = 1
+    return rval
+    
+
+#----------------------------------------
+# hparams
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--backup_length', type=int, default=7)
+parser.add_argument('--eps', type=float, default=.1)
+parser.add_argument('--grid_width', type=int, default=4)
+parser.add_argument('--lr', type=float, default=1e-2) # learning rate
+parser.add_argument('--num_episodes', type=int, default=50000)
+#
+parser.add_argument('--save', type=int, default=0)
+parser.add_argument('--save_dir', type=str, default="./")
+parser.add_argument('--seed', type=int, default=None)
+args = parser.parse_args()
+args_dict = args.__dict__
+
+# SET-UP SAVING
+if args_dict['save']:
+    flags = [flag.lstrip('--') for flag in sys.argv[1:]]
+    flags = [ff for ff in flags if not ff.startswith('save_dir')]
+    save_dir = args_dict.pop('save_dir')
+    save_path = os.path.join(save_dir, os.path.basename(__file__) + '___' + '_'.join(flags))
+    args_dict['save_path'] = save_path
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    with open (os.path.join(save_path,'exp_settings.txt'), 'w') as f:
+        for key in sorted(args_dict):
+            f.write(key+'\t'+str(args_dict[key])+'\n')
+    print(save_path)
+    #assert False
+
+locals().update(args_dict)
+
+if backup_length is None:
+    backup_length = grid_width
+
+# RANDOM SEED
+if seed is not None:
+    np.random.seed(seed)  # for reproducibility
+    rng = numpy.random.RandomState(seed)
+else:
+    rng = numpy.random.RandomState(np.random.randint(2**32 - 1))
+
+
+#----------------------------------------
+# visualization
+
+import matplotlib.pyplot as plt
+def plotQ(Q):
+    action_vals = (Q.T).reshape((4, grid_width, -1))
+    plt.figure()
+    for n in range(4):
+        plt.subplot(2,2,n+1)
+        plt.imshow(action_vals[n], cmap='Greys', interpolation='none')
+
+
+#----------------------------------------
+# policy 
+class EpsilonGreedy(object):
+    def __init__(self, eps):
+        self.eps = eps
+
+    def P_a(self, Q_vals):
+        return self.eps * np.ones(4) / 4. + (1-self.eps) * onehot(np.argmax(Q_vals), 4)
+
+    def sample(self, Q_vals):
+        if rng.rand() > self.eps:
+            return np.argmax(Q_vals)
+        else:
+            return rng.choice(len(Q_vals))
+
+
+#----------------------------------------
+# ...
+
+
+def estimate_return(mu, pi, Q, states, actions, sigmas):
+    assert len(states) == len(actions) == len(sigmas) == backup_length
+    estimated_returns = 0
+    for tstep in range(backup_length)[::-1]:
+        s = states[tstep]
+        a = actions[tstep]
+        Q_vals = Q[s]
+        if sigmas[tstep]: # use IS
+            estimated_returns += Q_vals[a]
+            estimated_returns *= pi.P_a(Q_vals)[a] / mu.P_a(Q_vals)[a]
+        else: # use tree backup
+            estimated_returns += (Q_vals * pi.P_a(Q_vals)).sum()
+        estimated_returns -= 1
+    return estimated_returns
+
+
+
+
+
+
+"""
+#def update_Q(policy, Q, rollout):
+def get_updates(mu, pi, Q, rollout):
+    states, actions = rollout
+    num_tsteps = len(states)
+    tsteps = np.arange(num_tsteps)
+
+    # importance sampling ratios
+    rho = [pi.P_a(Q[s])[a] / mu.P_a(Q[s])[a] for s,a in rollout[0], rollout[1]]
+
+    # P(a|s) * Q(s,a)
+    tbs_s_a_ = [pi.P_a(Q[s]) * Q[s] for s in range(grid_width**2)]
+
+    # action probabilities (ALL actions)
+    #mu_P_a = [mu.P_a(Q[s]) for s,a in rollout[0], rollout[1]]
+    pi_P_a = [pi.P_a(Q[s]) for s,a in rollout[0], rollout[1]]
+
+    # COMPUTE TRUNCATED RETURNS (TODO: use Q to get SARSA-n!)
+    # truncate returns
+    estimated_returns = tsteps * (tsteps < backup_length) + backup_length * (tsteps >= backup_length)
+    # reverse and negate returns
+    estimated_returns = -1 * estimated_returns[::-1]
+
+    updates = np.zeros((grid_width**2, 4))
+    visit_counts = np.zeros((grid_width**2, 4))
+    for tstep, (s, a) in enumerate(zip(states, actions)):
+        visit_counts[s,a] += 1
+        # TODO: use Q-sigma
+        updates[s,a] = estimated_returns[tstep]
+    
+    return updates, visit_counts
+"""
+
+
+
+
+
+
+#----------------------------------------
+# RUN THINGS
+
+Q = np.zeros((grid_width**2, 4))
+pi = EpsilonGreedy(eps / 10.)
+mu = EpsilonGreedy(eps)
+policy = mu
+
+returns = []
+
+visit_counts = np.zeros((grid_width**2, 4))
+
+for episode in range(num_episodes):
+    states = []
+    actions = []
+    s = 0
+    finished = 0
+    step_n = 0
+    while not finished: # run an episode
+        step_n += 1
+        a = mu.sample(Q[s])
+        states.append(s)
+        actions.append(a)
+        visit_counts[s,a] += 1
+        if a == 0: # up
+            if s / grid_width == 0:
+                new_s = s
+            else:
+                new_s = s - grid_width
+        if a == 1: # right
+            if s % grid_width == grid_width-1:
+                new_s = s
+            else:
+                new_s = s + 1
+        if a == 2: # down
+            if s / grid_width == grid_width-1:
+                new_s = s
+            else:
+                new_s = s + grid_width
+        if a == 3: # left
+            if s % grid_width == 0:
+                new_s = s
+            else:
+                new_s = s - 1
+        s = new_s
+        if step_n > backup_length: # forward view...
+            estimated_return = estimate_return(mu, pi, Q, states[step_n - backup_length: step_n], actions[step_n - backup_length: step_n], sigmas=np.ones(backup_length))
+            #print estimated_return
+            Q[s,a] = (1 - lr) * Q[s,a] + lr * estimated_return
+        if s == grid_width**2 -1:
+            # TODO: the final backups!!
+            finished = 1
+            #return np.array(states), np.array(actions)
+    # returns
+    print episode, len(states)
+    returns.append(-len(states))
+
+
+    
+    """
+    #lr *= .9999
+    # rollout
+    states, actions = grid_episode(grid_width, policy, Q)
+    print episode, len(states)
+    returns.append(-len(states))
+    # TODO: monitoring
+    updates, visit_counts = get_updates(policy, Q, rollout)
+    # will this work??? this is like "every-visit" Q-learning 
+    Q = (1 - lr * visit_counts) * Q + lr * updates
+    #Q = update_Q(policy, Q, rollout)
+    """
+
+
+
+
+
+
+

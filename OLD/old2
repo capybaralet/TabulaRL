@@ -149,11 +149,19 @@ def grid_episode(grid_width, policy, Q):
                 new_s = s - 1
         s = new_s
         if s == grid_width**2 -1:
-            return [np.array(states), np.array(actions)]
+            return np.array(states), np.array(actions)
 
 
 #----------------------------------------
 # ...
+
+
+# rollout is assumed to have length = n
+def get_updates_n(mu, pi, Q, rollout):
+    assert len(rollout[0]) = len
+
+
+
 
 
 #def update_Q(policy, Q, rollout):
@@ -162,14 +170,20 @@ def get_updates(mu, pi, Q, rollout):
     num_tsteps = len(states)
     tsteps = np.arange(num_tsteps)
 
-    # action probabilities
-    mu_P_a = [mu.P_a(Q[s]) for s in rollout[0]]
-    pi_P_a = [pi.P_a(Q[s]) for s in rollout[0]]
+    # importance sampling ratios
+    rho = [pi.P_a(Q[s])[a] / mu.P_a(Q[s])[a] for s,a in rollout[0], rollout[1]]
 
-    # importance sampling ratios weights (either 0 or 1/P_a)
-    rho_t = [(greedy_actions[t] == a) / (1 - .75 * eps) for t,a in enumerate(rollout[1])]
-    #
-    #rho_t = [policy(Q[s])[a] for (s,a) in zip(rollout[0], rollout[1])]
+    # P(a|s) * Q(s,a)
+    tbs_s_a_ = [pi.P_a(Q[s]) * Q[s] for s in range(grid_width**2)]
+
+    if 1:#tree_backup:
+
+
+
+
+    # action probabilities (ALL actions)
+    #mu_P_a = [mu.P_a(Q[s]) for s,a in rollout[0], rollout[1]]
+    pi_P_a = [pi.P_a(Q[s]) for s,a in rollout[0], rollout[1]]
 
     # COMPUTE TRUNCATED RETURNS (TODO: use Q to get SARSA-n!)
     # truncate returns
@@ -208,9 +222,10 @@ returns = []
 
 for episode in range(num_episodes):
     #lr *= .9999
-    rollout = grid_episode(grid_width, policy, Q)
-    print episode, len(rollout[0])
-    returns.append(-len(rollout[0]))
+    # rollout
+    states, actions = grid_episode(grid_width, policy, Q)
+    print episode, len(states)
+    returns.append(-len(states))
     # TODO: monitoring
     updates, visit_counts = get_updates(policy, Q, rollout)
     # will this work??? this is like "every-visit" Q-learning 
