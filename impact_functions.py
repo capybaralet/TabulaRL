@@ -47,14 +47,18 @@ Settings:
     sigma: (sample, average) x (range, cap, decay)
 """
 
+
+def row_and_column(state):
+        return state / grid_width, state % grid_width
+
 import argparse
 parser = argparse.ArgumentParser()
 # DON'T CHANGE THESE!
 parser.add_argument('--debugging', type=int, default=0) # 
 parser.add_argument('--eps', type=float, default=1.)
-parser.add_argument('--environment', '-env', type=str, default='random_walk')
+parser.add_argument('--environment', type=str, default='windy_grid_world')
 parser.add_argument('--gamma', type=int, default=1.) #
-parser.add_argument('--environment_size', '-size', type=int, default=19)
+parser.add_argument('--environment_size', type=int, default=19)
 parser.add_argument('--lr', type=float, default=.4) # learning rate
 parser.add_argument('--lr_decay', type=float, default=None) #
 parser.add_argument('--num_episodes', type=int, default=100) #
@@ -62,10 +66,9 @@ parser.add_argument('--num_trials', type=int, default=50) #
 parser.add_argument('--policy', type=str, default='EpsilonGreedy')
 parser.add_argument('--target_policy', type=str, default='Greedy')
 #
-parser.add_argument('--backup_length', '-n', type=int, default=3) # FIXME: offby1
+parser.add_argument('--backup_length', type=int, default=3) # FIXME: offby1
 parser.add_argument('--sample', type=int, default=0)
-# 0 - TB
-parser.add_argument('--sigma', type=str, default='0', choices=['0','1','range','decay', 'cap', 'algorithm1',  'algorithm2', 'retrace'])
+parser.add_argument('--sigma', type=str, default='range', choices=['0','1','range','decay', 'cap', 'algorithm1',  'algorithm2', 'retrace']) # TODO: I'm not sure this is actually retrace
 # PHASES (TODO)
 parser.add_argument('--run_setup', type=int, default=1)
 parser.add_argument('--run_training', type=int, default=1)
@@ -142,9 +145,49 @@ class EpsilonGreedy(object):
         else:
             return rng.choice(len(Q_vals))
 
+    # TODO: rm
+    def evaluate(self, Q, max_steps=np.inf):
+        """ 
+        Run an entire episode and compute the returns
+        """
+        s = 0
+        finished = 0
+        step_n = 0
+        while step_n < max_steps: # run an episode
+            step_n += 1
+            a = self.sample(Q[s])
+
+            # --------- GRID WORLD DYNAMICS ----------
+            if a == 0: # up
+                if s / grid_width == 0:
+                    new_s = s
+                else:
+                    new_s = s - grid_width
+            if a == 1: # right
+                if s % grid_width == grid_width-1:
+                    new_s = s
+                else:
+                    new_s = s + 1
+            if a == 2: # down
+                if s / grid_width == grid_width-1:
+                    new_s = s
+                else:
+                    new_s = s + grid_width
+            if a == 3: # left
+                if s % grid_width == 0:
+                    new_s = s
+                else:
+                    new_s = s - 1
+            s = new_s
+
+            if s == grid_width ** 2 - 1:
+                finished = 1
+                return -step_n
+        return -np.inf
+
 # --------------------------------------------
 # ENVIRONMENTS
-from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld
+from environments import WindyGridWorld, RandomWalk, GridWorld
 
 
 #----------------------------------------
@@ -202,11 +245,6 @@ w_Q_5 = np.array([[ 0.        ,  0.        ],
        [ 1.        ,  1.        ]]) 
 
 
-if environment == 'nd_grid':
-    from Q_fns import Q_6d_grid
-    ref_Q = Q_6d_grid 
-
-
 #----------------------------------------
 # RUN 
 orig_lr = lr
@@ -224,8 +262,6 @@ elif environment == 'continuous_windy_grid_world':
     env = WindyGridWorld(tabular=False)
 elif environment == 'random_walk':
     env = RandomWalk(length=environment_size)
-elif environment == 'nd_grid':
-    env = NDGrid(num_dims=environment_size)
 
 
 if sigma == '0':
@@ -265,21 +301,19 @@ for pp, sig in enumerate(sigmas):
         assert sigma_fn(rng.rand()) == sig
 
     for trial in range(num_trials):
-        # set ref_Q (and pi)
-        # TODO: cleanup!
         if policy == 'EpsilonGreedy':
-            if target_policy == 'EpsilonGreedy' and environment == 'random_walk':
+            if target_policy == 'EpsilonGreedy':#environment == 'random_walk':
                 pi = EpsilonGreedy(eps, env)
                 ref_Q = rw_Q
             else:
-                g_eps = .9
+                g_eps = .1
                 pi = EpsilonGreedy(g_eps, env)
                 if g_eps == .1:
                     ref_Q = w_Q_1
                 if g_eps == .5:
                     ref_Q = w_Q_5
                 else:
-                    ref_Q = 0
+                    ref_Q = w_Q
             if environment == 'grid_world':
                 ref_Q = 0
             mu = EpsilonGreedy(eps, env)
@@ -291,14 +325,15 @@ for pp, sig in enumerate(sigmas):
             pi = Boltzmann(0, env)
             mu = Boltzmann(0, env)
             #mu = Boltzmann(eps / 2.)
-        if environment == 'nd_grid':
-            ref_Q = Q_6d_grid 
 
         # ----------- BEGIN ------------ #
         Q = np.zeros((env.num_states, env.num_actions))
         n = backup_length
 
         all_sigma_t = []
+
+        all_S_t = []
+        all_A_t = []
 
         for episode in range(num_episodes):
             S_t = []
@@ -374,8 +409,11 @@ for pp, sig in enumerate(sigmas):
                     print "FINISHED AT", tt
                     finished = 1
 
+            all_S_t.append(S_t)
+            all_A_t.append(A_t)
+
             all_sigma_t += sigma_t
-            if 1:# environment == 'random_walk':
+            if not environment.startswith('wind'):
                 perfs[pp,trial,episode] = (np.mean((Q - ref_Q)**2))**.5
             else:
                 pass
