@@ -12,6 +12,31 @@ np = numpy
 # ENVIRONMENTS
 
 
+
+class FullyConnected(object):
+    """ 
+    Randomly state transitions, but actions have different rewards 
+    All that is needed to get 0 regret is to always choose action 0
+    """
+    def __init__(self, size=10):
+        self.num_states = size + 1
+        self.num_actions = size
+        self.__dict__.update(locals())
+        self.S0 = 0 
+        self.terminal = size
+        self.rewards = np.dot(np.arange(size).reshape((size, 1)), np.arange(size).reshape((1, size)))
+        self.Q = -np.vstack((self.rewards, 
+                    np.zeros((1, size))
+                 ))
+
+    def step(self, s, a):
+        """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
+        if s == self.terminal:
+            return 0, 0, 1
+        return np.random.choice(self.num_states), -a * s, 0
+
+
+
 class NDGrid(object):
     """ states are represented as integers, I (de)binarize in the step method"""
     def __init__(self, num_dims):

@@ -64,6 +64,7 @@ parser.add_argument('--target_policy', type=str, default='Greedy')
 #
 parser.add_argument('--backup_length', '-n', type=int, default=3) # FIXME: offby1
 parser.add_argument('--sample', type=int, default=0)
+parser.add_argument('--saving', type=int, default=0)
 # 0 - TB
 parser.add_argument('--sigma', type=str, default='0', choices=['0','1','range','decay', 'cap', 'algorithm1',  'algorithm2', 'retrace'])
 # PHASES (TODO)
@@ -144,7 +145,21 @@ class EpsilonGreedy(object):
 
 # --------------------------------------------
 # ENVIRONMENTS
-from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld
+from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected
+
+
+if environment == 'grid_world':
+    env = GridWorld(grid_width=environment_size)
+elif environment == 'windy_grid_world':
+    env = WindyGridWorld()
+elif environment == 'continuous_windy_grid_world':
+    env = WindyGridWorld(tabular=False)
+elif environment == 'random_walk':
+    env = RandomWalk(length=environment_size)
+elif environment == 'nd_grid':
+    env = NDGrid(num_dims=environment_size)
+elif environment == 'fc':
+    env = FullyConnected(size=environment_size)
 
 
 #----------------------------------------
@@ -216,18 +231,6 @@ all_Qs = {}
 all_Q_diffs = {}
 
 
-if environment == 'grid_world':
-    env = GridWorld(grid_width=environment_size)
-elif environment == 'windy_grid_world':
-    env = WindyGridWorld()
-elif environment == 'continuous_windy_grid_world':
-    env = WindyGridWorld(tabular=False)
-elif environment == 'random_walk':
-    env = RandomWalk(length=environment_size)
-elif environment == 'nd_grid':
-    env = NDGrid(num_dims=environment_size)
-
-
 if sigma == '0':
     sigmas = [0]
 elif sigma == '1' or 'retrace':
@@ -291,6 +294,8 @@ for pp, sig in enumerate(sigmas):
             pi = Boltzmann(0, env)
             mu = Boltzmann(0, env)
             #mu = Boltzmann(eps / 2.)
+        if environment == 'fc':
+            ref_Q = 0
         if environment == 'nd_grid':
             ref_Q = Q_6d_grid 
 
@@ -310,7 +315,7 @@ for pp, sig in enumerate(sigmas):
             sigma_t = [np.inf]
 
             #mu.eps = eps / (.01*episode + 1)
-            #lr = orig_lr / (episode * lr_decay + orig_lr)
+            lr = orig_lr / (episode * lr_decay + orig_lr)
             #print "(Q**2).sum()", (Q**2).sum()
             s = env.S0
             S_t.append(s)
@@ -381,11 +386,13 @@ for pp, sig in enumerate(sigmas):
                 pass
                 #perfs[pp,trial,episode] = returns
 
-            np.save('HW1b_perfs_' + environment + '_' + sigma + '.npy', perfs)
+            if saving:
+                np.save('HW1b_perfs_' + environment + '_' + sigma + '.npy', perfs)
 
         # ---------- END ---------- #
 
-np.save('HW1b_perfs_' + environment + '_' + sigma + '___COMPLETE', perfs)
+if saving:
+    np.save('HW1b_perfs_' + environment + '_' + sigma + '___COMPLETE', perfs)
 #np.save('HW1_Q_errs_' + sigma + '.npy', Q_errs)
 
 
