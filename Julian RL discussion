@@ -1,0 +1,12 @@
+TRY ME!!!
+
+http://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf
+
+Replacing Q with an approximation (f_W) in policy gradient:
+    Instead of using compatibility criterion (eqn 4), we could just plug in an arbitrary function approximator
+    Then, the right thing to do is to subtract the covariance of:
+        1. the derivative of the log policy (wrt theta) and 
+        2. Q minus f_W
+    from the gradient of theta.
+    It is straightforward to estimate this covariance with sample trajectories.
+    It it unclear if this is unbiased (but it is consistent)... the covariance must be estimated, and this estimate needs to be unbiased (actually, is this sufficient?)

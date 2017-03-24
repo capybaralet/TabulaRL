@@ -56,7 +56,7 @@ parser.add_argument('--environment', '-env', type=str, default='random_walk')
 parser.add_argument('--gamma', type=int, default=1.) #
 parser.add_argument('--environment_size', '-size', type=int, default=19)
 parser.add_argument('--lr', type=float, default=.4) # learning rate
-parser.add_argument('--lr_decay', type=float, default=None) #
+parser.add_argument('--lr_decay', type=float, default=0) #
 parser.add_argument('--num_episodes', type=int, default=100) #
 parser.add_argument('--num_trials', type=int, default=50) #
 parser.add_argument('--policy', type=str, default='EpsilonGreedy')
@@ -295,7 +295,7 @@ for pp, sig in enumerate(sigmas):
             mu = Boltzmann(0, env)
             #mu = Boltzmann(eps / 2.)
         if environment == 'fc':
-            ref_Q = 0
+            ref_Q = env.Q
         if environment == 'nd_grid':
             ref_Q = Q_6d_grid 
 
@@ -315,7 +315,7 @@ for pp, sig in enumerate(sigmas):
             sigma_t = [np.inf]
 
             #mu.eps = eps / (.01*episode + 1)
-            lr = orig_lr / (episode * lr_decay + orig_lr)
+            lr = orig_lr / (episode * lr_decay + 1)
             #print "(Q**2).sum()", (Q**2).sum()
             s = env.S0
             S_t.append(s)

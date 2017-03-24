@@ -37,6 +37,7 @@ class FullyConnected(object):
 
 
 
+
 class NDGrid(object):
     """ states are represented as integers, I (de)binarize in the step method"""
     def __init__(self, num_dims):
