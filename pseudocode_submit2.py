@@ -145,7 +145,7 @@ class EpsilonGreedy(object):
 
 # --------------------------------------------
 # ENVIRONMENTS
-from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected
+from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected, myMDP
 
 
 if environment == 'grid_world':
@@ -160,6 +160,15 @@ elif environment == 'nd_grid':
     env = NDGrid(num_dims=environment_size)
 elif environment == 'fc':
     env = FullyConnected(size=environment_size)
+elif environment == 'mdp':
+    nS = nA = environment_size
+    def randP():
+        return rng.dirichlet(1./nS * np.ones(nS), nS * nA).reshape((nS,nA,nS))
+
+    def randR():
+        return rng.normal(0,1,(nS,nA))
+
+    env = myMDP(randP(), randR(), gamma=.9)
 
 
 #----------------------------------------

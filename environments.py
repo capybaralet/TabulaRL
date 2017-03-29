@@ -8,9 +8,35 @@ WIP RL environments
 import numpy
 np = numpy
 
+from utilities import sample
+
 # --------------------------------------------
 # ENVIRONMENTS
 
+class myMDP(object):
+
+    def __init__(self, P, R, gamma=None):
+        self.__dict__.update(locals())
+        self.num_states, self.num_actions = P.shape[0], P.shape[1]
+        self.S0 = 0
+        self.terminal = None
+        if gamma is None:
+            self.gamma = 1
+
+    def step(self, s, a):
+        new_s = sample(self.P[s,a])
+        r = self.R[s,a]
+        terminal = sample([self.gamma, 1-self.gamma])
+        #import ipdb; ipdb.set_trace()
+        return new_s, r, terminal
+    
+
+
+
+
+
+# --------------------------------------------
+# ENVIRONMENTS
 
 
 class FullyConnected(object):
@@ -28,12 +54,25 @@ class FullyConnected(object):
         self.Q = -np.vstack((self.rewards, 
                     np.zeros((1, size))
                  ))
+        
+        # s, a, s'
+        self.P = np.ones((size, size, size+1)) * 1./(size+1)
+        self.R = np.array([-a * s for s in range(size) for a in range(size)]).reshape((size, size))
+
+    """
+    def P(self, s, a):
+        return np.random.choice(self.num_states)
+
+    def R(self, s, a):
+        return -a * s
+    """
 
     def step(self, s, a):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
         if s == self.terminal:
             return 0, 0, 1
         return np.random.choice(self.num_states), -a * s, 0
+
 
 
 
@@ -169,6 +208,9 @@ class RandomWalk(object):
         self.num_actions = 2
         self.S0 = self.num_states / 2
         self.terminal = 0
+        
+        #self.R = 
+        #self.P = np.
 
     def step(self, s, a):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """

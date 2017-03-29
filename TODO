@@ -1,0 +1,11 @@
+
+So I should have the following:
+    1. an experiment script
+    2. environments
+    3. algorithms 
+    4. policies (??)
+    5. utilities
+
+There are some design choices that must be made, such as:
+    terminal states (vs. decaying reward)
+    etc...

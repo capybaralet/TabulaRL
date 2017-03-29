@@ -35,17 +35,20 @@ def make_mdp(P, R, epLen):
     return rval
 
 
+
+
+
+
+# NTS: we don't really want to do
+
+# How can we do policy evaluation without a finite horizon?
+
+
+# this can be used to get a policy from a Q-function, but we also want to do the opposite...
 def compute_qVals(R, P, epLen, policy):
     '''
-    Compute the Q values for a given R, P estimates
-
-    Args:
-        R - R[s,a] = mean rewards
-        P - P[s,a] = probability vector of transitions
-
-    Returns:
-        qVals - qVals[state, timestep] is vector of Q values for each action
-        qMax - qMax[timestep] is the vector of optimal values at timestep
+    policy_evaluation
+    we represent a policy as 2d-array of (state, P(action | state))
     '''
     qVals = {}
     qMax = {}
@@ -60,11 +63,21 @@ def compute_qVals(R, P, epLen, policy):
             qVals[s, j] = np.zeros(nAction, dtype=np.float32)
 
             for a in range(nAction):
-                qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
+                #qVals[s, j][a] = R[s, a] + np.dot(P[s, a], qMax[j + 1])
+                # Instead of taking the qMax, we use the policy's action probabilities
+                qVals[s, j][a] = R[s, a] + np.dot(P[s, a], policy[s])
 
             qMax[j][s] = np.max(qVals[s, j])
 
     return qVals, qMax
+
+
+
+
+
+
+
+
 
 
 
