@@ -9,3 +9,22 @@ So I should have the following:
 There are some design choices that must be made, such as:
     terminal states (vs. decaying reward)
     etc...
+
+
+TODO:
+    make it into a proper package (so I can just import everything and be good to go!)
+
+------------------------------------
+P: (S,A,S) or (S,A,S+1)
+R: (S,A)
+pi: (S,A)
+gamma: scalar
+Q(S,A)
+
+
+
+
+----------------------------------
+TESTS:
+    
+

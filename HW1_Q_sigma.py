@@ -19,18 +19,6 @@ def onehot(x, length):
     rval[x] = 1
     return rval
 
-def softmax(w):
-    w = numpy.array(w)
-    if len(w.shape) == 1:
-        maxes = np.max(w)
-        e = numpy.exp(w - maxes)
-        dist = e / numpy.sum(e)
-        return dist
-    maxes = numpy.amax(w, axis=1)
-    maxes = maxes.reshape(maxes.shape[0], 1)
-    e = numpy.exp(w - maxes)
-    dist = e / numpy.sum(e, axis=1, keepdims=True)
-    return dist
 
 def print_fn(thing):
     print thing
@@ -61,11 +49,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--off_policy', type=str, default='EpsilonGreedy')
 parser.add_argument('--backup_length', type=int, default=3)
 # TODO: 
-parser.add_argument('--sample', type=int, default=0)
+parser.add_argument('--deterministic', type=int, default=1)
 parser.add_argument('--sigma', type=str, default='average', choices=['0','1','range','decay', 'cap'])
 args = parser.parse_args()
 args_dict = args.__dict__
 locals().update(args_dict)
+
 
 
 # could use deterministic random seed here
@@ -73,6 +62,10 @@ rng = numpy.random.RandomState(np.random.randint(2**32 - 1))
 
 #----------------------------------------
 # policy 
+
+policies = {}
+#policies['EpsilonGreedy'] = 
+
 class EpsilonGreedy(object):
     def __init__(self, eps, env):
         self.eps = eps
@@ -147,7 +140,7 @@ for pp, sig in enumerate(sigmas):
         sigma_fn = lambda x: min(1, 1 / x)
     elif sigma == 'decay':
         sigma_fn = lambda x: episode ** .95
-    elif sample:
+    elif not deterministic:
         sigma_fn = lambda x: rng.rand() < sig
     else:
         sigma_fn = lambda x: sig

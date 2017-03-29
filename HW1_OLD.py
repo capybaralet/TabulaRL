@@ -160,7 +160,7 @@ class Tabular(object):
 
 # --------------------------------------------
 # ENVIRONMENTS
-from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected, myMDP
+from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected, MDP
 
 
 if environment == 'grid_world':
@@ -183,7 +183,7 @@ elif environment == 'mdp':
     def randR():
         return rng.normal(0,1,(nS,nA))
 
-    env = myMDP(randP(), randR(), gamma=.9)
+    env = MDP(randP(), randR(), gamma=.9)
 
 
 #----------------------------------------

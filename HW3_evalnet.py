@@ -15,7 +15,8 @@ from keras.optimizers import RMSprop, Adam
 from keras.utils import np_utils
 
 # my code
-from algorithms import iterative_policy_evaluation as ipe
+from algorithms import iterative_policy_evaluation
+from environments import MDP
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -29,8 +30,8 @@ parser.add_argument('--num_train', type=int, default=10000) #
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--lr', type=float, default=0.01)
 parser.add_argument('--num_epochs', type=int, default=200)
-parser.add_argument('--num_units', type=int, default=100)
-parser.add_argument('--num_layers', type=int, default=3)
+parser.add_argument('--num_units', type=int, default=1000)
+parser.add_argument('--num_layers', type=int, default=4)
 # script config
 parser.add_argument('--save', type=int, default=0)
 parser.add_argument('--save_dir', type=str, default="./")
@@ -90,7 +91,7 @@ Y = []
 print "making dataset..."
 for nn, x in enumerate(X):
     print nn
-    Y.append(ipe(x, P, R, gamma)[0])
+    Y.append(iterative_policy_evalutation(x, MDP(P, R, gamma)))
 Y = numpy.array(Y)
 X = X.reshape((num_examples, -1))
 # train/valid/test split

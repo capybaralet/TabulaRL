@@ -13,36 +13,69 @@ I index as:
 """
 
 import numpy as np
-#from utilities import sample
 
 
-# TODO: I still haven't implemented a (generic) off-policy algorithm for Q-values...
-#   ...but I have the iterative policy evaluation, that's enough for now!
+# TODO: pass random seeds for reproducibility! (or just use rng.seed())
 
+# --------------------------------------------------------------------------
+# Utilities (TODO: move?)
 
+def P_pi(P, pi):
+    """ P_pi(s' | s) """
+    return np.sum(P * pi, axis = 1)
 
-# TODO: pass random seeds for reproducibility!
+def get_Q(env, V):
+    """ compute Q given V """
+    P, R, gamma = env.P, env.R, env.gamma
+    Q = np.copy(R)
+    Q += gamma * np.sum(P * V.reshape((1,1,-1)), axis=-1)
+    return Q
 
+# --------------------------------------------------------------------------
+# SECTION 4
 
-# N.B. this is IN-PLACE version!!
-# TODO: Q-learning version (??)
-def iterative_policy_evaluation(pi, P, R, gamma=1, tol=1e-10):
+# section 4.1
+def iterative_policy_evaluation(pi, env, tol=1e-10):
+    """ in place"""
+    P, R, gamma = env.P, env.R, env.gamma
     # Initialize an array V (s) = 0, for all s in S+
     V = np.zeros(P.shape[-1])
     delta = np.inf
     num_iterations = 0
     while delta > tol:
         num_iterations += 1
-        delta = 0 # max (error of V) over all states
+        # max_s(change in V[s])
+        delta = 0
         for s in range(P.shape[0]): # don't update terminal state
             v = V[s]
             # the sum over s' is implicit; maybe we can do that for the sum over a, as well, for a more efficient implementation
             inner_sum = np.array([ np.sum( P[s,a] * ( R[s,a] + gamma * V )) for a in range(len(pi[s])) ])
             V[s] = np.sum(pi[s] * inner_sum)
             delta = max(delta, np.abs(v - V[s]))
-        #print delta, V
-    return V, num_iterations
+    return V
 
+# section 4.4
+def value_iteration(env, tol=1e-10):
+    """ returns pi, V """
+    V = np.zeros(env.nS + 1)
+    delta = np.inf
+    while delta > tol:
+        delta = 0 
+        for s in range(env.nS):
+            v = V[s]
+            V[s] = max([ np.sum( env.P[s,a] * ( env.R[s,a] + env.gamma * V )) for a in range(env.nA)])
+            delta = max(delta, np.abs(v - V[s]))
+    # compute the greedy policy
+    pi = np.zeros((env.nS, env.nA))
+    for s in range(env.nS):
+        pi[s] = np.argmax([ np.sum( env.P[s,a] * ( env.R[s,a] + env.gamma * V )) for a in range(env.nA)])
+    return pi, V
+
+    
+
+
+# --------------------------------------------------------------------------
+# SECTION 5
 
 # in the book, they only have this for greedy pi; does it work for arbitrary pi??
 # ^ I think that requires importance sampling
