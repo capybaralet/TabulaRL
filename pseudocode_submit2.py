@@ -87,6 +87,7 @@ if backup_length is None:
 
 # could use deterministic random seed here
 rng = numpy.random.RandomState(np.random.randint(2**32 - 1))
+rng = numpy.random.RandomState(1)
 
 #----------------------------------------
 # Evaluation (TODO: problem is that the target-policy may never reach a terminal state...)
@@ -106,19 +107,20 @@ class Boltzmann(object):
         self.env = env
         self.inv_temp = inv_temp
 
-    def P_a(self, Q_vals):
+    def P_a(self, Q, s):
         """ probability of taking each action, given their Q-values """
+        Q_vals = Q[s]
         B_probs = softmax(self.inv_temp * Q_vals)
         # mixture of Boltzmann + epsilon greedy
         return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * B_probs
 
     def sample(self, Q_vals):
         """ sample an action """
-        return np.argmax(rng.multinomial(1, self.P_a(Q_vals)))
+        return np.argmax(rng.multinomial(1, self.P_a(Q, s)))
 
 
 class MoveLeft(object):
-    def P_a(self, Q_vals):
+    def P_a(self, Q, s):
         """ probability of taking each action, given their Q-values """
         return [1,0]
 
@@ -132,16 +134,29 @@ class EpsilonGreedy(object):
         self.eps = eps
         self.env = env
 
-    def P_a(self, Q_vals):
+    def P_a(self, Q, s):
         """ probability of taking each action, given their Q-values """
+        Q_vals = Q[s]
         return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.num_actions)
 
-    def sample(self, Q_vals):
+    def sample(self, Q, s):
         """ sample an action """
         if rng.rand() > self.eps:
             return np.argmax(Q_vals)
         else:
             return rng.choice(len(Q_vals))
+
+
+class Tabular(object):
+    def __init__(self, P_a_given_s):
+        self.__dict__.update(locals())
+
+    def P_a(self, Q, s):
+        return self.P_a_given_s[s]
+
+    def sample(self, Q, s):
+        return np.argmax(rng.multinomial(1, self.P_a(Q, s)))
+
 
 # --------------------------------------------
 # ENVIRONMENTS
@@ -265,9 +280,12 @@ for pp, sig in enumerate(sigmas):
     if sigma == 'cap':
         sigma_fn = lambda x: min(1, 1 / x)
     elif sigma == 'algorithm1':
-        sigma_fn = lambda x: 1 if x <= 1 else 0
+        sigma_fn = lambda x: x <= 1
+        #sigma_fn = lambda x: x >= 1 # no
     elif sigma == 'algorithm2':
         sigma_fn = lambda x,y: 0 if y == 0 else min(1, x / (1-x) * (1-y) / y)
+    elif sigma == 'retrace_tb':
+        pass #sigma_fn = lambda x: 0 if x <= 1 els
     elif sigma == 'decay':
         sigma_fn = lambda x: episode ** .1
     elif sample:
@@ -308,6 +326,10 @@ for pp, sig in enumerate(sigmas):
         if environment == 'nd_grid':
             ref_Q = Q_6d_grid 
 
+        if policy == 'tabular':
+            mu = Tabular(rng.dirichlet(1. / env.num_actions * np.ones(env.num_actions), env.num_states))
+            ref_Q = w_Q_5
+
         # ----------- BEGIN ------------ #
         Q = np.zeros((env.num_states, env.num_actions))
         n = backup_length
@@ -328,7 +350,7 @@ for pp, sig in enumerate(sigmas):
             #print "(Q**2).sum()", (Q**2).sum()
             s = env.S0
             S_t.append(s)
-            a = mu.sample(Q[S_t[0]])
+            a = mu.sample(Q, S_t[0])
             A_t.append(a)
             Q_t.append(Q[s,a])
 
@@ -346,23 +368,23 @@ for pp, sig in enumerate(sigmas):
                         TT = tt + 1
                         delta_t.append(r - Q_t[tt])
                     else:
-                        a = mu.sample(Q[s])
+                        a = mu.sample(Q, s)
                         A_t.append(a)
                         Q_t.append(Q[s,a])
-                        pi_t.append(pi.P_a(Q[s])[a])
-                        if sigma == 'retrace':
-                            rho_t.append(min(pi_t[tt+1] /  mu.P_a(Q[s])[a], 1))
+                        pi_t.append(pi.P_a(Q,s)[a])
+                        if sigma in ['retrace']:
+                            rho_t.append(min(pi_t[tt+1] /  mu.P_a(Q,s)[a], 1))
                         else:
-                            rho_t.append(pi_t[tt+1] /  mu.P_a(Q[s])[a])
+                            rho_t.append(pi_t[tt+1] /  mu.P_a(Q,s)[a])
                         if sigma == 'algorithm2':
                             if debugging:
-                                muu = mu.P_a(Q[s])[a]
-                                pii = pi.P_a(Q[s])[a]
+                                muu = mu.P_a(Q,s)[a]
+                                pii = pi.P_a(Q,s)[a]
                                 print muu, pii
-                            sigma_t.append(sigma_fn(mu.P_a(Q[s])[a], pi_t[tt+1]))
+                            sigma_t.append(sigma_fn(mu.P_a(Q,s)[a], pi_t[tt+1]))
                         else:
                             sigma_t.append(sigma_fn(rho_t[-1]))
-                        delta_t.append(r - Q_t[tt] + gamma * sigma_t[tt+1]*Q_t[tt+1] + gamma * (1-sigma_t[tt+1])*np.sum(pi.P_a(Q[s]) * Q[s]))
+                        delta_t.append(r - Q_t[tt] + gamma * sigma_t[tt+1]*Q_t[tt+1] + gamma * (1-sigma_t[tt+1])*np.sum(pi.P_a(Q,s) * Q[s]))
                         if debugging:
                             print "tt", tt
                             print "delta_t", delta_t

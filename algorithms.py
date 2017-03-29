@@ -45,6 +45,7 @@ def iterative_policy_evaluation(pi, P, R, gamma=1, tol=1e-10):
 
 
 # in the book, they only have this for greedy pi; does it work for arbitrary pi??
+# ^ I think that requires importance sampling
 def off_policy_every_visit_MC_control(mdp, mu=None, pi='greedy', gamma=1, tol=1e-10, num_iterations=1e6, Q=None):
     # TODO: allow stochastic policies
     # TODO: deal with discounting somehow??
