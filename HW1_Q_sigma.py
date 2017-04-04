@@ -73,7 +73,7 @@ class EpsilonGreedy(object):
 
     def P_a(self, Q_vals):
         """ probability of taking each action, given their Q-values """
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.num_actions)
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.nA)
 
     def sample(self, Q_vals):
         """ sample an action """
@@ -89,9 +89,9 @@ class RandomWalk(object):
     def __init__(self, length):
         assert length % 2 == 1
         self.__dict__.update(locals())
-        self.num_states = length + 1
-        self.num_actions = 2
-        self.S0 = self.num_states / 2
+        self.nS = length + 1
+        self.nA = 2
+        self.S0 = self.nS / 2
         self.terminal = 0
 
     def step(self, s, a):
@@ -159,7 +159,7 @@ for pp, sig in enumerate(sigmas):
 
     for trial in range(num_trials):
 
-        Q = np.zeros((env.num_states, env.num_actions))
+        Q = np.zeros((env.nS, env.nA))
 
         for episode in range(num_episodes):
 

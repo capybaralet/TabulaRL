@@ -3,6 +3,7 @@
 
 # ignore these
 *.swp
+*.swn
 *.pyc
 *.log
 *.aux
@@ -18,4 +19,6 @@
 
 LOGS
 SMART_DISPATCH_LOGS
+
+rlcourse-*
 

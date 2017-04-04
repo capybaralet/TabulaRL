@@ -100,7 +100,7 @@ def evaluate(policy, environment):
 
 #----------------------------------------
 # policy 
-# TODO: num_actions
+# TODO: nA
 class Boltzmann(object):
     def __init__(self, eps, env, inv_temp=1.):
         self.eps = eps
@@ -112,7 +112,7 @@ class Boltzmann(object):
         Q_vals = Q[s]
         B_probs = softmax(self.inv_temp * Q_vals)
         # mixture of Boltzmann + epsilon greedy
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * B_probs
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * B_probs
 
     def sample(self, Q_vals):
         """ sample an action """
@@ -137,7 +137,7 @@ class EpsilonGreedy(object):
     def P_a(self, Q, s):
         """ probability of taking each action, given their Q-values """
         Q_vals = Q[s]
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.num_actions)
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.nA)
 
     def sample(self, Q, s):
         """ sample an action """
@@ -160,7 +160,7 @@ class Tabular(object):
 
 # --------------------------------------------
 # ENVIRONMENTS
-from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected, MDP
+from environments import NDGrid, WindyGridWorld, RandomWalk, GridWorld, FullyConnected, myMDP
 
 
 if environment == 'grid_world':
@@ -183,7 +183,7 @@ elif environment == 'mdp':
     def randR():
         return rng.normal(0,1,(nS,nA))
 
-    env = MDP(randP(), randR(), gamma=.9)
+    env = myMDP(randP(), randR(), gamma=.9)
 
 
 #----------------------------------------
@@ -327,11 +327,11 @@ for pp, sig in enumerate(sigmas):
             ref_Q = Q_6d_grid 
 
         if policy == 'tabular':
-            mu = Tabular(rng.dirichlet(1. / env.num_actions * np.ones(env.num_actions), env.num_states))
+            mu = Tabular(rng.dirichlet(1. / env.nA * np.ones(env.nA), env.nS))
             ref_Q = w_Q_5
 
         # ----------- BEGIN ------------ #
-        Q = np.zeros((env.num_states, env.num_actions))
+        Q = np.zeros((env.nS, env.nA))
         n = backup_length
 
         all_sigma_t = []

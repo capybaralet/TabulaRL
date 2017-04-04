@@ -95,7 +95,7 @@ def evaluate(policy, environment):
 
 #----------------------------------------
 # policy 
-# TODO: num_actions
+# TODO: nA
 class Boltzmann(object):
     def __init__(self, eps, env, inv_temp=1.):
         self.eps = eps
@@ -106,7 +106,7 @@ class Boltzmann(object):
         """ probability of taking each action, given their Q-values """
         B_probs = softmax(self.inv_temp * Q_vals)
         # mixture of Boltzmann + epsilon greedy
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * B_probs
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * B_probs
 
     def sample(self, Q_vals):
         """ sample an action """
@@ -130,7 +130,7 @@ class EpsilonGreedy(object):
 
     def P_a(self, Q_vals):
         """ probability of taking each action, given their Q-values """
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.num_actions)
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.nA)
 
     def sample(self, Q_vals):
         """ sample an action """
@@ -187,17 +187,17 @@ class WindyGridWorld(object):
         self.__dict__.update(locals())
         self.width = 10
         self.height = 7
-        self.num_states = self.width * self.height + 1
-        self.num_actions = 4
+        self.nS = self.width * self.height + 1
+        self.nA = 4
         self.S0 = 30
-        self.terminal = self.num_states - 1
+        self.terminal = self.nS - 1
 
     def step(self, s, a):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
-        if s == self.num_states - 1: # terminal state
+        if s == self.nS - 1: # terminal state
             return 0, 0, 1
         if s == 37:
-            return self.num_states-1, 0, 0
+            return self.nS-1, 0, 0
         if a == 0: # up
             if s / self.width == 0:
                 new_s = s
@@ -231,17 +231,17 @@ class WindyGridWorld(object):
 class GridWorld(object):
     def __init__(self, grid_width):
         self.__dict__.update(locals())
-        self.num_states = grid_width**2 + 1
-        self.num_actions = 4
+        self.nS = grid_width**2 + 1
+        self.nA = 4
         self.S0 = 0
-        self.terminal = self.num_states - 1
+        self.terminal = self.nS - 1
 
     def step(self, s, a):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
-        if s == self.num_states - 1: # terminal state
+        if s == self.nS - 1: # terminal state
             return 0, 0, 1
-        if s == self.num_states - 2:
-            return self.num_states-1, 0, 0
+        if s == self.nS - 2:
+            return self.nS-1, 0, 0
         if a == 0: # up
             if s / self.grid_width == 0:
                 return s, -1, 0
@@ -269,9 +269,9 @@ class RandomWalk(object):
     def __init__(self, length):
         assert length % 2 == 1
         self.__dict__.update(locals())
-        self.num_states = length + 1
-        self.num_actions = 2
-        self.S0 = self.num_states / 2
+        self.nS = length + 1
+        self.nA = 2
+        self.S0 = self.nS / 2
         self.terminal = 0
 
     def step(self, s, a):
@@ -366,7 +366,7 @@ for pp, sig in enumerate(sigmas):
             #mu = Boltzmann(eps / 2.)
 
         # ----------- BEGIN ------------ #
-        Q = np.zeros((env.num_states, env.num_actions))
+        Q = np.zeros((env.nS, env.nA))
         n = backup_length
 
         for episode in range(num_episodes):

@@ -64,7 +64,7 @@ rng = numpy.random.RandomState(np.random.randint(2**32 - 1))
 
 #----------------------------------------
 # policy 
-# TODO: num_actions
+# TODO: nA
 class Boltzmann(object):
     def __init__(self, eps, inv_temp=.1):
         self.eps = eps
@@ -98,7 +98,7 @@ class EpsilonGreedy(object):
 
     def P_a(self, Q_vals):
         """ probability of taking each action, given their Q-values """
-        return self.eps * np.ones(self.env.num_actions) / float(self.env.num_actions) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.num_actions)
+        return self.eps * np.ones(self.env.nA) / float(self.env.nA) + (1-self.eps) * onehot(np.argmax(Q_vals), self.env.nA)
 
     def sample(self, Q_vals):
         """ sample an action """
@@ -152,8 +152,8 @@ class EpsilonGreedy(object):
 class GridWorld(object):
     def __init__(self, grid_width):
         self.__dict__.update(locals())
-        self.num_states = grid_width**2
-        self.num_actions = 4
+        self.nS = grid_width**2
+        self.nA = 4
         self.realQ = 0 # TODO
         self.S0 = 0
 
@@ -161,7 +161,7 @@ class GridWorld(object):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
         if s == 0:
             return 0, 0, 1
-        if s == self.num_states:
+        if s == self.nS:
             return 0, 0, 0
         if a == 0: # up
             if s / self.grid_width == 0:
@@ -190,9 +190,9 @@ class RandomWalk(object):
     def __init__(self, length):
         assert length % 2 == 1
         self.__dict__.update(locals())
-        self.num_states = length + 1
-        self.num_actions = 2
-        self.S0 = self.num_states / 2
+        self.nS = length + 1
+        self.nA = 2
+        self.S0 = self.nS / 2
 
     def step(self, s, a):
         """ returns s_{t+1}, r_t, and is_terminal_{t+1} """
@@ -299,7 +299,7 @@ for prob_tree in [1]:
         Q_diffs = []
 
         # ----------- BEGIN ------------ #
-        Q = np.zeros((env.num_states, env.num_actions))
+        Q = np.zeros((env.nS, env.nA))
         n = backup_length
 
 
