@@ -4,6 +4,7 @@
 # ignore these
 *.swp
 *.swn
+*.swo
 *.pyc
 *.log
 *.aux
