@@ -151,7 +151,7 @@ def off_policy_every_visit_MC(env, mu=None, pi='greedy', tol=1e-10, num_episodes
                 if W == 0:
                     break
     
-    return C, Q
+    return C, Q, T
 
 
 EVMC = off_policy_every_visit_MC

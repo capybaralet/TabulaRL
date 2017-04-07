@@ -66,9 +66,109 @@ class MDP(object):
 
 # ------------------------------------------
 # ------------------------------------------
+#def fixed_bandit(size=10, **kwargs):
+def lanes1(size, P_terminate=None):
+    """
+    Returns == first action
+    """
+    nS = size
+    nA = size - 1
+    P = np.zeros((nS, nA, nS))
+    R = np.zeros((nS, nA))
+    for a in range(nA):
+        P[0,a,a+1] = 1
+        R[0,a] = a
+        for s in range(1, nS):
+            P[s,a,s] = 1
+            R[s,a] = 0
+    P = np.concatenate(( (1 - P_terminate) * P,
+                              P_terminate  * np.ones((nS, nA, 1)) ), axis=2)
+    return MDP(P,R)
+
+def lanes2(size, P_terminate=None):
+    """
+    Returns == n * first action
+    """
+    nS = size
+    nA = size - 1
+    P = np.zeros((nS, nA, nS))
+    R = np.zeros((nS, nA))
+    for a in range(nA):
+        P[0,a,a+1] = 1
+        R[0,a] = a
+        for s in range(1, nS):
+            P[s,a,s] = 1
+            R[s,a] = s
+    P = np.concatenate(( (1 - P_terminate) * P,
+                              P_terminate  * np.ones((nS, nA, 1)) ), axis=2)
+    return MDP(P,R)
+
+def lanes3(size, P_terminate=None):
+    """
+    First action teleports the agent to the corresponding state
+    Subsequent actions only allow local movement
+    """
+    nS = size
+    nA = size - 1
+    P = np.zeros((nS, nA, nS))
+    R = np.zeros((nS, nA))
+    for a in range(nA):
+        P[0,a,a+1] = 1
+        R[0,a] = a
+        for s in range(1, nS):
+            if a+1 < s and s > 1:
+                P[s,a,s-1] = 1
+            elif a+1 > s and s < size-1:
+                P[s,a,s+1] = 1
+            else:
+                P[s,a,s] = 1
+            R[s,a] = s
+    P = np.concatenate(( (1 - P_terminate) * P,
+                              P_terminate  * np.ones((nS, nA, 1)) ), axis=2)
+
+    return MDP(P,R)
+
+def lanes4(size, P_terminate=None):
+    """
+    Every action teleports the agent to the corresponding state.
+    Subsequent actions only allow local movement
+    """
+    nS = size
+    nA = size - 1
+    P = np.zeros((nS, nA, nS))
+    R = np.zeros((nS, nA))
+    for a in range(nA):
+        P[:,a,a+1] = 1
+        R[0,a] = a
+        for s in range(1, nS):
+            R[s,a] = s
+    P = np.concatenate(( (1 - P_terminate) * P,
+                              P_terminate  * np.ones((nS, nA, 1)) ), axis=2)
+
+    return MDP(P,R)
+
+def random_MDP(size=10, P_terminate=0):
+    """ 
+    random P and R
+    """
+    nS = nA = size 
+    if P_terminate > 0:
+        P = np.concatenate(( (1 - P_terminate) * np.random.dirichlet(1./nS * np.ones(nS), nS * nA).reshape((nS,nA,nS)), 
+                            P_terminate  * np.ones((nS, nA, 1)) ), axis=2)
+    else:
+        P = np.random.dirichlet(1./nS * np.ones(nS), nS * nA).reshape((nS,nA,nS))
+    R = np.random.normal(0,1,(nS,nA))
+
+    return MDP(P,R)
+
+
+def many_actions(size, P_terminate=0):
+
+
+
 def fully_connected(size=10):
     """ 
-    Randomly state transitions, but actions have different rewards 
+    State transitions are uniform random, but actions have different rewards 
     All that is needed to get 0 regret is to always choose action 0
     """
     # has_terminal == 1
@@ -137,9 +237,11 @@ def random_walk(size=19):
 
 
 
-env_dict = {'fully_connected':fully_connected,
-                'grid_world':grid_world,
-                'random_walk':random_walk}
+env_dict = {'lanes1':lanes1,'lanes2':lanes2,'lanes3':lanes3,'lanes4':lanes4,
+            'fully_connected':fully_connected,
+            'grid_world':grid_world,
+            'random_MDP':random_MDP,
+            'random_walk':random_walk}
 
 
 
